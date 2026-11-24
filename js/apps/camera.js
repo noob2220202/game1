@@ -2,6 +2,8 @@
  * 카메라 app: rear = the room (G.room), front = REAL selfie camera via getUserMedia
  * (optional; falls back to a dark fake feed). Story hooks:
  * G.STORY.camera = { onSelfie(api) }  api: {video, overlay, faceCount(n), box(x,y,w,h), close(), real:boolean}
+ * The front stream is stopped on close, on page hide, when the node leaves the DOM, and when
+ * getUserMedia resolves after the user already closed the screen (race).
  * ========================================================= */
 (function () {
   'use strict';
@@ -18,15 +20,24 @@
   });
 
   CAM.rear = function (p) {
-    G.room.open({ mode: (p && p.mode) || 'camera', onFlip: () => { G.room.current().close(); CAM.front(); } });
+    p = p || {};
+    return G.room.open({ mode: p.mode || 'camera', view: p.view, onFlip: () => { const r = G.room.current(); if (r) r.close(); CAM.front(); } });
   };
 
-  CAM.stop = function () { if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; G.bus.emit('camera:real', false); } };
+  function stopStream(s) { if (!s) return; try { s.getTracks().forEach((t) => { try { t.stop(); } catch (e) {} }); } catch (e) {} }
+  CAM.stop = function () {
+    if (stream) { stopStream(stream); stream = null; G.bus.emit('camera:real', false); }
+    document.querySelectorAll('video.cam-live').forEach((v) => { try { v.pause(); v.srcObject = null; } catch (e) {} });
+  };
+  CAM.isLive = () => !!stream;
+  // never leave the camera running in the background
+  document.addEventListener('visibilitychange', () => { if (document.hidden) CAM.stop(); });
+  window.addEventListener('pagehide', () => CAM.stop());
 
   CAM.front = async function () {
     const root = el('div.room.selfie');
-    const video = el('video', { playsinline: true, autoplay: true, muted: true, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)', filter: 'brightness(.75) contrast(1.15) saturate(.7)' } });
-    video.muted = true; video.setAttribute('playsinline', '');
+    const video = el('video.cam-live', { playsinline: true, autoplay: true, muted: true, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)', filter: 'brightness(.75) contrast(1.15) saturate(.7)' } });
+    video.muted = true; video.setAttribute('playsinline', ''); video.setAttribute('webkit-playsinline', '');
     const fake = el('div', { style: { position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 45%, #2a2622 0%, #0b0a09 60%, #000 100%)' } });
     const overlay = el('div', { style: { position: 'absolute', inset: 0, pointerEvents: 'none' } });
     const faceBox = el('div.face-box', { style: { position: 'absolute', left: '30%', top: '30%', width: '40%', height: '30%', border: '1.5px solid #ffd60a', borderRadius: '10px', opacity: 0, transition: 'all .5s' } });
@@ -37,19 +48,36 @@
     root.append(fake, video, overlay, faceBox, faceLbl, el('div.room-grain'),
       el('div.cam-top', null, closeBtn, el('div.cam-top-mid', null, el('div.room-label', null, '전면 카메라')), el('span', { style: { width: '40px' } })),
       el('div.cam-bottom', null, el('div.cam-modes', null, el('span', null, '동영상'), el('b', null, '사진'), el('span', null, '인물')), el('div.cam-row', null, el('span', { style: { width: '46px' } }), shutter, flip)));
+    let closed = false;
     const ov = G.phone.overlay(root, { onBack: () => close() });
     let real = false;
-    function close() { CAM.stop(); ov.close(); G.bus.emit('camera:front-close'); }
-    closeBtn.addEventListener('click', close);
+    // if something else removes the overlay (closeAll, scene change), stop the camera too
+    const mo = new MutationObserver(() => { if (!root.isConnected) close(true); });
+    if (root.parentNode) mo.observe(root.parentNode, { childList: true });
+    function close(silent) {
+      if (closed) return;
+      closed = true;
+      mo.disconnect();
+      CAM.stop();
+      try { video.srcObject = null; } catch (e) {}
+      if (!silent) ov.close();
+      G.bus.emit('camera:front-close');
+    }
+    closeBtn.addEventListener('click', () => close());
     flip.addEventListener('click', () => { close(); setTimeout(() => CAM.rear(), 250); });
     shutter.addEventListener('click', () => { G.audio.sfx.shutter(); G.fx.flash('#fff', 300); G.bus.emit('camera:selfie-shot'); });
 
     if (G.settings.camera !== false && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 1280 } }, audio: false });
-        video.srcObject = stream; await video.play().catch(() => {});
-        real = true; fake.style.display = 'none';
-        G.bus.emit('camera:real', true);
+        const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 1280 } }, audio: false });
+        if (closed) { stopStream(s); }
+        else {
+          if (stream && stream !== s) stopStream(stream);
+          stream = s;
+          video.srcObject = s; await video.play().catch(() => {});
+          if (closed) CAM.stop();
+          else { real = true; fake.style.display = 'none'; G.bus.emit('camera:real', true); }
+        }
       } catch (e) { real = false; }
     }
     if (!real) video.style.display = 'none';
@@ -59,11 +87,12 @@
       box(x, y, w, h, color) { faceBox.style.opacity = 1; Object.assign(faceBox.style, { left: x * 100 + '%', top: y * 100 + '%', width: w * 100 + '%', height: h * 100 + '%', borderColor: color || '#ffd60a' }); },
       hideBox() { faceBox.style.opacity = 0; },
       close,
-      isOpen: () => document.body.contains(root),
+      isOpen: () => !closed && document.body.contains(root),
     };
+    if (closed) return api;
     G.bus.emit('camera:front', api);
     if (G.STORY.camera && G.STORY.camera.onSelfie) G.STORY.camera.onSelfie(api);
-    else { await sleep(800); api.box(0.3, 0.3, 0.4, 0.3); api.faceCount(1); }
+    else { await sleep(800); if (!closed) { api.box(0.3, 0.3, 0.4, 0.3); api.faceCount(1); } }
     return api;
   };
 })();

@@ -26,48 +26,51 @@
     if (G.IMG && G.IMG[key]) return G.IMG[key];
     return 'assets/img/' + key + (PNG.test(key) ? '.png' : '.jpg');
   }
+  /** is this asset available? (when the registry exists, only registered keys are requested -> no 404s) */
+  function has(key) { return !G.IMG || !!G.IMG[key]; }
   const flag = (f) => !!(G.flag && G.flag(f));
   const T = (s) => (G.T ? G.T(s) : s);
   const note = (s) => { try { G.notebook && G.notebook.note && G.notebook.note(T(s)); } catch (e) {} };
 
   /* ---------- measured regions (fractions of the 1024x1536 frames) ---------- */
   const B = {
-    // door view
-    doorSlab: { x: 0.305, y: 0.33, w: 0.32, h: 0.445 },
-    keypad: { x: 0.548, y: 0.476, w: 0.074, h: 0.064 },
-    keypadLed: { x: 0.582, y: 0.503 },
-    handle: { x: 0.488, y: 0.522, w: 0.066, h: 0.04 },
-    peephole: { x: 0.432, y: 0.438, w: 0.05, h: 0.042 },
-    sticker: { x: 0.421, y: 0.484, w: 0.074, h: 0.036 },
-    guard: { x: 0.505, y: 0.385, w: 0.115, h: 0.06 },
-    shoes: { x: 0.285, y: 0.8, w: 0.105, h: 0.075 },
-    parcel: { x: 0.545, y: 0.74, w: 0.125, h: 0.095 },
+    // door view (room_door.jpg has the 관리사무소 sticker + real QR baked in)
+    doorSlab: { x: 0.31, y: 0.333, w: 0.3, h: 0.443 },
+    keypad: { x: 0.552, y: 0.484, w: 0.068, h: 0.076 },
+    keypadLed: { x: 0.585, y: 0.503 },
+    handle: { x: 0.505, y: 0.528, w: 0.048, h: 0.034 },
+    peephole: { x: 0.438, y: 0.442, w: 0.04, h: 0.033 },
+    sticker: { x: 0.403, y: 0.481, w: 0.1, h: 0.045 },
+    guard: { x: 0.53, y: 0.452, w: 0.1, h: 0.034 },
+    shoes: { x: 0.29, y: 0.805, w: 0.1, h: 0.07 },
+    parcel: { x: 0.545, y: 0.742, w: 0.12, h: 0.092 },
     // bed view
-    duvet: { x: 0.33, y: 0.56, w: 0.49, h: 0.1 },
-    underBed: { x: 0.42, y: 0.715, w: 0.39, h: 0.1 },
-    glassBed: { x: 0.83, y: 0.585, w: 0.09, h: 0.075 },
-    dent: { x: 0.45, y: 0.575, w: 0.25, h: 0.075 },
-    glassPatchBed: { x: 0.852, y: 0.596, w: 0.038, h: 0.04 },
+    duvet: { x: 0.29, y: 0.555, w: 0.52, h: 0.105 },
+    underBed: { x: 0.41, y: 0.715, w: 0.37, h: 0.1 },
+    glassBed: { x: 0.82, y: 0.57, w: 0.11, h: 0.085 },
+    dent: { x: 0.43, y: 0.584, w: 0.226, h: 0.079 },
+    glassPatchBed: { x: 0.846, y: 0.583, w: 0.033, h: 0.045 },
     // window view
-    windowPane: { x: 0.325, y: 0.255, w: 0.445, h: 0.28 },
-    desk: { x: 0.645, y: 0.585, w: 0.355, h: 0.105 },
-    boxes: { x: 0.79, y: 0.735, w: 0.21, h: 0.265 },
-    glassWin: { x: 0.215, y: 0.625, w: 0.08, h: 0.075 },
+    windowPane: { x: 0.32, y: 0.26, w: 0.45, h: 0.27 },
+    desk: { x: 0.645, y: 0.59, w: 0.355, h: 0.12 },
+    boxes: { x: 0.79, y: 0.74, w: 0.21, h: 0.26 },
+    glassWin: { x: 0.2, y: 0.62, w: 0.1, h: 0.09 },
     // wardrobe view
-    wardrobe: { x: 0.3, y: 0.205, w: 0.42, h: 0.635 },
-    gapLine: { x: 0.5, y: 0.215, w: 0.036, h: 0.615 },
-    gapCenter: { x: 0.517, y: 0.52 },
-    handles: { x: 0.482, y: 0.552, w: 0.068, h: 0.034 },
-    rack: { x: 0.18, y: 0.52, w: 0.135, h: 0.365 },
-    gapStage: { x: 0.47, y: 0.2, w: 0.094, h: 0.65 },
-    fingers: { x: 0.475, y: 0.48, w: 0.05, h: 0.09 },
-    glint: { x: 0.5145, y: 0.452 },
+    wardrobe: { x: 0.305, y: 0.208, w: 0.422, h: 0.636 },
+    gapLine: { x: 0.497, y: 0.214, w: 0.036, h: 0.6 },
+    gapCenter: { x: 0.515, y: 0.5 },
+    handles: { x: 0.488, y: 0.552, w: 0.056, h: 0.032 },
+    rack: { x: 0.185, y: 0.52, w: 0.12, h: 0.355 },
+    gapStage: { x: 0.46, y: 0.215, w: 0.065, h: 0.596 },
+    fingers: { x: 0.468, y: 0.44, w: 0.05, h: 0.05 },
+    glint: { x: 0.513, y: 0.452 },
     rackFallen: { x: 0.08, y: 0.68, w: 0.3, h: 0.22 },
     // lit nest (room_lit_nest replaces the wardrobe view after 비상벨)
-    nestOrgel: { x: 0.43, y: 0.6, w: 0.15, h: 0.08 },
-    nestPolaroids: { x: 0.37, y: 0.28, w: 0.28, h: 0.17 },
-    nestBlanket: { x: 0.34, y: 0.68, w: 0.34, h: 0.12 },
+    nestOrgel: { x: 0.49, y: 0.738, w: 0.13, h: 0.055 },
+    nestPolaroids: { x: 0.38, y: 0.45, w: 0.26, h: 0.11 },
+    nestBlanket: { x: 0.4, y: 0.6, w: 0.26, h: 0.085 },
   };
+
 
   /* default boxes for overlay images by asset key (G.IMG_BOX[key] wins) */
   const boxes = {
@@ -111,17 +114,22 @@
   }
 
   const R = (G.ROOM = {
-    img, boxes, boxOf, B, gapStage, glassState, rackFallen, guardLatched,
+    img, has, boxes, boxOf, B, gapStage, glassState, rackFallen, guardLatched,
     /* door-lock keypad close-up: panel box over G.IMG.keypad (fractions of that image).
      * LEAD: if keys are measured on the generated image, set keys area here. */
-    keypad: { w: 1024, h: 1536, panel: { x: 0.2, y: 0.14, w: 0.6, h: 0.74 } },
+    keypad: {
+      crop: { x: 0.17, y: 0.1, w: 0.66, h: 0.62 },        // part of the keypad photo shown on screen
+      panel: { x: 0.258, y: 0.152, w: 0.46, h: 0.586 },   // black glass panel (CSS fallback when the photo is missing)
+      lcd: { x: 0.33, y: 0.198, w: 0.36, h: 0.068 },
+      grid: { x: 0.3185, y: 0.271, w: 0.381, h: 0.376 }, // 3x4 key squares (centers x .382/.510/.636, y .318/.413/.507/.600)
+    },
     views: [
       /* ---------------- 0° 현관 ---------------- */
       {
         id: 'door', name: '현관', az: 0, key: 'room_door', w: 1024, h: 1536,
         layers: [
           { id: 'guard', pick: () => (guardLatched() ? 'patch_doorguard_latched' : 'patch_doorguard_open'), box: B.guard },
-          { id: 'sticker', kind: 'sticker', pick: () => 'door_sticker', box: B.sticker },
+          { id: 'sticker', kind: 'sticker', pick: () => 'door_sticker', box: B.sticker }, // hi-res crop over the baked sticker (optional)
         ],
         glows: [{ id: 'keypad', kind: 'led', at: B.keypadLed }],
         hotspots: [

@@ -26,10 +26,13 @@
   R.setRingGlow = function (v) { ringGlow = v || 0; if (cur) cur._ringGlow(ringGlow); };
   /** flash is disabled by 절전 모드 between M7 and M8 unless the climax grants it */
   R.flashGrant = false;
+  /** draw a DOM sticker when room_door.jpg has none baked in (it does now) */
+  R.cssSticker = false;
   R.flashAllowed = () => !(G.flag('M7') && !G.flag('M8')) || R.flashGrant;
 
   function sfx(name) { const A = G.audio; const f = A && A.sfx && A.sfx[name]; if (!f) return undefined; try { return f.apply(null, Array.prototype.slice.call(arguments, 1)); } catch (e) { return undefined; } }
   function IMG(k) { return G.ROOM.img(k); }
+  function motionOK() { return !!((G.state && G.state.vars.motionOK) || (G.settings && G.settings.motionOK)); }
   function T(s) { return G.T ? G.T(s) : s; }
   function speakerMode() { return (G.settings && G.settings.audioMode === 'speaker') || (G.state && G.state.vars.audioMode === 'speaker') || (G.settings && G.settings.sound === false); }
   function relAz(az) { const y = (G.audio && G.audio.getYaw) ? G.audio.getYaw() : 0; return ((((az - y) % 360) + 540) % 360) - 180; }
@@ -125,6 +128,7 @@
       const sc = Math.max(sw / iw, sh / ih);
       W = iw * sc; H = ih * sc;
     }
+    const PAD_B = 210; // px hidden behind the shutter row / zoom pill
     function hx1() { return Math.min(0.5, sw / (2 * W)); }
     function panX() { const h = hx1(); return h >= 0.5 ? 0.5 : clamp((cx - h) / (1 - 2 * h), 0, 1); }
     function fromPanX(p) { const h = hx1(); return h + clamp(p, 0, 1) * (1 - 2 * h); }
@@ -135,9 +139,11 @@
       frame.style.width = W + 'px'; frame.style.height = H + 'px';
       frame.style.setProperty('--fw', W + 'px');
       frame.style.setProperty('--iz', String(1 / z));
-      const hx = Math.min(0.5, sw / (2 * W * z)), hy = Math.min(0.5, sh / (2 * H * z));
-      cx = clamp(cx, hx, 1 - hx); cy = clamp(cy, hy, 1 - hy);
-      tx = sw / 2 - cx * W * z; ty = sh / 2 - cy * H * z;
+      // horizontal: cover; vertical: may tilt down so the bottom of the image clears the camera controls
+      tx = clamp(sw / 2 - cx * W * z, Math.min(0, sw - W * z), Math.max(0, (sw - W * z) / 2));
+      if (W * z < sw) tx = (sw - W * z) / 2;
+      ty = clamp(sh / 2 - cy * H * z, Math.min(0, sh - PAD_B - H * z), 0);
+      cx = (sw / 2 - tx) / (W * z); cy = (sh / 2 - ty) / (H * z);
       frame.style.transform = `translate(${tx}px, ${ty}px) scale(${z})`;
       applyLight();
       updatePill();
@@ -162,6 +168,7 @@
       if (img.getAttribute('src') !== src) img.src = src;
     }
     function layerImg(key, box, v, cls) {
+      if (!G.ROOM.has(key)) return null;
       const i = el('img.rv-layer' + (cls ? '.' + cls : ''), { alt: '', draggable: 'false' });
       place(i, box);
       i.onload = () => { if (i.naturalWidth === v.w && i.naturalHeight === v.h) place(i, { x: 0, y: 0, w: 1, h: 1 }); i.classList.add('ok'); };
@@ -175,11 +182,13 @@
       place(s, box);
       const im = el('img', { alt: '', draggable: 'false' });
       im.onload = () => s.classList.add('img');
-      im.onerror = () => im.remove();
-      im.src = IMG('door_sticker');
-      s.append(el('div.stk-fb', null,
+      im.onerror = () => { im.remove(); if (!R.cssSticker) s.remove(); };
+      if (G.ROOM.has('door_sticker')) im.src = IMG('door_sticker');
+      if (R.cssSticker) s.append(el('div.stk-fb', null,
         el('div.stk-l', null, el('b', null, '해솔빌 관리사무소'), el('span.stk-tel', null, '☎ 02-338-5120'), el('span', null, '평일 09:00–18:00'), el('span.stk-qrlbl', null, '시설 고장신고 QR ▶')),
-        el('div.stk-qr', { style: { backgroundImage: `url("${QR_SVG}")` } })), im);
+        el('div.stk-qr', { style: { backgroundImage: `url("${QR_SVG}")` } })));
+      else s.classList.add('bare');
+      s.append(im);
       return s;
     }
     function renderLayers(v) {
@@ -193,12 +202,14 @@
           let k = null;
           try { k = L.pick ? L.pick() : null; } catch (e) { k = null; }
           if (!k) return;
+          if (L.kind !== 'glint' && !G.ROOM.has(k) && !(L.kind === 'sticker' && R.cssSticker)) return; // asset not available: layer not shown
           applied[L.id] = k; rec[L.id] = k;
           if (L.kind === 'glint') { const gl = el('i.rv-glint'); gl.style.left = L.at.x * 100 + '%'; gl.style.top = L.at.y * 100 + '%'; glowG.appendChild(gl); return; }
           const box = G.ROOM.boxOf(k, L.box);
-          if (L.kind === 'sticker') { darkLayers.appendChild(sticker(box)); litLayers.appendChild(sticker(box)); return; }
-          if (!L.litOnly) darkLayers.appendChild(layerImg(k, box, v));
-          litLayers.appendChild(layerImg(k, box, v, L.kind === 'fingers' ? 'fingers' : ''));
+          if (L.kind === 'sticker') { if (G.ROOM.has(k) || R.cssSticker) { darkLayers.appendChild(sticker(box)); litLayers.appendChild(sticker(box)); } return; }
+          const a = L.litOnly ? null : layerImg(k, box, v), b = layerImg(k, box, v, L.kind === 'fingers' ? 'fingers' : '');
+          if (a) darkLayers.appendChild(a);
+          if (b) litLayers.appendChild(b);
         });
       }
       // light-emitting things (not darkened by the room filter)
@@ -207,7 +218,7 @@
         if (g.kind === 'led') { const d = el('i.rv-led'); d.style.left = g.at.x * 100 + '%'; d.style.top = g.at.y * 100 + '%'; glowG.appendChild(d); }
         if (g.kind === 'ring') { const d = el('i.rv-ringglow'); place(d, g.box); glowG.appendChild(d); ringEl = d; d.style.setProperty('--rg', String(ringGlow)); d.classList.toggle('on', ringGlow > 0); }
       });
-      if (v.id === 'door' && !isLit) { qrBr = el('div.rv-qrbr'); place(qrBr, G.ROOM.boxOf('door_sticker', G.ROOM.B.sticker)); marks.appendChild(qrBr); } else qrBr = null;
+      if (v.id === 'door' && !isLit) { qrBr = el('div.rv-qrbr', null, el('i'), el('i'), el('i'), el('i')); place(qrBr, G.ROOM.boxOf('door_sticker', G.ROOM.B.sticker)); marks.appendChild(qrBr); } else qrBr = null;
       G.save();
     }
     let ringEl = null, qrBr = null;
@@ -334,8 +345,8 @@
       if (!drag.moved && Math.hypot(dx, dy) > 7) { drag.moved = true; try { stageEl.setPointerCapture(e.pointerId); } catch (er) {} }
       light = { x: clamp((e.clientX - r.left) / r.width, 0, 1), y: clamp((e.clientY - r.top) / r.height, 0, 1) };
       if (drag.moved) {
-        if (gyro.on && z <= 1.05) { gyro.offset = (drag.gyroOff0 != null ? drag.gyroOff0 : (drag.gyroOff0 = gyro.offset)) - (dx / ((1 - 2 * hx1()) * W)) * 90; }
-        else { cx = drag.cx - dx / (W * z); cy = drag.cy - (z > 1.02 ? dy / (H * z) : 0); }
+        if (gyro.on && z <= 1.05) { gyro.offset = (drag.gyroOff0 != null ? drag.gyroOff0 : (drag.gyroOff0 = gyro.offset)) - (dx / ((1 - 2 * hx1()) * W)) * 90; cy = drag.cy - dy / (H * z); }
+        else { cx = drag.cx - dx / (W * z); cy = drag.cy - dy / (H * z); }
         layout();
       } else applyLight();
     });
@@ -410,13 +421,13 @@
       } else if (z <= 1.05) { cx = fromPanX(0.5 + d / 90); layout(); }
     }
     function setGyro(on) {
-      gyro.on = !!on && !!(vars.motionOK);
+      gyro.on = !!on && motionOK();
       gyro.h0 = null; gyro.target = null; gyroYawNow = null;
       gyroBtn.classList.toggle('on', gyro.on);
       if (gyro.on) { window.addEventListener('deviceorientation', onOrient); gyro.last = 0; gyro.raf = requestAnimationFrame(gyroLoop); }
       else { window.removeEventListener('deviceorientation', onOrient); cancelAnimationFrame(gyro.raf); }
     }
-    gyroBtn.style.display = vars.motionOK ? '' : 'none';
+    gyroBtn.style.display = motionOK() ? '' : 'none';
     gyroBtn.addEventListener('click', () => {
       const on = !gyro.on; G.settings.gyro = on; G.saveSettings && G.saveSettings();
       setGyro(on); sfx('tap');
@@ -516,7 +527,8 @@
     function nightCapture(ev) {
       if (night.busy) return;
       night.busy = true;
-      const useMotion = !!vars.motionOK && performance.now() - lastMotion < 600;
+      hideCaption();
+      const useMotion = motionOK() && performance.now() - lastMotion < 600;
       const ring = el('div.rv-nring', null,
         el('div.nr-circle', { html: '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" class="bg"/><circle cx="50" cy="50" r="44" class="fg"/></svg>' }, el('b', null, '3')),
         el('div.nr-text', null, '움직이지 마세요'),
@@ -571,10 +583,12 @@
       await sleep(1100);
       proc.remove();
       const src = IMG('gap_night');
+      let zv = null;
       const photo = el('div.rv-nightphoto', null,
-        el('div.np-fb', null, el('div.np-eye'), el('div.np-card', null, el('small', null, '현관 도어락 관리자 카드'), el('b', null, '● ● ● ● 0 6'))),
-        el('img', { src, alt: '', draggable: 'false', onload: function () { this.parentNode.classList.add('img'); }, onerror: function () { this.remove(); } }),
-        el('span.np-tag', { html: ICON.moon + ' 야간 모드' }));
+        el('div.np-fb', null, el('div.np-eye'), el('div.np-card', null, el('small', null, '현관 도어락 관리자 카드'), el('b', null, '● ● ● ● 0 6'))));
+      if (G.ROOM.has('gap_night')) { zv = G.ui.zoomViewer(src, { maxScale: 6 }); zv.classList.add('np-zoom'); photo.classList.add('img'); photo.appendChild(zv); }
+      photo.appendChild(el('span.np-tag', { html: ICON.moon + ' 야간 모드' }));
+      if (zv) setTimeout(() => { try { zv.zoomTo(0.52, 0.48, 2.2); } catch (e) {} }, 1500);
       api.closeup({
         title: '방금 찍은 사진',
         node: photo,
@@ -595,10 +609,12 @@
     shutter.addEventListener('pointerdown', (e) => {
       if (!night.armed) return;
       e.preventDefault();
+      night.suppress = true; // the click that follows this press is not a normal photo
       try { shutter.setPointerCapture(e.pointerId); } catch (er) {}
       nightCapture(e);
     });
     shutter.addEventListener('click', () => {
+      if (night.suppress) { night.suppress = false; return; }
       if (night.armed || night.busy) return;
       sfx('shutter');
       G.fx.flash('#fff', 350);
@@ -681,7 +697,7 @@
     };
     cur = api;
     setView(vi);
-    if (vars.motionOK && G.settings.gyro === true) setGyro(true);
+    if (motionOK() && G.settings.gyro !== false) setGyro(true);
     setTimeout(() => hint.classList.add('fade'), 3800);
     G.bus.emit('room:open', { mode: opts.mode || 'camera' });
     // climax resume: room opened while M7..END is pending

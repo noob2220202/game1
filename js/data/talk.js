@@ -71,7 +71,7 @@
     if (!scr) return false;
     if (scr.classList.contains('kb-open')) return false;
     if (document.querySelector('.notebook.in, .notebook')) return false;
-    if (document.querySelector('#overlays [data-modal], .call-screen, .vt-call')) return false;
+    if (document.querySelector('#overlays [data-modal], .call-screen, .tvc, .vt')) return false;
     if (G.phone && G.phone.isLocked && G.phone.isLocked()) return false;
     if (G.flag('M7') && !G.flag('END')) return false;
     return !document.hidden;

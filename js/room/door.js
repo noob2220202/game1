@@ -32,17 +32,26 @@
     if (inst) return inst;
     const vars = G.state.vars;
     let buf = '', star = false, busy = false, last = { k: null, t: 0 };
-    const panelBox = (G.ROOM && G.ROOM.keypad && G.ROOM.keypad.panel) || { x: 0.2, y: 0.14, w: 0.6, h: 0.74 };
+    // geometry in fractions of the keypad photo (G.ROOM.keypad); the plate shows only `crop`
+    const KP = Object.assign({
+      crop: { x: 0.17, y: 0.1, w: 0.66, h: 0.62 }, panel: { x: 0.258, y: 0.152, w: 0.46, h: 0.586 },
+      lcd: { x: 0.33, y: 0.198, w: 0.36, h: 0.068 }, grid: { x: 0.3185, y: 0.271, w: 0.381, h: 0.376 },
+    }, (G.ROOM && G.ROOM.keypad) || {});
+    const box = (n, b) => Object.assign(n.style, { left: b.x * 100 + '%', top: b.y * 100 + '%', width: b.w * 100 + '%', height: b.h * 100 + '%' });
 
     const slots = el('div.dk-slots', null, [0, 1, 2, 3, 4, 5].map(() => el('i')));
     const lcdMsg = el('div.dk-msg');
     const lcd = el('div.dk-lcd', null, slots, lcdMsg);
     const grid = el('div.dk-grid', null, KEYS.map((k) => el('button.dk-key', { dataset: { k }, 'aria-label': k === '*' ? '지우기' : k === '#' ? '확인' : k },
       el('b', null, k === '*' ? '✱' : k === '#' ? '#' : k), k === '*' ? el('small', null, '지우기') : k === '#' ? el('small', null, '확인') : null)));
-    const panel = el('div.dk-panel', null, lcd, grid);
+    const panel = el('div.dk-panel');
     const img = el('img.dk-img', { alt: '', draggable: 'false' });
-    const plate = el('div.dk-plate', null, img, panel);
-    Object.assign(panel.style, { left: panelBox.x * 100 + '%', top: panelBox.y * 100 + '%', width: panelBox.w * 100 + '%', height: panelBox.h * 100 + '%' });
+    const inner = el('div.dk-inner', null, img, panel, lcd, grid);
+    const plate = el('div.dk-plate', null, inner);
+    const cr = KP.crop;
+    Object.assign(inner.style, { width: 100 / cr.w + '%', height: 100 / cr.h + '%', left: (-cr.x / cr.w) * 100 + '%', top: (-cr.y / cr.h) * 100 + '%' });
+    plate.style.aspectRatio = String((cr.w * 1024) / (cr.h * 1536));
+    box(panel, KP.panel); box(lcd, KP.lcd); box(grid, KP.grid);
     img.onload = () => plate.classList.add('has-img');
     img.onerror = () => img.remove();
     img.src = G.ROOM ? G.ROOM.img('keypad') : 'assets/img/keypad.jpg';
@@ -127,7 +136,7 @@
     /* ---------- input ---------- */
     function press(k) {
       if (!inst || busy) return;
-      const btn = grid.querySelector(`[data-k="${k === '*' ? '\\*' : k}"]`);
+      const btn = grid.querySelector(`[data-k="${k}"]`);
       if (btn) { btn.classList.remove('hit'); void btn.offsetWidth; btn.classList.add('hit'); }
       if (lockedLeft()) { sfx('doorlockBeep'); return; }
       if (k === '*') { sfx('doorlockBeep'); buf = ''; star = true; render(); msg('', ''); return; }
