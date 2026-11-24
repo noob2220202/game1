@@ -18,6 +18,8 @@
   D.hold = function (name, on) { if (on) holds.add(name); else holds.delete(name); };
   D.safe = function () {
     if (holds.size || kbOpen) return false;
+    if (G.climax && G.climax.safeZone && G.climax.safeZone()) return false;
+    if (G.flag('M7') && !G.flag('END')) return false;
     if (Date.now() < reliefUntil) return false;
     if (document.querySelector('.notebook.in, .call-screen, .dialog-wrap, .mfa, .cinema')) return false;
     if (G.state.vars.js1At && Date.now() - G.state.vars.js1At < 45000) return false;
@@ -183,7 +185,7 @@
   /* ---------- room hooks ---------- */
   G.bus.on('room:view', (v) => {
     if (!G.state.vars.firstRoomLookAt) { G.state.vars.firstRoomLookAt = Date.now(); G.save(); }
-    if (G.flag('M1') && !fired('B07') && v !== 'wardrobe') {
+    if (G.flag('M1') && !fired('B07') && v !== 'wardrobe' && D.safe()) {
       fire('B07');
       setTimeout(() => { G.audio.sfx.knock(2, { az: 270, where: 'inside', vol: 0.5, gap: 0.6 }); G.flag('knockInvite', true); G.fx.sub('(옷장 쪽에서… 똑, 똑)', 2600); }, 2200);
     }

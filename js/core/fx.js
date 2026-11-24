@@ -84,7 +84,7 @@
     const j = el('div.fx-jump', null, el('img', { src: imgSrc, alt: '' }));
     if (light) j.classList.add('light');
     layer.appendChild(j);
-    if (G.audio) { if (!light) G.audio.sfx.stinger(); else G.audio.sfx.glitch(); G.audio.sfx.buzz([60, 40, 200]); }
+    if (G.audio) { if (!light) (opts.sting || G.audio.sfx.stinger)(); else G.audio.sfx.glitch(); G.audio.sfx.buzz([60, 40, 200]); }
     FX.shake(700, light ? 4 : 14);
     FX.static(0.3, 500);
     await sleep(opts.ms || (light ? 380 : 650));

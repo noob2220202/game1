@@ -95,6 +95,7 @@
       G.notebook && G.notebook.show && G.notebook.show(true);
       G.director.start(true);
       if (G.flag('END')) SC.ending(true);
+      else if (G.flag('M7') && G.climax && G.climax.resume) setTimeout(() => G.climax.resume(), 800);
       return;
     }
     G.notebook && G.notebook.show && G.notebook.show(false);

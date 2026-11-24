@@ -482,7 +482,7 @@
 
   /* ---------------- hide + binaural script ---------------- */
   // 세아's line (memo p.1), adapted to the hold-to-hide mechanic (no face-down sensor)
-  const HIDE_LINE = '그 사람이 나오면 화면 빛을 가려. 빛 보고 와.';
+  const HIDE_LINE = '그 사람이 옷장에서 나오면 화면 빛을 가려. 빛 보고 와. 숨도 참아.';
   const SCRIPT = [
     { id: 'creak', at: 0, run() { sfx('creakWardrobe', { az: 270, dur: 2.6 }); dirSub('(옷장 문이… 열린다)', 270, 2600); } },
     { id: 'walk', at: 2.8, run() { sfx('footsteps', 4, { az: 270, toAz: 90, dist: 2.2, gap: 1.1, vol: 0.6 }); dirSub('(양말 신은 발소리. 침대 쪽으로.)', 180, 3600); } },
