@@ -210,13 +210,10 @@
     if (!jumped) st.maxPos = Math.max(st.maxPos, pos);
     if (rec.id === 'doorlock' && rec.heardAt && pos >= rec.heardAt && st.maxPos >= rec.heardAt && !G.flag('doorlockHeard')) {
       G.flag('doorlockHeard', true);
-      G.notebook && G.notebook.note && G.notebook.note('녹음 속 도어락 소리. 앞의 두 번만 들린다. 나머지는 콩이 짖는 소리에 묻혔다.');
-      G.notebook && G.notebook.lead && G.notebook.lead('doorAB', '녹음 속 삐 소리 ↔ 현관 도어락 버튼 소리, 같은 높이? (카메라로 현관을 비춰 도어락을 눌러 보자)', () => G.flag('frag47'));
       G.bus.emit('recorder:heard', 'doorlock');
     }
     if (rec.id === 'kongi' && st.mode === 'spec' && pos > 4.4 && !G.flag('kongiDrawSeen')) {
       G.flag('kongiDrawSeen', true);
-      G.notebook && G.notebook.note && G.notebook.note('소리를 주파수로 보면 그림이 된다. 세아는 소리에 그림을 숨길 줄 알았다.');
     }
     if (rec.mode === 'phase') phaseHooks(rec, st, pos, jumped);
   }

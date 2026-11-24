@@ -61,9 +61,8 @@
     const img = el('img.case-img', { src: G.IMG.case_back, alt: '' });
     const glare = el('div.case-glare');
     const stage = el('div.case-stage', null, img, glare);
-    const tip = el('div.case-tip', null, '케이스 안에 사진이 끼워져 있다. 날짜 쪽이 빛에 번들거린다…');
-    const ghost = el('div.case-ghost', null, '☝ 빛을 손가락으로 밀어 보세요');
-    const root = el('div.case-view', null, el('button.cu-back', { 'aria-label': '돌아가기', html: '<svg viewBox="0 0 24 24"><path d="M15 4l-8 8 8 8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>' }), stage, tip, ghost);
+    const tip = el('div.case-tip', null, '케이스 안에 사진이 끼워져 있다.');
+    const root = el('div.case-view', null, el('button.cu-back', { 'aria-label': '돌아가기', html: '<svg viewBox="0 0 24 24"><path d="M15 4l-8 8 8 8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>' }), stage, tip);
     const ov = G.phone.overlay(root, { onBack: () => close() });
     let off = { x: 0, y: 0 }, revealed = false, dragging = null;
     function rect() {
@@ -81,14 +80,11 @@
       if (!revealed && d > size * 0.55) {
         revealed = true; G.flag('caseDateSeen', true); G.audio.sfx.pen();
         tip.textContent = '“콩이 우리집 온 날 ♥ 3.17”';
-        G.notebook && G.notebook.note && G.notebook.note('케이스 속 폴라로이드: 콩이 우리집 온 날 3.17');
       }
     }
     img.addEventListener('load', place); setTimeout(place, 60);
     stage.style.touchAction = 'none';
-    stage.addEventListener('pointerdown', (e) => { stage.setPointerCapture(e.pointerId); dragging = { x: e.clientX - off.x, y: e.clientY - off.y }; ghost.classList.remove('in'); clearTimeout(ghostT); });
-    // design P1: ghost-hand hint after 10 s without revealing the date
-    const ghostT = setTimeout(() => { if (!revealed && root.isConnected) ghost.classList.add('in'); }, 10000);
+    stage.addEventListener('pointerdown', (e) => { stage.setPointerCapture(e.pointerId); dragging = { x: e.clientX - off.x, y: e.clientY - off.y }; });
     stage.addEventListener('pointermove', (e) => { if (!dragging) return; off = { x: e.clientX - dragging.x, y: e.clientY - dragging.y }; place(); });
     stage.addEventListener('pointerup', () => { dragging = null; });
     root.querySelector('.cu-back').addEventListener('click', () => close());

@@ -4,7 +4,6 @@
  *  - H1: after the recording was heard (flag doorlockHeard), pressing 4 then 7 within 4 s
  *        registers fragment 47.
  *  - *0404#  : trap (alarm, red flash ≤3 Hz, 3 knocks inside the wardrobe, 관리실 message).
- *  - 4729#   : "…두 자리가 더 있어." (not counted as wrong)
  *  - 472906# : before M6 -> admin relock + his 'ㅋ' (or a knock); after M6 -> M7, climax.
  *  - wrong   : 삐삐삐 + 1 knock inside wardrobe; every 5th wrong -> 20 s 입력 제한.
  * G.door = {open(), close(), isOpen(), press(key), enter(str)}   Hooks: 'door:keypad'
@@ -31,7 +30,7 @@
   D.open = function () {
     if (inst) return inst;
     const vars = G.state.vars;
-    let buf = '', star = false, busy = false, last = { k: null, t: 0 }, nudgeT = 0;
+    let buf = '', star = false, busy = false, last = { k: null, t: 0 };
     // geometry in fractions of the keypad photo (G.ROOM.keypad); the plate shows only `crop`
     const KP = Object.assign({
       crop: { x: 0.17, y: 0.1, w: 0.66, h: 0.62 }, panel: { x: 0.258, y: 0.152, w: 0.46, h: 0.586 },
@@ -139,15 +138,12 @@
       const btn = grid.querySelector(`[data-k="${k}"]`);
       if (btn) { btn.classList.remove('hit'); void btn.offsetWidth; btn.classList.add('hit'); }
       if (lockedLeft()) { sfx('doorlockBeep'); return; }
-      if (k === '*') { sfx('doorlockBeep'); buf = ''; star = true; render(); msg('', ''); clearTimeout(nudgeT); return; }
+      if (k === '*') { sfx('doorlockBeep'); buf = ''; star = true; render(); msg('', ''); return; }
       if (k === '#') { sfx('doorlockBeep'); confirm(); return; }
       keyTone(k);
       if (vars.pitchView) pitchBar(k);
       if (buf.length >= 6) buf = buf.slice(1);
       buf += k; render();
-      // six digits and no 확인: real locks need '#' — nudge once the player pauses
-      clearTimeout(nudgeT);
-      if (buf.length === 6) nudgeT = setTimeout(() => { if (inst && buf.length === 6 && !busy && !lockedLeft()) setStatus('# (확인)을 눌러 입력을 마치세요'); }, 2500);
       G.bus.emit('door:key', k);
       // H1: 4 then 7 within 4 s, after the 소리 감지 녹음 was played
       const now = Date.now();
@@ -155,7 +151,6 @@
         setTimeout(() => {
           if (G.foundFragment) G.foundFragment('47');
           G.fx && G.fx.sub('…녹음 속 소리랑 똑같다. 파, 시.', 3200);
-          note('녹음 속 두 번의 삑 = 4, 7');
         }, 350);
       }
       last = { k, t: now };
@@ -165,20 +160,11 @@
 
     async function confirm() {
       const code = buf, wasStar = star;
-      clearTimeout(nudgeT); setStatus(defaultStatus());
+      setStatus(defaultStatus());
       buf = ''; star = false; render();
       if (!code) { msg('', ''); return; }
       if (wasStar && code === '0404') return trap();
       if (code === CODE) return G.flag('M6') ? accept() : adminRelock();
-      if (code === '4729') {
-        busy = true;
-        await sleep(250); sfx('doorlockError'); msg('오류', 'err', 1400);
-        await sleep(700);
-        G.fx && G.fx.sub(T('…두 자리가 더 있어.'), 2600);
-        note('4 7 2 9 … 두 자리가 더 있어.');
-        busy = false;
-        return;
-      }
       return wrong();
     }
 
@@ -223,7 +209,6 @@
         }, 4200);
       }
       if (!G.flag('managerExposed')) { G.flag('managerExposed', true); }
-      note('관리실이 알려준 *0404#… 경보가 울렸다. 관리실 = 그 사람?');
     }
 
     async function adminRelock() {
@@ -244,7 +229,6 @@
         sfx('knock', 1, { az: 270, where: 'inside' });
         G.room && G.room.dirSub ? G.room.dirSub('(옷장 안에서… 똑.)', 270, 2000) : null;
       }
-      note('그 사람을 먼저 끊어야 해.');
       G.flag('codeKnown', true);
       await sleep(1200);
       msg('', ''); setStatus(defaultStatus());
@@ -282,10 +266,6 @@
     inst = { node, close, press };
     render();
     G.bus.emit('door:keypad');
-    if (!G.state.seen.keypadIntro) {
-      G.state.seen.keypadIntro = true; G.save();
-      setTimeout(() => { if (inst && G.fx) G.fx.sub('버튼마다 소리 높이가 다르다.', 2400); }, 700);
-    }
     return inst;
   };
   D.close = () => { if (inst) inst.close(); };

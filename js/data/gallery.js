@@ -52,8 +52,8 @@
   /* ---------------- albums (order shown in 앨범 tab) ---------------- */
   G.STORY.albums = [
     { id: 'camera', name: '카메라' },
-    { id: 'mine', name: '내가 찍은 사진', empty: '아직 찍은 사진이 없어요.\n카메라로 방 안을 찍으면 여기에 모여요.' },
-    { id: 'live', name: 'LIVE', sub: '꾹 누르면 움직이는 사진' },
+    { id: 'mine', name: '내가 찍은 사진' },
+    { id: 'live', name: 'LIVE' },
     { id: 'shared', name: "공유 앨범 '콩이'", shared: true },
   ];
 

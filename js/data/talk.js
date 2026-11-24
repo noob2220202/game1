@@ -328,9 +328,10 @@
       sub: () => `부재중 보이스톡 ${G.chat ? G.chat.missedCount('talk', 'mom') : 366}`,
     },
     {
-      id: 'haru', name: '{N}', tone: 'him', compose: 'allow',
+      // the player's own (stolen) account, logged in on his phone — label it so it never reads as "{N} → {N}"
+      id: 'haru', name: '{N} (내 폰)', tone: 'him', compose: 'allow',
       avatar: { initial: '', bg: '#c5ced8', silhouette: true },
-      status: '{N}',
+      status: '내 휴대폰',
       profile: { bg: 'linear-gradient(170deg,#9aa4ad,#56606a)' },
       show: () => G.flag('F1') || G.flag('haruThread'),
       messages: [],

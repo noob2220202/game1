@@ -95,7 +95,6 @@
       G.hooks.call('room:refreshLayers');
       await sleep(4000);
       await D.his(BD().f2, { gap: 2200 });
-      G.notebook && G.notebook.lead && G.notebook.lead('callme', '내 번호로 걸어 볼까? (톡 › ' + G.NAME + ')', () => G.flag('ringHeard'));
       await sleep(9000);
       managerSlip();
     } },
@@ -106,7 +105,6 @@
     { id: 'B17', when: () => since('M4') > 45, run: () => {
       G.audio.musicBox({ variant: 'winddown', az: 270, closet: 0.7 });
       G.fx.sub('(옷장 안에서… 오르골 소리?)', 5000);
-      G.notebook && G.notebook.note && G.notebook.note('세아 오르골이 저 안에 있다.');
     } },
     { id: 'B20', when: () => since('M5') > 30, run: () => G.hooks.call('gallery:addSharedFace') },
     { id: 'B22', when: () => G.flag('M6'), safeOnly: false, run: () => { G.audio.gsm(0.12); setTimeout(() => G.audio.gsm(0), 6000); G.audio.sfx.success(); } },
@@ -189,8 +187,6 @@
   G.bus.on('room:view', (v) => {
     if (!G.state.vars.firstRoomLookAt) {
       G.state.vars.firstRoomLookAt = Date.now(); G.save();
-      // first look: teach the flashlight if the player hasn't found it
-      setTimeout(() => { if (!G.flag('usedFlash') && G.room && G.room.isOpen()) G.fx.sub('너무 어둡다. 오른쪽 위 ⚡ 플래시를 켜 보자.', 3200); }, 2600);
     }
     // B04: first look at the wardrobe -> a 2-frame catchlight in the gap (once, silent). room.js has the glint API.
     if (v === 'wardrobe' && !fired('B04') && !G.flag('M7')) {
@@ -222,11 +218,6 @@
     if (idleS > 150 && !G.state.vars.nudge150At || (G.state.vars.nudge150At && Date.now() - G.state.vars.nudge150At > 150000 && idleS > 150)) {
       G.state.vars.nudge150At = Date.now(); G.save();
       G.audio.sfx.knock(1, { az: 270, where: 'inside', vol: 0.4 });
-    }
-    if (idleS > 240 && (!G.state.vars.nudge240At || Date.now() - G.state.vars.nudge240At > 240000)) {
-      G.state.vars.nudge240At = Date.now(); G.save();
-      G.notebook && G.notebook.ping && G.notebook.ping();
-      G.phone.toast('📓 수첩에 새 단서가 있어요');
     }
   }
 

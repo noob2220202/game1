@@ -201,7 +201,6 @@
     if (isTalk && th.compose !== 'channel') {
       const callBtn = el('button.ch-call', { 'aria-label': '보이스톡', html: IC.call, onclick: () => voiceCall(th) });
       right.push(callBtn);
-      if (id === 'haru' && G.state.vars.haruCallPulse) { callBtn.classList.add('pulse'); G.state.vars.haruCallPulse = 0; G.save(); }
     }
     if (isTalk) right.push(el('button', { 'aria-label': '프로필', html: IC.menu, onclick: () => TK.profile(id) }));
     const sub = typeof th.sub === 'function' ? th.sub() : th.sub;
@@ -689,7 +688,6 @@
     const ov = { close() { ov0.close(); restore(); } };
     G.bus.emit('talk:profile', id);
     if (id === 'manager') {
-      if (!G.flag('managerExposed')) SD.note('톡 관리실: 010-8817-3302로 추가됨 (2025.03.08). 문 스티커 번호는 02로 시작했는데…');
       G.flag('managerExposed', true);
     }
   };
@@ -960,6 +958,4 @@
       Object.values(openViews).forEach((v) => { if (v && v.scr && v.scr.isConnected) { const b = v.scr.body; setTimeout(() => b.scrollTo({ top: b.scrollHeight + 999, behavior: 'smooth' }), 60); } });
     });
   });
-  /* F2: the 📞 in his room pulses once (next open) */
-  G.bus.on('flag:F2', () => { G.state.vars.haruCallPulse = 1; G.save(); });
 })();

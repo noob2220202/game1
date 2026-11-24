@@ -108,7 +108,6 @@
     title: '해솔빌 시설 고장신고 이력 · 404호', url: 'haesolvil.kr/as?unit=404',
     render: () => B().facility(),
     onOpen: (scr) => {
-      if (!G.flag('managerExposed')) G.sd.note('관리사무소는 새벽에 톡을 안 보낸다. 3월 옷장 수리도, 11월 도어락 오류도 접수 내역이 없다. 관리실 = 그 사람.');
       G.flag('managerExposed', true);
       G.flag('qrSeen', true);
       B().typeLast(scr);
@@ -190,10 +189,6 @@
   /* ---------- 다른 기기의 탭 · Galaxy (SM-G991N) — rows in priority order (max 4) ---------- */
   G.STORY.syncedTabs = [
     { id: 'door', title: '해솔홈 - 404호 도어락 관리', url: 'home.haesolhome.kr', page: 'haesol_web', when: () => true },
-    { id: 'rec', title: '녹음 파일 몰래 지우는 법', url: 'search.daon.net', when: () => !(G.flag('frag47') || G.flag('H1')) },
-    { id: 'vault', title: '계산기 금고 앱 안 들키게 숨기는 법', url: 'search.daon.net', when: () => !(G.flag('frag06') || G.flag('H3')) },
-    { id: 'secq', title: '해솔홈 보안 질문 바꾸는 법', url: 'search.daon.net', when: () => !G.flag('M4') },
-    { id: 'cast', title: '화면 공유 끊김 방지 · 세아폰', url: 'search.daon.net', when: (o) => G.flag('M4') && (o.mirroring) },
     { id: 'name', title: '{N} 이름 뜻', url: 'search.daon.net', page: 'q_name', when: () => (G.fragCount ? G.fragCount() : 0) >= 2 },
   ];
 

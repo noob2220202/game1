@@ -15,7 +15,7 @@
     wallpaper: G.IMG.dog_face,
     hint: () => '막내가 온 날 🐶',
     check: (code) => code === '0317',
-    wrongMsg: (code, fails) => (fails >= 3 ? `PIN이 일치하지 않습니다 (${fails}회)\n힌트: 막내가 온 날 🐶` : `PIN이 일치하지 않습니다 (${fails}회)`),
+    wrongMsg: (code, fails) => `PIN이 일치하지 않습니다 (${fails}회)`,
     notifs: () => [
       { app: 'talk', title: '엄마', body: '부재중 보이스톡 (366)', when: '방금' },
       { app: 'talk', title: '엄마', body: '세아야 오늘로 1년이야. 엄마 오늘도 전화했어.', when: '방금' },
@@ -34,7 +34,6 @@
       G.audio.amb('room', 0.9); G.audio.amb('rain', 0.6); G.audio.tension(0.15);
       G.notebook && G.notebook.show && G.notebook.show(true);
       G.phone.renderHome();
-      setTimeout(() => { G.notebook && G.notebook.note && G.notebook.note('이 폰 카메라로 방을 비춰 볼 수 있다. 플래시도 있다.'); }, 4000);
     },
     onShow() {},
   };
@@ -42,7 +41,6 @@
   G.bus.on('lock:fail', (e) => {
     if (!e || e.fails < 3 || !G.notebook || !G.notebook.show || !G.phone.isLocked()) return;
     G.notebook.show(true);
-    if (e.fails === 3 && G.notebook.ping) G.notebook.ping();
   });
 
   /* ---------------- immersion setup ---------------- */
@@ -262,7 +260,7 @@
     A.sfx.msgHim();
     const real = new Date();
     const sting = el('div.end-sting', null,
-      el('div.es-banner', null, el('b', null, G.NAME), el('span', null, '지금')),
+      el('div.es-banner', null, el('b', null, G.T('{N} (내 폰)')), el('span', null, '지금')),
       el('div.es-msg', null, el('span.es-time', null, `${pad(real.getHours())}:${pad(real.getMinutes())}`), el('div.es-bubble', null, G.T(G.BEATDATA.js3))));
     stage.appendChild(sting); requestAnimationFrame(() => sting.classList.add('in'));
     if (G.settings.vibration && navigator.vibrate) try { navigator.vibrate([120, 80, 120]); } catch (e) {}

@@ -1,14 +1,14 @@
 /* =========================================================
  * 메모 (DESIGN P3 / P4 / H4, §4.2; client override: no shake → ↶ / ⋯ / 3-finger / Ctrl+Z)
  *  - list: 🔒 이 폰을 찾은 사람에게 · 장보기 · 음향학 과제 메모 · 비번들
- *  - P3 lock: password field (forced English layout + jamo legends). 'kongi' → '그건 너무 쉽잖아 ㅋ'.
+ *  - P3 lock: password field (forced English layout + jamo legends). Every wrong answer → plain error.
  *    zhddl → flags P3 (+ memo_letter, memoUnlocked).
  *  - P4: at 6 s (or when ¶3 is scrolled up) a red remote caret erases the letter from the end
  *    (banner '✎ 알 수 없는 기기에서 편집 중…') down to title + 2 lines → '편집 완료 · 다른 기기'.
  *    Undo (↶ · ⋯ › 실행 취소 · three-finger swipe left · Ctrl/Cmd+Z) → '실행 취소: 삭제' →
  *    reverse rewind; his inserted line passes in a heavier weight and erases itself; he types
  *    a reaction that deletes itself; memo pinned '📌 이 기기에 고정됨'. Flags P4 + M2.
- *    Auto-hint (notebook T1) 45 s after the erase finished.
+ *    (No auto-hint: the client removed unsolicited hints.)
  *  - page 2 (H4): '→ 🔒 2쪽' chip; any input containing 옷장 → flag acrostic + notebook note.
  * Hooks provided: 'memo:startErase'. Bus: memo:open, memo:fail, memo:erase('start'|'done'),
  * memo:undo, memo:restored. Saved: vars.memoState ('erased'|'restored'), vars.memoErasedTo.
@@ -121,7 +121,6 @@
     const L = LT().lock;
     let fails = 0;
     const err = el('div.mm-err', { 'aria-live': 'polite' });
-    const tip = el('div.mm-tip', null, el('small', null, '세아의 메시지'), el('span', null, L.tooEasyMsg));
     const field = G.ui.field({ placeholder: '비밀번호', password: true, showJamo: true, submitLabel: '확인', maxLength: 24, onSubmit: (v) => check(v) });
     const langPill = el('button.mm-lang', { 'aria-label': '입력 언어: 영문' }, 'A');
     langPill.addEventListener('click', () => { sfx('error'); shake(); err.textContent = L.onlyLatin; });
@@ -132,7 +131,7 @@
       el('div.mm-lock-s', null, '잠긴 메모입니다. 비밀번호를 입력하세요.'),
       el('div.mm-hintpill', null, el('b', null, '힌트'), el('span', null, L.hint)),
       el('div.mm-fieldrow', null, field.node, langPill),
-      tip, err,
+      err,
       el('button.mm-btn', { onclick: () => check(field.value) }, '확인'));
     const scr = G.ui.screen({ title: '잠긴 메모', cls: 'mm-screen mm-lockscr', body: box });
     scr.dataset.status = 'dark';
@@ -154,11 +153,10 @@
       if (!nv) { shake(); return; }
       if (L.answers.includes(nv)) {
         G.ui.hideKeyboard();
-        err.textContent = ''; tip.classList.remove('in');
+        err.textContent = '';
         sfx('unlock');
         lockIc.classList.add('open'); box.classList.add('ok');
         G.flag('memo_letter', true); G.flag('memoUnlocked', true); G.flag('P3', true);
-        G.notebook && G.notebook.note && G.notebook.note("메모 비밀번호: '콩이'를 영어 자판 그대로 → zhddl", { silent: true });
         await sleep(520);
         G.phone.pop(true);
         letterView();
@@ -167,7 +165,6 @@
       fails++;
       sfx('error'); vibrate(90); shake();
       err.textContent = fails > 1 ? `${L.wrong} (${fails}회)` : L.wrong;
-      tip.classList.toggle('in', L.tooEasy.includes(nv));
       G.bus.emit('memo:fail', { id: 'letter', value: v, fails });
       field.clear();
     }
@@ -316,12 +313,6 @@
       caret.className = 'mm-caret red idle';
       setTimeout(() => { if (st.phase === 'erased') { caret.className = 'mm-caret gone'; stopFollow(); } }, 1600);
       G.bus.emit('memo:erase', 'done');
-      armAutoHint();
-    }
-    function armAutoHint() {
-      clearTimeout(st.hintT);
-      st.hintT = setTimeout(() => { if (st.alive && st.phase === 'erased' && G.notebook && G.notebook.autoHint) G.notebook.autoHint('P4'); }, 45000);
-      st.timers.push(st.hintT);
     }
 
     async function requestUndo() {
@@ -339,7 +330,6 @@
 
     async function rewind() {
       st.phase = 'rewinding';
-      clearTimeout(st.hintT);
       G.bus.emit('memo:undo');
       setBanner('rewind'); setMeta();
       liveMode(); caret.className = 'mm-caret blue live';
@@ -479,7 +469,7 @@
     G.bus.emit('memo:open', 'letter');
     setMeta();
     if (st.phase === 'restored') { setBanner('pinned'); finalMode(); }
-    else if (st.phase === 'erased') { setBanner('done'); liveMode(); caret.className = 'mm-caret gone'; setLive(st.n, 0, 'b'); armAutoHint(); }
+    else if (st.phase === 'erased') { setBanner('done'); liveMode(); caret.className = 'mm-caret gone'; setLive(st.n, 0, 'b'); }
     else {
       setBanner(null); freshMode();
       // erase starts at 6 s, or as soon as ¶3 has been scrolled up into the upper part of the screen
@@ -521,8 +511,6 @@
         G.ui.hideKeyboard();
         sfx('unlock'); lockIc.classList.add('open'); box.classList.add('ok');
         G.flag('acrostic', true);
-        G.notebook && G.notebook.note && G.notebook.note('그 사람 계정: sagongsa (사공사… 404?)');
-        G.notebook && G.notebook.note && G.notebook.note('세아의 마지막 글, 시간 순서대로: 옷장 뒤에 누가… 있어.');
         await sleep(480);
         G.phone.pop(true);
         onOpen && onOpen();
@@ -530,7 +518,7 @@
       }
       sfx('error'); vibrate(80);
       box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
-      err.textContent = P.reversed.some((r) => nv.startsWith(r)) ? P.reversedMsg : P.wrong;
+      err.textContent = P.wrong;
       G.bus.emit('memo:fail', { id: 'page2', value: v });
       field.clear();
     }

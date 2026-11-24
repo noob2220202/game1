@@ -827,7 +827,7 @@
   const H6 = (G.h6 = { active: false });
   function isHaruThread(id) {
     if (id === 'haru' || id === 'me' || id === 'player') return true;
-    try { const th = G.chat && G.chat.thread && G.chat.thread('talk', id); return !!th && (th.name === '{N}' || T(th.name) === (G.NAME || '하루')); } catch (e) { return false; }
+    try { const th = G.chat && G.chat.thread && G.chat.thread('talk', id); return !!th && (th.name === '{N}' || th.name === '{N} (내 폰)' || T(th.name) === (G.NAME || '하루')); } catch (e) { return false; }
   }
   H6.call = function (threadId) {
     if (!isHaruThread(threadId)) return false;
@@ -841,7 +841,7 @@
   G.hooks && G.hooks.set('talk:call', (threadId) => H6.call(threadId));
 
   function callUI(threadId, statusText) {
-    const name = T('{N}');
+    const name = T('{N} (내 폰)');
     const timeEl = el('div.vt-status', null, statusText);
     const camBtn = el('button.vt-op', null, el('span', { html: '<svg viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.3" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>' }), el('small', null, '카메라'));
     const spkBtn = el('button.vt-op', null, el('span', { html: '<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M16 9a4 4 0 010 6M18.5 6.5a8 8 0 010 11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' }), el('small', null, '스피커'));

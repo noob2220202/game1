@@ -140,7 +140,7 @@
           { id: 'sticker', ...B.sticker, label: '스티커',
             tap(api) {
               if (api.zoom >= 2) { api.caption('작은 스티커. 관리사무소 번호랑 QR 코드가 있다.'); return; }
-              api.caption('문에 작은 스티커가 붙어 있다. 너무 작아서 안 보인다. 확대해 볼까?');
+              api.caption('문에 작은 스티커가 붙어 있다. 너무 작아서 안 보인다.');
             } },
           { id: 'peephole', ...B.peephole, label: '현관 렌즈', tap(api) { R.peephole(api); } },
           { id: 'guard', ...B.guard, label: '도어가드', when: () => guardLatched(),
@@ -199,8 +199,8 @@
         hotspots: [
           { id: 'gap', ...B.gapLine, label: '옷장 틈',
             tap(api) {
-              if (api.zoom >= 2) { api.caption(flag('frag06') ? '…다시 들여다보고 싶지 않다.' : '틈 안쪽이 새까맣다. 카메라로도 안 보인다. …야간 모드라면?'); return; }
-              api.caption(flag('frag06') ? '…다시 들여다보고 싶지 않다.' : '문틈이 새까맣다. 가까이 확대해 볼까?');
+              if (api.zoom >= 2) { api.caption(flag('frag06') ? '…다시 들여다보고 싶지 않다.' : '틈 안쪽이 새까맣다. 카메라로도 안 보인다.'); return; }
+              api.caption(flag('frag06') ? '…다시 들여다보고 싶지 않다.' : '문틈이 새까맣다.');
             } },
           { id: 'handles', ...B.handles, label: '옷장 손잡이',
             tap(api) {
@@ -244,7 +244,7 @@
       title: '침대 밑',
       node: ov,
       text: '먼지 쌓인 강아지 밥그릇. 이름 스티커가 붙어 있다. <b>콩이 ♥ since 2023.03.17</b>',
-      onOpen() { note('콩이… 3월 17일부터?'); G.flag && G.flag('bowlSeen', true); },
+      onOpen() { G.flag && G.flag('bowlSeen', true); },
     });
   };
   R.peephole = function (api) {

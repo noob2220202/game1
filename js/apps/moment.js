@@ -129,10 +129,7 @@
     if (pr.private) scr.querySelector('.sv-title').prepend(el('span.mo-lock', { html: IC.lock }));
     G.phone.push(scr);
     G.bus.emit('moment:profile', id);
-    if (id === 'sagongsa') {
-      if (!G.flag('sagongsaSeen')) SD.note('sagongsa — 비공개, 게시물 0. 팔로잉은 세아 하나뿐. 오늘 밤 글에만 좋아요.');
-      G.flag('sagongsaSeen', true);
-    }
+    if (id === 'sagongsa') G.flag('sagongsaSeen', true);
   };
   function moreFail(pr) {
     if (!pr.postCount || posts(pr).length >= pr.postCount) return el('div');

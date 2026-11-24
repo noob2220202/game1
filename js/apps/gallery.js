@@ -345,7 +345,7 @@
     box.addEventListener('pointerdown', (e) => { drag = true; try { box.setPointerCapture(e.pointerId); } catch (er) {} const r = box.getBoundingClientRect(); setF((e.clientX - r.left) / r.width); });
     box.addEventListener('pointermove', (e) => { if (!drag) return; const r = box.getBoundingClientRect(); setF((e.clientX - r.left) / r.width); });
     ['pointerup', 'pointercancel'].forEach((ev) => box.addEventListener(ev, () => { drag = false; }));
-    const body = el('div.gx-cmpwrap', null, box, el('div.gx-cmp-cap', null, '같은 방, 같은 옷장. 손가락으로 밀어서 비교해 보세요.'));
+    const body = el('div.gx-cmpwrap', null, box);
     const scr = G.ui.screen({ title: '그때와 지금', sub: '1년 전 오늘', theme: 'dark', cls: 'gx-cmpscreen', body, bodyCls: 'nopad' });
     G.phone.push(scr);
     setF(0.5);
@@ -603,8 +603,6 @@
     frames.forEach((f) => overlay.appendChild(f));
     const chip = el('div.gx-livechip', null, el('i', { html: IC.live }), el('span', null, p.live.sub || '♪'));
     stage.appendChild(chip);
-    const hint = el('div.gx-livehint', null, '꾹 눌러서 재생');
-    if (!(V().liveSeenCount > 0)) { stage.appendChild(hint); setTimeout(() => hint.classList.add('in'), 600); setTimeout(() => hint.classList.remove('in'), 4200); }
     let pressT = null, sx = 0, sy = 0, playing = null;
     function onDown(e) {
       if (e.button) return;
@@ -640,7 +638,6 @@
       if (n >= 3) { at(dur + 0.9, () => { try { G.audio.sfx.breathNear ? G.audio.sfx.breathNear(2.6) : G.audio.sfx.breath(1, { vol: 0.8 }); } catch (e) {} G.fx.sub('(…아주 가까이에서, 숨소리)', 2200); }); end = dur + 3.2; }
       at(end, () => stop(false));
       G.bus.emit('gallery:live', n);
-      if (n === 1) setTimeout(() => note('LIVE 사진을 꾹 누르니 작은 오르골 소리가 났다. 세아의 보물?'), 2500);
     }
     function stop(released) {
       const pl = playing; if (!pl) return;

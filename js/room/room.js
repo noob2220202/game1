@@ -94,7 +94,7 @@
     stageEl.appendChild(turnWrap);
 
     const label = el('div.room-label.rv-label');
-    const hint = el('div.room-hint.rv-hint', null, '드래그해서 둘러보기 · 두 손가락으로 확대 · 플래시로 비추기');
+    const hint = el('div.room-hint.rv-hint', null, '드래그해서 둘러보기 · 두 손가락으로 확대');
     const flashBtn = el('button.cam-flash.rv-flash', { 'aria-label': '플래시', html: ICON.flash });
     const closeBtn = el('button.cam-close', { 'aria-label': '닫기', html: ICON.close });
     const leftBtn = el('button.room-turn.rv-turnbtn.left', { 'aria-label': '왼쪽으로', html: ICON.left });
@@ -260,11 +260,10 @@
     }
     async function tapSpot(h) {
       if (G.climax && G.climax.spot && G.climax.spot(h.id, api) === true) return;
-      if (h.minZoom && z < h.minZoom) { api.caption('너무 멀다. 확대해 보자.'); return; }
+      if (h.minZoom && z < h.minZoom) { api.caption('너무 멀다.'); return; }
       if (h.needLight !== false && !flash && !lit()) {
         sfx('tap');
-        api.caption(R.flashAllowed() ? '너무 어두워서 잘 안 보인다. 플래시를 켜자.' : '너무 어둡다. …플래시를 쓸 수 없다.');
-        if (R.flashAllowed()) { flashBtn.classList.remove('nudge'); void flashBtn.offsetWidth; flashBtn.classList.add('nudge'); }
+        api.caption('너무 어둡다.');
         G.bus.emit('room:dark-tap', h.id);
         return;
       }
@@ -466,7 +465,7 @@
     nightChip.addEventListener('click', () => {
       sfx('tap');
       setNight(!night.armed);
-      if (night.armed) api.caption('야간 모드 · 셔터를 3초 동안 꾹 누르고 계세요.', 2600);
+      if (night.armed) api.caption('야간 모드', 1600);
     });
     function nightCapture(ev) {
       if (night.busy) return;
@@ -532,7 +531,6 @@
         onOpen() {
           G.foundFragment && G.foundFragment('06');
           G.flag('nightShot', true);
-          try { G.notebook && G.notebook.note('옷장 틈 안쪽 깊은 곳에 카드. ●●●●06'); } catch (e) {}
           const shots = vars.shots || [];
           shots.unshift({ view: 'wardrobe', src, night: true, t: G.clock.now().getTime() });
           vars.shots = shots.slice(0, 20); G.save();

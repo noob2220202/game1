@@ -8,7 +8,7 @@
  *   G.notebook.note(text, {silent}?)   — add an auto-note (deduped, {N} tokens ok; silent = no toast)
  *   G.notebook.lead(id, text, doneFn?) — add an open lead;  G.notebook.leadDone(id)
  *   G.notebook.flash(text, ms?)        — handwriting overlay (returns Promise)
- *   G.notebook.autoHint(objectiveId)   — reveal tier 1 without a hold + pop a small hint card
+ *   G.notebook.autoHint(objectiveId)   — no-op (client: no unsolicited hints; hints are opt-in only)
  *   G.notebook.current()               — active objectives (priority order)
  * Data: G.OBJECTIVES, G.LEADS, G.FRAGMENT_SLOTS (js/data/objectives.js)
  * Saved: vars.nbNotes, nbLeads, nbSeen, nbHintAt, nbTab, nbFragNew, nbPing; state.hints, hintsUsed.
@@ -68,6 +68,7 @@
   const leadFns = {};
   function leads() { return bag('nbLeads', []); }
   NB.lead = function (id, text, doneFn) {
+    if (RETIRED_LEADS.includes(id)) return;
     if (typeof doneFn === 'function') leadFns[id] = doneFn;
     const L = leads();
     if (L.some((l) => l.id === id)) return;
@@ -80,6 +81,14 @@
     const l = leads().find((x) => x.id === id);
     if (l && !l.done) { l.done = true; G.save(); if (isOpen()) render(); }
   };
+  // retired auto-leads / auto-notes (client: no unsolicited pointers) — purged from older saves
+  const RETIRED_LEADS = ['lead47', 'lead29', 'lead06', 'leadMoment', 'leadManager', 'leadHaesol', 'doorAB', 'callme'];
+  const RETIRED_NOTES = ['세아가 남긴 메모. 비밀번호 여섯', "메모 비밀번호: '콩이'", '그 사람 계정: sagongsa', '세아의 마지막 글, 시간 순서대로', '녹음 속 도어락 소리', '소리를 주파수로 보면', '해솔홈에 들어왔다', '누르자마자 되돌아간다', '화면 공유. 이 화면을', '관리자 기기 SM-G991N을 먼저', '화면이 꺼질 때마다 옷장', '그 사람 기기:', '괜찮아, 천천히. 내가 요청한', '계정 보호 완료. 원격 관리자 없음. 이제', 'LIVE 사진을 꾹 누르니', '“♥ 1주년”', '관리사무소는 새벽에 톡을', '알림 기록: 관리실이 보낸', '저장공간: 계산기', '디지털 웰빙: 가장 많이', '계산기 — 1년 동안', '연락처 관리실 010', 'sagongsa — 비공개', '톡 관리실: 010', '이 폰 카메라로 방을', '케이스 속 폴라로이드', '콩이… 3월 17일부터', '4 7 2 9 … 두 자리가', '계산기 용량이', '내 번호로 걸어'];
+  function purgeRetired() {
+    const v = V();
+    if (Array.isArray(v.nbLeads)) v.nbLeads = v.nbLeads.filter((l) => !RETIRED_LEADS.includes(l.id));
+    if (Array.isArray(v.nbNotes)) v.nbNotes = v.nbNotes.filter((n) => !RETIRED_NOTES.some((p) => String(n.text || '').startsWith(p)));
+  }
   function syncLeads() {
     if (flag('M2')) (G.LEADS || []).forEach((d) => { leadFns[d.id] = d.done; if (!leads().some((l) => l.id === d.id)) leads().push({ id: d.id, text: T(d.text), done: false, at: Date.now() }); });
     let ch = false;
@@ -91,7 +100,7 @@
   NB.note = function (text, opts) {
     opts = opts || {};
     text = T(String(text || '')).trim();
-    if (!text) return;
+    if (!text || RETIRED_NOTES.some((p) => text.startsWith(p))) return;
     const N = bag('nbNotes', []);
     if (N.some((n) => n.text === text)) return;
     N.push({ text, t: G.clock ? G.clock.now().getTime() : Date.now() });
@@ -113,6 +122,7 @@
       hookBack();
       document.addEventListener('keydown', (e) => { if (isOpen() && e.key === 'Escape') { e.preventDefault(); NB.close(); } });
     }
+    purgeRetired();
     syncLeads();
     if (V().nbPing || unseen().length) fab.classList.add('ping');
   };
@@ -123,7 +133,6 @@
 
   function onFlag(name) {
     syncLeads();
-    if (name === 'M2') { NB.note('세아가 남긴 메모. 비밀번호 여섯 자리를 세 군데에 나눠 숨겼다.', { silent: true }); }
     if (hintPop && hintPop._obj && isDone(hintPop._obj)) dropHintPop();
     if (unseen().length && !isOpen()) NB.ping();
     if (isOpen()) render();
@@ -260,7 +269,6 @@
     if (!hub()) {
       body.appendChild(el('div.nbk-sec', null, '조각'));
       body.appendChild(el('div.nbk-line.muted', null, '아직 아무것도 모른다.'));
-      body.appendChild(el('div.nbk-line.small', null, '세아가 뭔가 남겨 뒀을지도.'));
       return;
     }
     body.appendChild(el('div.nbk-sec', null, '현관 도어락 · 관리자 비밀번호'));
@@ -424,22 +432,8 @@
     requestAnimationFrame(() => toastEl && toastEl.classList.add('in'));
     toastTimer = setTimeout(hideToast, 2300);
   }
-  NB.autoHint = function (id) {
-    const o = (G.OBJECTIVES || []).find((x) => x.id === id);
-    if (!o || isDone(o) || !o.hints || !o.hints.length) return;
-    if (tierOf(id) < 1) reveal(id, 1, true);
-    if (isOpen() || quietTime()) { if (isOpen()) render(); return; }
-    hideToast();
-    dropHintPop();
-    const card = el('button.nbk-hintpop', { 'aria-label': '수첩 힌트' }, el('small', null, '수첩 · 힌트 1'), el('span', null, T(o.hints[0])));
-    card._obj = o;
-    card.addEventListener('click', () => { dropHintPop(); NB.open('hint', id); });
-    screenEl().appendChild(card);
-    hintPop = card;
-    sfx('pen');
-    requestAnimationFrame(() => card.classList.add('in'));
-    card._t = setTimeout(dropHintPop, 8000);
-  };
+  // Client: no unsolicited hints. Kept as a no-op so older callers don't break; hints are opt-in (hold) only.
+  NB.autoHint = function () {};
   function dropHintPop() { const c = hintPop; if (!c) return; hintPop = null; clearTimeout(c._t); c.classList.remove('in'); setTimeout(() => c.remove(), 400); }
   NB.flash = function (text, ms) {
     text = T(String(text || ''));

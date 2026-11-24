@@ -200,10 +200,7 @@
       el('div.ct-box', null, info));
     G.phone.push(G.ui.screen({ title: '', body, cls: 'ct-screen' }));
     G.bus.emit('contact:open', c.id);
-    if (c.exposes) {
-      if (!G.flag('managerExposed')) SD.note('연락처 관리실 010-8817-3302 · 세아가 사라진 다음 날(2025.11.25 04:10) 다른 기기가 수정했다.');
-      G.flag('managerExposed', true);
-    }
+    if (c.exposes) G.flag('managerExposed', true);
     if (c.id === 'haru' && !G.state.vars.haruContactSeen) {
       G.state.vars.haruContactSeen = 1; G.save();
       SD.note('세아 폰에 내 연락처가 있다. 만든 건… 다른 기기. 어젯밤 11시 41분.');

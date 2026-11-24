@@ -98,8 +98,6 @@
     lock: {
       hint: '우리집 막내 · 영문 소문자 5자',
       answers: ['zhddl'],
-      tooEasy: ['kongi', 'kongyi', 'kongii', 'kongee', 'kongie', 'kong-i', 'kong2', 'konggi'],
-      tooEasyMsg: '그건 너무 쉽잖아 ㅋ',
       wrong: '비밀번호가 틀렸습니다',
       onlyLatin: '영문만 입력할 수 있어요',
     },
@@ -107,8 +105,6 @@
       title: '2쪽',
       prompt: '내가 올린 마지막 글들, 첫 글자만. 시간 순서대로.',
       contains: '옷장',
-      reversed: ['장옷', '어있가', '어있'],
-      reversedMsg: '거꾸로 읽은 것 같아. 시간 순서대로.',
       wrong: '비밀번호가 일치하지 않습니다',
     },
   };

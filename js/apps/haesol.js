@@ -4,7 +4,7 @@
  * P5  splash → login (seah.y, password always wrong) → 비밀번호 찾기 → 보안질문 '나의 보물 1호는?'
  *     (오르골 + variants) → OTP mail (G.mail.push, random 6 digits in vars.otp) → 인증번호 → dashboard  [M4]
  *     (client override: no face login)
- * P6  [원격 잠금 해제] snaps back while G.mirroring() + his lines; 4th try → 화면 공유 toast.
+ * P6  [원격 잠금 해제] snaps back while G.mirroring() + his lines (3 taunts; no system toast after — client: no hints).
  *     Cutting the share before ever trying → '…처음부터 보고 있었어.'
  * P7  기기 관리: wrong block taunt · block sagongsa (needs !mirroring) → MFA bombing ×5 (#3 number matching)
  *     deny all → 보호하기 → checklist  [M6, netFree, remoteAdmin='none'];  허용/47 → 승인됨 + taunt (assist after 2)
@@ -148,7 +148,7 @@
     pw.set('********');
     const err = el('div.hh-err');
     const btn = el('button.hh-btn.primary', null, '로그인');
-    const find = el('button.hh-link' + ((V().hsLoginFails || 0) >= 2 ? '.pulse' : ''), null, '비밀번호 찾기');
+    const find = el('button.hh-link', null, '비밀번호 찾기');
     const wrap = el('div.hh-login', null,
       brand(),
       el('div.hh-lbl', null, '아이디'),
@@ -170,7 +170,6 @@
       err.textContent = `아이디 또는 비밀번호가 일치하지 않습니다. (${n}회)`;
       wrap.classList.remove('hh-shake'); void wrap.offsetWidth; wrap.classList.add('hh-shake');
       sfx('error'); vib(120);
-      if (n >= 2) find.classList.add('pulse');
       try { G.director && G.director.wrongPassword && G.director.wrongPassword(); } catch (e) {}
       G.bus.emit('haesol:loginFail', n);
       busy = false;
@@ -186,7 +185,6 @@
   function steps(n) { return el('div.hh-steps', null, ['본인확인', '인증번호', '완료'].map((s, i) => el('div' + (i + 1 < n ? '.done' : i + 1 === n ? '.on' : ''), null, el('i', null, i + 1 < n ? '✓' : String(i + 1)), el('span', null, s)))); }
   function questionScreen() {
     const err = el('div.hh-err');
-    const hint = el('div.hh-hint' + ((V().hsQFails || 0) >= 1 ? '.in' : ''), null, '등록된 힌트: 🎵 엄마가 사준 것');
     const f = G.ui.field({ placeholder: '답변 입력', mode: 'ko', cls: 'hh-fld', submitLabel: '확인', onSubmit: () => check() });
     const next = el('button.hh-btn.primary', null, '다음');
     const body = el('div.hh-form', null,
@@ -195,7 +193,7 @@
       el('div.hh-p', null, '가입할 때 등록한 본인확인 질문에 답해 주세요.'),
       el('div.hh-lbl', null, '아이디'), el('div.hh-id', null, el('span', null, 'seah.y')),
       el('div.hh-q', null, el('small', null, '본인확인 질문'), el('b', null, '나의 보물 1호는?')),
-      f.node, err, hint, next);
+      f.node, err, next);
     const scr = G.ui.screen({ title: '비밀번호 찾기', theme: 'dark', cls: 'hh-screen', body });
     G.phone.push(scr);
     f.node.addEventListener('click', () => keepAbove(next));
@@ -220,7 +218,6 @@
         err.textContent = '답변이 일치하지 않습니다.';
         sfx('error'); vib(100);
         body.classList.remove('hh-shake'); void body.offsetWidth; body.classList.add('hh-shake');
-        if (n >= 1) hint.classList.add('in');
         f.clear();
         G.bus.emit('haesol:questionFail', n);
       }
@@ -295,7 +292,6 @@
     V().m4At = G.clock.now().getTime(); V().hsOtpSent = false; G.save();
     G.flag('M4', true);
     G.bus.emit('haesol:login');
-    note('해솔홈에 들어왔다. 도어락은 이 앱이 관리한다.');
     // back to the app root (dashboard)
     while (G.phone.stackDepth() > 1 && G.phone.top() && G.phone.top().node !== (root && root.scr)) G.phone.pop(true);
     rerender();
@@ -361,17 +357,12 @@
   async function snapBack(sw, kind) {
     const n = (V().hsSnaps = (V().hsSnaps || 0) + 1); G.save();
     G.bus.emit('haesol:snap', n);
-    if (n === 1) note('누르자마자 되돌아간다. 그 사람, 이걸 어떻게 바로 알지?');
     if (n <= 3) await him(SNAP_LINES[n - 1], 500);
-    else {
-      G.phone.toast('다른 기기에서 이 화면을 보는 중입니다 (화면 공유)', 3600);
-      if (n === 4) note('화면 공유. 이 화면을 누가 같이 보고 있다.');
-    }
   }
   async function remoteUnlock(sw) {
     if (snapBusy) return;
     sfx('tap');
-    if (G.flag('M6')) { G.phone.toast('원격 관리자 잠금이 해제되어 있습니다. 현관 키패드에서 관리자 비밀번호를 입력하세요.', 3400); return; }
+    if (G.flag('M6')) { G.phone.toast('원격 관리자 잠금이 해제되어 있습니다.', 2600); return; }
     snapBusy = true;
     sw.classList.add('on', 'busy');
     vib(10);
@@ -383,8 +374,7 @@
     setTimeout(() => sw.classList.remove('nope', 'busy'), 420);
     if (mirroring()) await snapBack(sw, 'unlock');
     else {
-      await G.phone.dialog({ title: '해제할 수 없습니다', text: '원격 관리자 잠금은 잠금을 설정한 관리자 기기(SM-G991N)에서만 해제할 수 있습니다. 기기 관리에서 기기를 확인하세요.', buttons: [{ label: '확인', value: true, style: 'primary' }] });
-      note('관리자 기기 SM-G991N을 먼저 끊어야 한다. 기기 관리.');
+      await G.phone.dialog({ title: '해제할 수 없습니다', text: '원격 관리자 잠금은 잠금을 설정한 관리자 기기(SM-G991N)에서만 해제할 수 있습니다.', buttons: [{ label: '확인', value: true, style: 'primary' }] });
     }
     snapBusy = false;
   }
@@ -515,7 +505,7 @@
     }
     render();
     sub('옷장 문 센서', body, { sub: '404호 · 붙박이장', onResume: render, onClose: () => clearInterval(iv) });
-    if (!G.flag('sensorLogSeen')) { G.flag('sensorLogSeen', true); setTimeout(() => note('화면이 꺼질 때마다 옷장 문이 열렸다. 그 사람은 화면만 본다.'), 1500); }
+    if (!G.flag('sensorLogSeen')) G.flag('sensorLogSeen', true);
     G.bus.emit('haesol:sensorLog');
   }
 
@@ -573,7 +563,6 @@
       : d.self ? [['모델', 'Galaxy S23 (SM-S911N)'], ['계정', 'seah.y'], ['권한', '일반 (임시 로그인)'], ['위치', '404호']]
         : [['종류', d.name], ['위치', '404호'], ['상태', d.off ? '오프라인' : '온라인'], ['등록', d.id === 'sensor' ? '2025.03.10 · sagongsa' : '2024.09.01 · seah.y']];
     G.phone.dialog({ title: d.name, html: true, text: rows.map(([k, v]) => `<div class="hh-dlgrow"><span>${k}</span><b${/관리자|sagongsa|실내/.test(v) ? ' class="bad"' : ''}>${G.util.esc(v)}</b></div>`).join(''), buttons: [{ label: '닫기', value: true, style: 'primary' }] });
-    if (d.id === 'sagongsa') note('그 사람 기기: SM-G991N (sagongsa). 위치: 404호(실내).');
   }
   let blockBusy = false;
   async function block(d, row) {
@@ -730,7 +719,6 @@
       doorMotor();
       await sleep(700);
       him('고마워 {N야} ㅎ', 900);
-      if (V().mfaFails === 2) setTimeout(() => note('괜찮아, 천천히. 내가 요청한 게 아니면 전부 거부.'), 2600);
       G.bus.emit('haesol:mfa', 'fail');
     }
     restoreStatus();
@@ -744,7 +732,7 @@
     G.flag('netFree', true);
     G.flag('M6', true);
     G.phone.notify({ app: 'haesol', title: '계정이 보호되었습니다', body: '원격 관리자 잠금 해제' });
-    note('계정 보호 완료. 원격 관리자 없음. 이제 현관 키패드에 관리자 비밀번호.');
+    note('계정 보호 완료. 원격 관리자 없음.');
     G.phone.refreshBadges && G.phone.refreshBadges();
   }
   H.startMFA = startMFA;

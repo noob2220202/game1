@@ -285,11 +285,7 @@
       wrap);
     screen('알림 기록', body, 'nh-screen');
     G.bus.emit('settings:notifHistory');
-    SD.note('그 사람 기기: SM-G991N');
-    if (G.flag('managerSlip')) {
-      if (!G.flag('managerExposed')) SD.note('알림 기록: 관리실이 보낸 사진 — 자고 있는 나. “아직 안 자네 ㅎ”. 반말. 관리실 = 그 사람.');
-      G.flag('managerExposed', true);
-    }
+    if (G.flag('managerSlip')) G.flag('managerExposed', true);
   };
 
   /* ---------------- 소리 / 디스플레이 ---------------- */
@@ -362,7 +358,6 @@
       group('앱 (크기순)', apps));
     screen('저장공간', body);
     G.bus.emit('settings:storage');
-    if (!G.state.vars.noteStorage) { G.state.vars.noteStorage = 1; G.save(); SD.note('저장공간: 계산기 2.1GB (이미지·동영상 2.0GB). 계산기에 사진이?'); }
   };
   function storageApp(a) {
     const hot = a.id === 'calculator';
@@ -402,7 +397,6 @@
       group('앱 사용 시간', apps));
     screen('디지털 웰빙', body, 'wb-screen');
     G.bus.emit('settings:wellbeing');
-    if (!G.state.vars.noteWellbeing) { G.state.vars.noteWellbeing = 1; G.save(); SD.note('디지털 웰빙: 가장 많이 쓴 앱이 계산기. 하루 평균 2시간 41분?'); }
   };
   function calcUsage() {
     const hrs = (S().wellbeing || {}).calcHours || [];
@@ -420,7 +414,6 @@
       ]));
     screen('앱 사용 시간', body, 'wb-screen');
     G.bus.emit('settings:calcUsage');
-    if (!G.state.vars.noteCalcHours) { G.state.vars.noteCalcHours = 1; G.save(); SD.note('계산기 — 1년 동안 매일 새벽 2~4시. 세아가 사라진 다음 날부터.'); }
   }
 
   /* ---------------- 손쉬운 사용 › 오디오 (H2) ---------------- */
