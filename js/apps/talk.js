@@ -608,11 +608,12 @@
       el('div.tvc-top', null, el('div.tvc-kind', null, '보이스톡'), avatarNode(th.avatar, th.name, 'tvc-av'), el('div.tvc-name', null, T(th.name)), status, sub),
       btns);
     const ov = G.phone.overlay(node, { modal: 'hard' });
+    const restore = SD.statusOverlay('light');
     return {
       node, decline, accept,
       status(t, cls) { status.textContent = t; status.className = 'tvc-status' + (cls ? ' ' + cls : ''); },
       sub(t) { sub.textContent = t; },
-      close(ms) { setTimeout(() => ov.close(), ms || 0); },
+      close(ms) { setTimeout(() => { ov.close(); restore(); }, ms || 0); },
     };
   }
   async function voiceCall(th) {
@@ -675,7 +676,9 @@
         th.status ? el('div.pf-status', null, T(th.status)) : null,
         pf.info ? el('div.pf-info', null, pf.info.map((x) => el('div', null, T(x)))) : null,
         actions.length ? el('div.pf-acts', null, actions) : null));
-    const ov = G.phone.overlay(node, { onBack: () => ov.close() });
+    const restore = SD.statusOverlay('light');
+    const ov0 = G.phone.overlay(node, { onBack: () => ov.close() });
+    const ov = { close() { ov0.close(); restore(); } };
     G.bus.emit('talk:profile', id);
     if (id === 'manager') {
       if (!G.flag('managerExposed')) SD.note('톡 관리실: 010-8817-3302로 추가됨 (2025.03.08). 문 스티커 번호는 02로 시작했는데…');

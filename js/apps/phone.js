@@ -221,6 +221,7 @@
     G.save();
     G.bus.emit('call:out', d);
     const handler = G.STORY.dial;
+    const restore = SD.statusOverlay('light');
     await G.phone.callScreen({
       name: emergency ? '긴급 전화' : c ? T(c.name) : fmtNum(d), number: emergency ? d : c ? fmtNum(d) : '', incoming: false,
       async script(api) {
@@ -240,5 +241,6 @@
         api.end(emergency ? '긴급 통화 연결 실패' : '전화를 걸 수 없음');
       },
     });
+    restore();
   };
 })();

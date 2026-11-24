@@ -35,7 +35,7 @@
    * ========================================================= */
   function chrome(content, o) {
     const urlBar = el('button.br-url', { onclick: () => searchSheet(o.url) },
-      o.home ? el('span.bu-ic', { html: IC.globe }) : el('span.bu-ic.lock', { html: IC.lock }),
+      o.home ? el('span.bu-ic', { html: IC.globe }) : el('span.bu-ic.secure', { html: IC.lock }),
       el('span.bu-t', null, o.home ? '검색어 또는 URL 입력' : T(o.url)),
       o.home ? null : el('span.bu-r', { html: IC.reload }));
     const top = el('div.br-top', null, urlBar);
@@ -204,7 +204,7 @@
     const thumb = el('button.tab-card', { onclick: () => { G.audio.sfx.tap(); BR.openPage('news'); } },
       el('div.tc-head', null, el('span', { html: IC.globe }), el('b', null, T(pg.title))),
       el('div.tc-body', null, el('div.tc-src', null, '한울일보 · 사회'), el('div.tc-h', null, T(pg.title)), el('div.tc-l'), el('div.tc-l'), el('div.tc-l.s')),
-      el('div.tc-foot', null, '다른 기기에서 연 탭 · ' + (pg.openedBy || '')));
+      el('div.tc-foot', null, '다른 기기에서 연 탭 · ' + (pg.openedBy || '2026.11.20')));
     const rowsBox = el('div.sync-rows');
     const head = el('div.sync-head', null, el('span', { html: IC.device }), el('div', null, el('b', null, '다른 기기의 탭'), el('small.sync-when', null, `Galaxy (SM-G991N) · ${syncLabel()}`)));
     function renderRows() {

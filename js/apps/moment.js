@@ -30,9 +30,10 @@
 
   /* image box with fallbacks: post.img → post.alt (crop) → placeholder */
   function imgBox(post, cls) {
-    const box = el('div.mo-img' + (cls ? '.' + cls : ''));
+    const layer = el('div.mo-imgi');
+    const box = el('div.mo-img' + (cls ? '.' + cls : ''), null, layer);
     const tries = [{ key: post.img, pos: post.pos, zoom: post.zoom, filter: post.filter }];
-    if (post.alt) tries.push({ key: post.alt, pos: post.altPos, zoom: post.altZoom, filter: post.filter });
+    if (post.alt) tries.push({ key: post.alt, pos: post.altPos, zoom: post.altZoom, filter: post.altFilter || post.filter });
     let i = 0;
     function apply() {
       const t = tries[i];
@@ -40,10 +41,10 @@
       const url = SD.img(t.key);
       const im = new Image();
       im.onload = () => {
-        box.style.backgroundImage = `url("${url}")`;
-        box.style.backgroundPosition = t.pos || '50% 50%';
-        box.style.backgroundSize = t.zoom ? `${t.zoom * 100}% auto` : 'cover';
-        if (t.filter) box.style.filter = t.filter;
+        layer.style.backgroundImage = `url("${url}")`;
+        layer.style.backgroundPosition = t.pos || '50% 50%';
+        layer.style.backgroundSize = t.zoom ? `${t.zoom * 100}% auto` : 'cover';
+        if (t.filter) { layer.style.filter = t.filter; layer.classList.add('filtered'); }
         box._url = url;
       };
       im.onerror = () => { i++; apply(); };

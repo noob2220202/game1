@@ -1,7 +1,7 @@
 /* =========================================================
  * Room view — room 404 seen through 세아's phone camera (design §5 카메라, §6.3, §7.1).
- * 4 directions (door 0°, bed 90°, window 180°, wardrobe 270°), drag / arrows / optional gyro
- * look-around, 1×/2×/8× zoom pill + pinch, flashlight cone, state layers (evaluated only in
+ * 4 directions (door 0°, bed 90°, window 180°, wardrobe 270°), drag / arrows look-around
+ * (no hardware sensors — client override in ARCH.md), 1×/2×/8× zoom pill + pinch, flashlight cone, state layers (evaluated only in
  * setView()), hotspots -> close-ups, door sticker QR chip, wardrobe knock-back, night mode.
  *
  * G.room.open({mode:'camera'|'lockscreen', view:index|id, onClose, onFlip}) -> api
@@ -32,7 +32,6 @@
 
   function sfx(name) { const A = G.audio; const f = A && A.sfx && A.sfx[name]; if (!f) return undefined; try { return f.apply(null, Array.prototype.slice.call(arguments, 1)); } catch (e) { return undefined; } }
   function IMG(k) { return G.ROOM.img(k); }
-  function motionOK() { return !!((G.state && G.state.vars.motionOK) || (G.settings && G.settings.motionOK)); }
   function T(s) { return G.T ? G.T(s) : s; }
   function speakerMode() { return (G.settings && G.settings.audioMode === 'speaker') || (G.state && G.state.vars.audioMode === 'speaker') || (G.settings && G.settings.sound === false); }
   function relAz(az) { const y = (G.audio && G.audio.getYaw) ? G.audio.getYaw() : 0; return ((((az - y) % 360) + 540) % 360) - 180; }
@@ -97,7 +96,6 @@
     const label = el('div.room-label.rv-label');
     const hint = el('div.room-hint.rv-hint', null, '드래그해서 둘러보기 · 두 손가락으로 확대 · 플래시로 비추기');
     const flashBtn = el('button.cam-flash.rv-flash', { 'aria-label': '플래시', html: ICON.flash });
-    const gyroBtn = el('button.rv-gyro', { 'aria-label': '기울여서 둘러보기', html: ICON.gyro });
     const closeBtn = el('button.cam-close', { 'aria-label': '닫기', html: ICON.close });
     const leftBtn = el('button.room-turn.rv-turnbtn.left', { 'aria-label': '왼쪽으로', html: ICON.left });
     const rightBtn = el('button.room-turn.rv-turnbtn.right', { 'aria-label': '오른쪽으로', html: ICON.right });
@@ -108,7 +106,7 @@
     const zoomPill = el('div.rv-zoom', null, [1, 2, 8].map((p) => el('button', { dataset: { z: p } }, p + '×')));
     const modes = el('div.cam-modes', null, el('span', null, '야간'), el('span', null, '동영상'), el('b', null, '사진'), el('span', null, '인물'), el('span', null, '파노라마'));
     const bottom = el('div.cam-bottom.rv-bottom', null, zoomPill, modes, el('div.cam-row', null, thumb, shutter, flip));
-    const top = el('div.cam-top.rv-top', null, closeBtn, el('div.cam-top-mid', null, label), el('div.rv-topr', null, gyroBtn, flashBtn));
+    const top = el('div.cam-top.rv-top', null, closeBtn, el('div.cam-top-mid', null, label), el('div.rv-topr', null, flashBtn));
     const nightChip = el('button.rv-chip.rv-night', { html: ICON.moon + '<span>야간 모드 3초</span>' });
     const qrChip = el('button.rv-chip.rv-qr', { html: ICON.link + '<span>haesolvil.kr/as?unit=404</span>' });
     const knockBtn = el('button.rv-knock', { 'aria-label': '노크하기', html: ICON.knuckle + '<span>노크하기</span>' });
@@ -132,7 +130,6 @@
     function hx1() { return Math.min(0.5, sw / (2 * W)); }
     function panX() { const h = hx1(); return h >= 0.5 ? 0.5 : clamp((cx - h) / (1 - 2 * h), 0, 1); }
     function fromPanX(p) { const h = hx1(); return h + clamp(p, 0, 1) * (1 - 2 * h); }
-    let gyroYawNow = null;
     function layout() {
       if (closed) return;
       measure();
@@ -148,7 +145,7 @@
       applyLight();
       updatePill();
       scheduleChips();
-      const yaw = gyro.on && gyroYawNow != null ? gyroYawNow : vi * 90 + (panX() - 0.5) * 50;
+      const yaw = vi * 90 + (panX() - 0.5) * 50;
       if (G.audio && G.audio.setYaw) G.audio.setYaw(((yaw % 360) + 360) % 360);
     }
     function applyLight() {
@@ -345,8 +342,7 @@
       if (!drag.moved && Math.hypot(dx, dy) > 7) { drag.moved = true; try { stageEl.setPointerCapture(e.pointerId); } catch (er) {} }
       light = { x: clamp((e.clientX - r.left) / r.width, 0, 1), y: clamp((e.clientY - r.top) / r.height, 0, 1) };
       if (drag.moved) {
-        if (gyro.on && z <= 1.05) { gyro.offset = (drag.gyroOff0 != null ? drag.gyroOff0 : (drag.gyroOff0 = gyro.offset)) - (dx / ((1 - 2 * hx1()) * W)) * 90; cy = drag.cy - dy / (H * z); }
-        else { cx = drag.cx - dx / (W * z); cy = drag.cy - dy / (H * z); }
+        cx = drag.cx - dx / (W * z); cy = drag.cy - dy / (H * z);
         layout();
       } else applyLight();
     });
@@ -355,7 +351,7 @@
       if (ptrs.size < 2) pinch = null;
       if (drag && drag.id === e.pointerId) {
         const dx = e.clientX - drag.x, dt = Date.now() - drag.t;
-        if (drag.moved && z <= 1.05 && !gyro.on && Math.abs(dx) > 80 && dt < 380 && ((dx > 0 && panX() <= 0.02) || (dx < 0 && panX() >= 0.98))) turn(dx > 0 ? -1 : 1);
+        if (drag.moved && z <= 1.05 && Math.abs(dx) > 80 && dt < 380 && ((dx > 0 && panX() <= 0.02) || (dx < 0 && panX() >= 0.98))) turn(dx > 0 ? -1 : 1);
         const d = drag; setTimeout(() => { if (drag === d) drag = null; }, 0);
       }
       if (ptrs.size === 1) { const [id, p] = [...ptrs.entries()][0]; drag = { x: p.x, y: p.y, cx, cy, t: Date.now(), moved: true, id }; }
@@ -372,7 +368,6 @@
     }, { passive: false });
 
     function turn(d) {
-      if (gyro.on) { gyro.offset += d * 90; return; }
       setView(vi + d, d);
     }
     leftBtn.addEventListener('click', () => turn(-1));
@@ -385,54 +380,6 @@
       else if (e.key === '-') zoomTo(z / 2);
     };
     window.addEventListener('keydown', onKey);
-
-    /* ---------- gyro look-around (rotation matrix -> rear camera azimuth) ---------- */
-    const gyro = { on: false, h0: null, base: 0, offset: 0, target: null, smooth: null, raf: 0, last: 0 };
-    function rearHeading(e) {
-      const d2r = Math.PI / 180;
-      const a = (e.alpha || 0) * d2r, b = (e.beta || 0) * d2r, g = (e.gamma || 0) * d2r;
-      const cA = Math.cos(a), sA = Math.sin(a), cB = Math.cos(b), sB = Math.sin(b), cG = Math.cos(g), sG = Math.sin(g);
-      // R = Rz(a)·Rx(b)·Ry(g); rear camera looks along -Z(device) -> v = -col3
-      const vx = -(cG * sA * sB + cA * sG), vy = -(sA * sG - cA * cG * sB);
-      return { h: Math.atan2(vx, vy) / d2r, horiz: Math.hypot(vx, vy) };
-    }
-    const angDiff = (a, b) => ((((a - b) % 360) + 540) % 360) - 180;
-    function onOrient(e) {
-      if (!gyro.on || e.alpha == null) return;
-      const r = rearHeading(e);
-      if (r.horiz < 0.3) return; // phone lying flat: keep last direction
-      if (gyro.h0 == null) { gyro.h0 = r.h; gyro.base = vi * 90 + (panX() - 0.5) * 90; gyro.offset = 0; gyro.smooth = gyro.base; }
-      gyro.target = gyro.base + angDiff(r.h, gyro.h0);
-    }
-    function gyroLoop(t) {
-      gyro.raf = requestAnimationFrame(gyroLoop);
-      if (!gyro.on || gyro.target == null) return;
-      const dt = Math.min(100, t - (gyro.last || t)); gyro.last = t;
-      const goal = gyro.target + gyro.offset;
-      gyro.smooth += angDiff(goal, gyro.smooth) * (1 - Math.exp(-dt / 120));
-      const y = gyro.smooth;
-      const near = Math.round(y / 90);
-      const d = y - near * 90;
-      const nvi = ((near % 4) + 4) % 4;
-      gyroYawNow = ((y % 360) + 360) % 360;
-      if (nvi !== vi) {
-        const dcur = angDiff(y, vi * 90);
-        if (Math.abs(dcur) > 50) setView(nvi, 0, { panX: 0.5 + d / 90, keepZoom: false, silent: true });
-      } else if (z <= 1.05) { cx = fromPanX(0.5 + d / 90); layout(); }
-    }
-    function setGyro(on) {
-      gyro.on = !!on && motionOK();
-      gyro.h0 = null; gyro.target = null; gyroYawNow = null;
-      gyroBtn.classList.toggle('on', gyro.on);
-      if (gyro.on) { window.addEventListener('deviceorientation', onOrient); gyro.last = 0; gyro.raf = requestAnimationFrame(gyroLoop); }
-      else { window.removeEventListener('deviceorientation', onOrient); cancelAnimationFrame(gyro.raf); }
-    }
-    gyroBtn.style.display = motionOK() ? '' : 'none';
-    gyroBtn.addEventListener('click', () => {
-      const on = !gyro.on; G.settings.gyro = on; G.saveSettings && G.saveSettings();
-      setGyro(on); sfx('tap');
-      api.caption(on ? '휴대폰을 돌려서 둘러볼 수 있어요.' : '기울여서 둘러보기를 껐어요.', 1800);
-    });
 
     /* ---------- flash ---------- */
     function setFlash(on, silent) {
@@ -519,24 +466,20 @@
     nightChip.addEventListener('click', () => {
       sfx('tap');
       setNight(!night.armed);
-      if (night.armed) api.caption('야간 모드 · 셔터를 누르고 3초 동안 움직이지 마세요.', 2600);
+      if (night.armed) api.caption('야간 모드 · 셔터를 3초 동안 꾹 누르고 있으세요.', 2600);
     });
-    let lastMotion = 0, motionHandlers = new Set();
-    const onMotion = (e) => { lastMotion = performance.now(); motionHandlers.forEach((f) => f(e)); };
-    window.addEventListener('devicemotion', onMotion);
     function nightCapture(ev) {
       if (night.busy) return;
       night.busy = true;
       hideCaption();
-      const useMotion = motionOK() && performance.now() - lastMotion < 600;
       const ring = el('div.rv-nring', null,
         el('div.nr-circle', { html: '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" class="bg"/><circle cx="50" cy="50" r="44" class="fg"/></svg>' }, el('b', null, '3')),
         el('div.nr-text', null, '움직이지 마세요'),
-        useMotion ? null : el('div.nr-sub', null, '셔터를 누른 채로'));
+        el('div.nr-sub', null, '셔터를 누른 채로'));
       root.appendChild(ring); requestAnimationFrame(() => ring.classList.add('in'));
       const fg = ring.querySelector('.fg'), num = ring.querySelector('b');
       const C = 2 * Math.PI * 44; fg.style.strokeDasharray = C;
-      let t0 = performance.now(), resets = 0, done = false, raf = 0, lastAcc = null;
+      let t0 = performance.now(), resets = 0, done = false, raf = 0;
       const sp = ev ? { x: ev.clientX, y: ev.clientY } : null;
       sfx('breathNear', 3.6, { az: 270, dist: 0.55 });
       G.audio && G.audio.duck && G.audio.duck(0.5, 3.5);
@@ -546,15 +489,9 @@
         api.caption(why, 1500);
         ring.classList.remove('shake'); void ring.offsetWidth; ring.classList.add('shake');
       };
-      const motionF = (e) => {
-        const a = e.acceleration && e.acceleration.x != null ? e.acceleration : e.accelerationIncludingGravity;
-        if (!a || a.x == null) return;
-        if (lastAcc) { const d = Math.hypot(a.x - lastAcc.x, a.y - lastAcc.y, a.z - lastAcc.z); if (d > 1.2) reset('흔들렸어요. 다시 3초…'); }
-        lastAcc = { x: a.x, y: a.y, z: a.z };
-      };
-      if (useMotion) motionHandlers.add(motionF);
-      const onUp = () => { if (!useMotion && !done) finish(false); };
-      const onMove = (e) => { if (!useMotion && sp && Math.hypot(e.clientX - sp.x, e.clientY - sp.y) > 8) { sp.x = e.clientX; sp.y = e.clientY; reset('흔들렸어요. 다시 3초…'); } };
+      // hold the shutter 3 s; pointer drift > 8 px resets (max 2 resets) — no motion sensor (ARCH override)
+      const onUp = () => { if (!done) finish(false); };
+      const onMove = (e) => { if (sp && Math.hypot(e.clientX - sp.x, e.clientY - sp.y) > 8) { sp.x = e.clientX; sp.y = e.clientY; reset('흔들렸어요. 다시 3초…'); } };
       shutter.addEventListener('pointerup', onUp); shutter.addEventListener('pointercancel', onUp); shutter.addEventListener('pointermove', onMove);
       const tick = () => {
         if (done) return;
@@ -567,7 +504,6 @@
       raf = requestAnimationFrame(tick);
       function finish(ok) {
         done = true; cancelAnimationFrame(raf);
-        motionHandlers.delete(motionF);
         shutter.removeEventListener('pointerup', onUp); shutter.removeEventListener('pointercancel', onUp); shutter.removeEventListener('pointermove', onMove);
         ring.classList.remove('in'); setTimeout(() => ring.remove(), 300);
         night.busy = false;
@@ -639,9 +575,8 @@
     function close() {
       if (closed) return;
       closed = true;
-      ro.disconnect(); setGyro(false); cancelAnimationFrame(zAnim); clearTimeout(qrTimer); clearTimeout(seqTimer);
+      ro.disconnect(); cancelAnimationFrame(zAnim); clearTimeout(qrTimer); clearTimeout(seqTimer);
       window.removeEventListener('keydown', onKey);
-      window.removeEventListener('devicemotion', onMotion);
       ov.close();
       if (cur === api) cur = null;
       G.bus.emit('room:close');
@@ -697,7 +632,6 @@
     };
     cur = api;
     setView(vi);
-    if (motionOK() && G.settings.gyro !== false) setGyro(true);
     const seen = G.state.seen || (G.state.seen = {});
     seen.roomHintN = (seen.roomHintN || 0) + 1;
     if (seen.roomHintN > 2) hint.style.display = 'none';
@@ -731,7 +665,6 @@
     flip: '<svg viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 13.5a3 3 0 015-2.2M15 12.5a3 3 0 01-5 2.2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M14 9.5v2h-2M10 16.5v-2h2" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
     moon: '<svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 119.5 4a6.5 6.5 0 0010.5 10.5z" fill="currentColor"/></svg>',
     link: '<svg viewBox="0 0 24 24"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M14 14h3v3h-3zM18 18h3v3h-3zM18 14h3M14 18v3" stroke="currentColor" stroke-width="1.8" fill="none"/></svg>',
-    gyro: '<svg viewBox="0 0 24 24"><rect x="8" y="3.5" width="8" height="15" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 12a8.5 4 0 0017 0" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M18 9.5l2.6 2.6L18 14.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     knuckle: '<svg viewBox="0 0 24 24"><path d="M7 11V7.5a1.6 1.6 0 013.2 0V6a1.6 1.6 0 013.2 0v.6a1.6 1.6 0 013.2 0v1a1.6 1.6 0 013.1.6v5.3c0 4-2.6 6.5-6.5 6.5h-1.3C8.6 20 6 17.6 6 14.3V12a1 1 0 011-1z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M10.2 7.5V11M13.4 6.6V11M16.6 7.6V11" stroke="currentColor" stroke-width="1.3"/><path d="M2.5 9.5l1.6.8M2.3 13h1.8M2.8 16.5l1.5-.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
   };
   R.ICON = ICON;

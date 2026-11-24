@@ -2,7 +2,7 @@
  * 설정 — DESIGN §4.8 (One UI-flavored).
  *  검색 (keywords) · 연결 › Wi-Fi / 블루투스 / 화면 공유(스마트뷰) [연결 끊기] → G.cutMirroring()
  *  알림 › 알림 기록 (story + live; 04:04 slip after managerSlip → managerExposed)
- *  손쉬운 사용 › 오디오 › 모노 오디오 → G.audio.setMono(on) + flag monoSeen · 흔들어서 실행 취소 · 글자 크기
+ *  손쉬운 사용 › 오디오 › 모노 오디오 → G.audio.setMono(on) + flag monoSeen · 글자 크기 (no shake row: client override)
  *  디지털 웰빙 (계산기 2시간 41분, hourly bars) · 저장공간 (계산기 2.1GB) · 배터리 · 휴대전화 정보
  * API: G.settingsApp.open(screenId) — 'cast'|'audio'|'notifHistory'|'wellbeing'|'storage'|...
  * ========================================================= */
@@ -126,7 +126,7 @@
         row({ icon: ic('#32d74b', 'hour'), title: '디지털 웰빙', sub: '하루 평균 사용 시간 · 앱 타이머', onClick: () => OPEN.wellbeing() }),
       ]),
       group(null, [
-        row({ icon: ic('#0a84ff', 'access'), title: '손쉬운 사용', sub: '오디오 · 시인성 · 상호작용', onClick: () => OPEN.access() }),
+        row({ icon: ic('#0a84ff', 'access'), title: '손쉬운 사용', sub: '오디오 · 시인성 향상', onClick: () => OPEN.access() }),
         row({ icon: ic('#8e8e93', 'info'), title: '휴대전화 정보', sub: '세아의 Galaxy', onClick: () => OPEN.about() }),
       ]),
       group('게임', [row({ icon: ic('#7f1d1d', 'game'), title: '게임 설정', sub: '사운드 · 진동 · 공포 연출 · 글자 크기', onClick: () => gameOptions() })]));
@@ -423,15 +423,15 @@
   }
 
   /* ---------------- 손쉬운 사용 › 오디오 (H2) ---------------- */
-  OPEN.access = function (o) {
-    const shakeOn = G.state.vars.shakeUndoOff ? false : true;
-    const shakeRow = row({ title: '흔들어서 실행 취소', sub: '휴대폰을 흔들면 마지막 입력을 되돌립니다.', right: toggle(shakeOn, (on) => { G.state.vars.shakeUndoOff = !on; G.save(); }), id: 'shake' });
+  OPEN.access = function () {
     const body = el('div', null,
       group('청각 보조', [row({ icon: ic('#ff9f0a', 'sound'), title: '오디오', sub: '모노 오디오 · 좌우 음향 밸런스', onClick: () => OPEN.audio() })]),
       group('시인성 향상', [row({ icon: ic('#34c759', 'display'), title: '글자 크기', sub: '디스플레이', onClick: () => OPEN.display() })]),
-      group('상호작용 및 조작', [shakeRow]));
+      group('상호작용 및 조작', [
+        row({ title: '길게 누르기 시간', meta: '보통 (0.5초)' }),
+        row({ title: '터치 후 반응 시간', meta: '사용 안 함' }),
+      ]));
     screen('손쉬운 사용', body);
-    if (o && o.hl === 'shake') flash(shakeRow);
     G.bus.emit('settings:access');
   };
   function flash(n) { setTimeout(() => { n.classList.add('hl'); n.scrollIntoView({ block: 'center', behavior: 'smooth' }); setTimeout(() => n.classList.remove('hl'), 1800); }, 380); }

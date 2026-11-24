@@ -80,6 +80,23 @@
     const t0 = Date.now();
     while (!SD.isSafe()) { await new Promise((r) => setTimeout(r, 700)); if (maxMs && Date.now() - t0 > maxMs) break; }
   };
+  /* status-bar text color for story-data screens (light background → dark text) */
+  const LIGHT = ['talk-screen', 'tk-screen', 'sms-screen', 'sms-list-screen', 'dial-screen', 'ct-screen', 'mo-screen', 'br-screen', 'br-list-screen', 'cal-screen', 'st-screen'];
+  const DARK = ['clk-screen'];
+  if (G.bus) G.bus.on('screen:push', (e) => {
+    const n = e && e.node; if (!n || !n.classList) return;
+    let st = null;
+    if (LIGHT.some((c) => n.classList.contains(c))) st = 'dark';
+    else if (DARK.some((c) => n.classList.contains(c))) st = 'light';
+    if (!st) return;
+    n.dataset.status = st;
+    if (G.phone && G.phone.top && G.phone.top() === e && G.phone.statusTheme) G.phone.statusTheme(st);
+  });
+  /** temporarily force the status-bar text color (for dark overlays); returns a restore fn */
+  SD.statusOverlay = function (theme) {
+    try { G.phone.statusTheme(theme || 'light'); } catch (e) {}
+    return function () { try { const t = G.phone.top && G.phone.top(); G.phone.statusTheme(t && t.node ? t.node.dataset.status || 'light' : 'light'); } catch (e) {} };
+  };
   SD.dayLabel = function (d) { return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${['일', '월', '화', '수', '목', '금', '토'][d.getDay()]}요일`; };
   /** deterministic PRNG (mulberry32) */
   SD.rng = function (seed) { let a = seed >>> 0; return function () { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
@@ -185,10 +202,10 @@
     ]));
     out.push(...day('2025-07-30', [[ME, '02:10', '콩이 코고는 거 녹음함ㅋㅋㅋ'], [TH, '09:02', '그걸 왜 녹음해ㅋㅋㅋ'], [ME, '09:30', '음향과의 숙명']], F));
     out.push(...day('2025-08-14', [
-      [ME, '21:15', '아 그리고 폰 흔들면 실행취소 되는 거 앎??'],
-      [ME, '21:15', '메모 과제 다 날렸다가 흔들어서 살림ㅋㅋㅋ'],
+      [ME, '21:15', '아 그리고 메모 날려도 위에 ↶ 누르면 살아나는 거 앎??'],
+      [ME, '21:15', '과제 다 날렸다가 그걸로 살림ㅋㅋㅋ'],
       [TH, '21:18', '헐 대박 몰랐어'],
-      [TH, '21:18', '근데 그거 세게 흔들다 폰 날리겠다'],
+      [TH, '21:18', '근데 넌 왜 맨날 날리냐ㅋㅋ'],
     ]));
     out.push(...day('2025-08-30', [[ME, '10:05', '월세 또 올랐어'], [ME, '10:05', '65만원 실화냐'], [TH, '10:11', '헐ㅠ 일 년이면 얼마야']], F));
     out.push(...day('2025-09-02', [[ME, '20:40', '내 모먼트 봤냐 콩이 그림ㅋㅋ'], [TH, '20:42', '그거 어떻게 한 거야??'], [ME, '20:43', '녹음 앱 주파수 보기로 틀어봐ㅋㅋ']], F));

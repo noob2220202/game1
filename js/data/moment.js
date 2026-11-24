@@ -17,7 +17,7 @@
         avatar: { img: 'avatar_sea', fallback: 'dog_face' },
         postCount: 38, followers: 212, following: 180,
         posts: [
-          { id: 'p0247', t: '2026-11-24 02:47', caption: '어서 와, {N야}.', img: 'mo_bed_blur', alt: 'vault_haru_sleep', filter: 'blur(5px) brightness(.55)', likes: 1, likedBy: ['sagongsa'], comments: [] },
+          { id: 'p0247', t: '2026-11-24 02:47', caption: '어서 와, {N야}.', img: 'mo_bed_blur', alt: 'vault_haru_sleep', altFilter: 'blur(6px) brightness(.55)', likes: 1, likedBy: ['sagongsa'], comments: [] },
           { id: 'p0241', t: '2026-11-24 02:41', caption: '있지, 새 이웃이 이사 왔어', img: 'mo_sneakers', alt: 'room_door', altPos: '50% 92%', altZoom: 3.2, likes: 1, likedBy: ['sagongsa'], comments: [] },
           { id: 'p1122', t: '2025-11-22 21:10', caption: '가끔은 혼자인 게 좋아', img: 'mo_mug', likes: 23, comments: [{ h: J, text: '세아야 요즘 글 왜 이래… 괜찮아?', t: '2025-11-22 23:31' }, { h: S, text: 'ㅋㅋ 뭔소리 나 멀쩡함', t: '2025-11-22 23:40' }] },
           { id: 'p1121', t: '2025-11-21 22:48', caption: '누가 내 귤 먹었냐 (나임)', img: 'mo_mandarin', likes: 31, comments: [{ h: J, text: 'ㅋㅋㅋㅋ 범인 자수함', t: '2025-11-21 22:55' }] },

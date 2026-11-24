@@ -38,7 +38,7 @@
   P.home = { title: '홈', url: 'internet://home', kind: 'home', render: () => B().homePage() };
 
   P.news = {
-    title: '해솔빌 20대 여성 실종 1년… 가족 "아직 번호 살려둬"', url: 'news.hanul.kr/society/261120', openedBy: '2026.11.20 · 다른 기기',
+    title: '해솔빌 20대 여성 실종 1년… 가족 "아직 번호 살려둬"', url: 'news.hanul.kr/society/261120', openedBy: '2026.11.20 오전 6:31',
     render: () => B().article({
       source: '한울일보 · 사회',
       title: '해솔빌 20대 여성 실종 1년… 가족 "아직 번호 살려둬"',

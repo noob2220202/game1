@@ -4,6 +4,7 @@
  * Never a game over: every waiting step has a max wait + equal fallback, every fail costs time only,
  * '조금 쉽게' after 2 fails. Progress: flags M7, M8 (END is set by the END scene).
  *
+ * Hiding = press-and-hold anywhere (no orientation sensor — client override in ARCH.md).
  * G.climax = {running, step, start(step), resume(), codeAccepted(), spot(id, roomApi), onRoomOpen(api)}
  * Hooks provided: 'door:codeAccepted', 'talk:call'(threadId)
  * Hooks consumed: 'haesol:openBell' (Promise; own red-bell fallback if missing), 'end:start'
@@ -85,6 +86,7 @@
       nbFlash('괜찮아, 천천히.');
       G.bus.emit('climax:assist');
     });
+    root.addEventListener('contextmenu', (e) => e.preventDefault());
     r.ov = G.phone.overlay(root, { modal: 'hard' });
     r.root = root; r.stage = stage; r.cap = cap; r.assistBtn = assistBtn;
     if (fails() >= 2 && !assist()) assistBtn.classList.add('show');
@@ -100,7 +102,7 @@
     return line;
   }
   function blackout(r, on) {
-    if (!r.black) { r.black = el('div.cx-black'); document.getElementById('screen').appendChild(r.black); }
+    if (!r.black) { r.black = el('div.cx-black'); r.black.addEventListener('contextmenu', (e) => e.preventDefault()); document.getElementById('screen').appendChild(r.black); }
     r.black.classList.toggle('on', !!on);
   }
   async function wakeLock(r, on) {
@@ -239,7 +241,7 @@
       dirSub('(등 뒤 왼쪽에서… 판자가 밀리는 소리)', 270, 3000);
       G.audio && G.audio.gsm && G.audio.gsm(0.85);
       await sleep(2200); alive(r);
-      nbFlash('그 사람이 나오면 폰을 엎어. 화면 빛 보고 와.');
+      nbFlash(HIDE_LINE);
       await sleep(1600); alive(r);
     },
 
@@ -477,6 +479,8 @@
   };
 
   /* ---------------- hide + binaural script ---------------- */
+  // 세아's line (memo p.1), adapted to the hold-to-hide mechanic (no face-down sensor)
+  const HIDE_LINE = '그 사람이 나오면 화면 빛을 가려. 빛 보고 와.';
   const SCRIPT = [
     { id: 'creak', at: 0, run() { sfx('creakWardrobe', { az: 270, dur: 2.6 }); dirSub('(옷장 문이… 열린다)', 270, 2600); } },
     { id: 'walk', at: 2.8, run() { sfx('footsteps', 4, { az: 270, toAz: 90, dist: 2.2, gap: 1.1, vol: 0.6 }); dirSub('(양말 신은 발소리. 침대 쪽으로.)', 180, 3600); } },
@@ -490,18 +494,17 @@
     ensureOverlay(r);
     r.stage.innerHTML = '';
     const big = fails() >= 1 || assist();
-    const flipIc = el('div.cx-flip', { html: '<svg viewBox="0 0 64 64"><rect x="20" y="8" width="24" height="44" rx="5" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M8 40c4 10 14 16 24 16s20-6 24-16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-dasharray="3 4"/><path d="M50 36l6 4-2 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' });
-    const holdBtn = el('button.cx-hold', null, el('b', null, '숨기'), el('span', null, '길게 누르기'));
-    const hideBox = el('div.cx-hide' + (big ? '.big' : ''), null, flipIc,
-      el('div.cx-hide-t', null, from === 'creak' ? '휴대폰을 엎어서 빛을 숨기세요' : '다시 엎어서 숨기세요'),
-      el('div.cx-hide-s', null, '화면이 바닥을 향하게 · 센서가 안 되면 아무 곳이나 길게 누르기 (PC: Space)'),
+    const holdBtn = el('button.cx-hold', { 'aria-label': '꾹 눌러 숨기' }, el('i'), el('i'), el('span.cx-hold-ic', { html: '<svg viewBox="0 0 24 24"><path d="M9 11V5.5a1.5 1.5 0 013 0V10m0-1.5a1.5 1.5 0 013 0V11m0-1a1.5 1.5 0 013 0v4.5c0 3.6-2.4 6-6 6h-1c-2.4 0-3.7-1.2-5-3.2L4.6 14a1.5 1.5 0 012.5-1.6L9 14.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>' }));
+    const hideBox = el('div.cx-hide' + (big ? '.big' : ''), null,
+      el('div.cx-hide-t', null, from === 'creak' ? '화면을 꾹 눌러 빛을 가리세요' : '다시 꾹 눌러 빛을 가리세요'),
+      el('div.cx-hide-s', null, '아무 곳이나 누르고 있으면 화면이 꺼져요 · 손을 떼면 빛이 새어 나가요 (PC: 마우스 또는 Space)'),
       holdBtn);
     r.stage.appendChild(el('div.cx-scene.dark'));
     r.stage.appendChild(hideBox);
     requestAnimationFrame(() => hideBox.classList.add('in'));
     const bigT = setTimeout(() => hideBox.classList.add('big'), 20000);
 
-    let hidden = false, downSince = 0, via = null, holdT = 0;
+    let hidden = false, via = null, holdT = 0;
     const listeners = new Set();
     function setHidden(h, how) {
       if (h === hidden) return;
@@ -511,12 +514,6 @@
       else G.bus.emit('facedown', false);
       listeners.forEach((f) => f(h));
     }
-    const onOri = (e) => {
-      if (e.beta == null) return;
-      const b = Math.abs(e.beta);
-      if (b > 140) { if (!downSince) downSince = performance.now(); if (!hidden && performance.now() - downSince >= 400) setHidden(true, 'flip'); }
-      else if (b < 70) { downSince = 0; if (hidden && via === 'flip') setHidden(false); }
-    };
     const onDown = (e) => {
       if (e.target.closest && e.target.closest('.cx-assist, .nb-fab, .notebook, .cx-callui')) return;
       if (r.callActive) return;
@@ -526,14 +523,12 @@
     const onUp = () => { clearTimeout(holdT); if (hidden && via === 'hold') setHidden(false); };
     const onKD = (e) => { if (e.code === 'Space' && !e.repeat && !r.callActive) { e.preventDefault(); setHidden(true, 'key'); } };
     const onKU = (e) => { if (e.code === 'Space') { e.preventDefault(); if (hidden && via === 'key') setHidden(false); } };
-    window.addEventListener('deviceorientation', onOri);
     r.root.addEventListener('pointerdown', onDown);
     blackout(r, false); r.black.addEventListener('pointerdown', onDown);
     window.addEventListener('pointerup', onUp); window.addEventListener('pointercancel', onUp);
     window.addEventListener('keydown', onKD); window.addEventListener('keyup', onKU);
     const detach = () => {
       clearTimeout(bigT); clearTimeout(holdT);
-      window.removeEventListener('deviceorientation', onOri);
       r.root && r.root.removeEventListener('pointerdown', onDown);
       r.black && r.black.removeEventListener('pointerdown', onDown);
       window.removeEventListener('pointerup', onUp); window.removeEventListener('pointercancel', onUp);
@@ -570,7 +565,7 @@
       // lifted early
       tapeStop();
       if (assist()) {
-        caption(r, '…괜찮아. 다시 엎어.', 2200, 'center');
+        caption(r, '…괜찮아. 다시 눌러.', 2200, 'center');
         segIdx = Math.max(SCRIPT.findIndex((s) => s.id === 'sit'), result.at);
       } else {
         addFail('lift');
@@ -579,7 +574,7 @@
         sfx('footsteps', 2, { az: 300, dist: 1.4, toDist: 0.8, gap: 0.32, vol: 0.95 });
         segIdx = SCRIPT.findIndex((s) => s.id === 'approach');
       }
-      hideBox.querySelector('.cx-hide-t').textContent = '다시 엎어서 숨기세요';
+      hideBox.querySelector('.cx-hide-t').textContent = '다시 꾹 눌러 빛을 가리세요';
       hideBox.classList.add('in');
       await new Promise((res) => { const off = r.hideCtl.on((h) => { if (h) { off(); res(); } }); r.cleanup.push(off); });
       alive(r);
@@ -620,6 +615,7 @@
     const ring = sfx('ringMom', { vol: 1 }) || { stop() {} };
     vibrate([800, 400, 800, 400, 800, 400, 800]);
     dirSub('(휴대폰이 울린다! …엄마?)', null, 2600);
+    if (r.hideCtl && r.hideCtl.hidden) setTimeout(() => { if (r.callActive) G.fx.sub('(손을 떼고… 끊어야 해)', 2200, { cls: 'whisper' }); }, 1200);
     const res = await new Promise((resolve) => {
       let done = false;
       const fin = (v) => { if (done) return; done = true; clearTimeout(t); resolve(v); };
