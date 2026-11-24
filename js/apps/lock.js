@@ -20,10 +20,10 @@
     const timeEl = el('div.lock-time');
     const dateEl = el('div.lock-date');
     const notifs = el('div.lock-notifs');
-    node.append(el('div.lock-top', null, dateEl, timeEl), notifs,
+    node.append(el('div.lock-top', null, dateEl, timeEl, el('div.lock-owner', null, '세아 💛 콩이')), notifs,
       el('div.lock-swipe', null, '위로 밀어서 잠금 해제'),
       el('div.lock-bottom', null,
-        el('button.lock-round', { 'aria-label': '손전등', html: '<svg viewBox="0 0 24 24"><path d="M8 3h8v3l-2 4v10.5a1.5 1.5 0 01-1.5 1.5h-1A1.5 1.5 0 0110 20.5V10L8 6z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>', onclick: () => { G.audio.sfx.flashlight(true); G.phone.toast('손전등은 카메라에서 켤 수 있어요 📷'); G.bus.emit('lock:torch'); } }),
+        el('button.lock-round', { 'aria-label': '휴대폰 뒤집기', html: '<svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 9a9 9 0 013-5M21 15a9 9 0 01-3 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6 1.5V4.5H3M18 22.5V19.5h3" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>', onclick: (e) => { e.stopPropagation(); G.audio.sfx.whoosh(); LK.flipCase(); } }),
         el('button.lock-round.cam', { 'aria-label': '카메라', html: '<svg viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.3" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>', onclick: () => { G.audio.sfx.tap(); G.bus.emit('lock:camera'); G.camera.rear({ mode: 'lockscreen' }); } })));
     layer.appendChild(node);
     function tick() {
@@ -53,6 +53,53 @@
     node.addEventListener('click', (e) => { if (e.target.closest('.lock-bottom') || e.target.closest('.lock-pin')) return; openPin(); });
     LK._cleanup = () => { off(); off2(); };
     S.onShow && S.onShow();
+  };
+
+  /* ---------- P1 path (a): the back of the phone, a polaroid in the clear case, glare over the date ---------- */
+  LK.flipCase = function () {
+    const meta = (G.IMGMETA && G.IMGMETA.case_date) || { x: 0.535, y: 0.615, w: 0.127, h: 0.052 };
+    const img = el('img.case-img', { src: G.IMG.case_back, alt: '' });
+    const glare = el('div.case-glare');
+    const stage = el('div.case-stage', null, img, glare);
+    const tip = el('div.case-tip', null, '케이스 안에 사진이 끼워져 있다. 날짜 쪽이 빛에 번들거린다…');
+    const ghost = el('div.case-ghost', null, '☝ 빛을 손가락으로 밀어 보세요');
+    const root = el('div.case-view', null, el('button.cu-back', { 'aria-label': '돌아가기', html: '<svg viewBox="0 0 24 24"><path d="M15 4l-8 8 8 8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>' }), stage, tip, ghost);
+    const ov = G.phone.overlay(root, { onBack: () => close() });
+    let off = { x: 0, y: 0 }, base = null, gotOrient = false, revealed = false, dragging = null;
+    function rect() {
+      const r = stage.getBoundingClientRect(); const iw = img.naturalWidth || 1024, ih = img.naturalHeight || 1536;
+      const sc = Math.min(r.width / iw, r.height / ih); const w = iw * sc, h = ih * sc;
+      return { x: (r.width - w) / 2, y: (r.height - h) / 2, w, h };
+    }
+    function place() {
+      const R = rect();
+      const cx = R.x + (meta.x + meta.w / 2) * R.w, cy = R.y + (meta.y + meta.h / 2) * R.h;
+      const size = Math.max(110, meta.w * R.w * 1.9);
+      glare.style.width = glare.style.height = size + 'px';
+      glare.style.left = cx - size / 2 + off.x + 'px'; glare.style.top = cy - size / 2 + off.y + 'px';
+      const d = Math.hypot(off.x, off.y);
+      if (!revealed && d > size * 0.55) {
+        revealed = true; G.flag('caseDateSeen', true); G.audio.sfx.pen();
+        tip.textContent = '“콩이 우리집 온 날 ♥ 3.17”';
+        G.notebook && G.notebook.note && G.notebook.note('케이스 속 폴라로이드: 콩이 우리집 온 날 3.17');
+      }
+    }
+    img.addEventListener('load', place); setTimeout(place, 60);
+    function onOri(e) {
+      if (e.beta == null) return; gotOrient = true;
+      if (!base) base = { b: e.beta, g: e.gamma };
+      off = { x: (e.gamma - base.g) * 12, y: (e.beta - base.b) * 10 };
+      place();
+    }
+    if (G.state.vars.motionOK || G.settings.motionOK) window.addEventListener('deviceorientation', onOri);
+    setTimeout(() => { if (!gotOrient) setTimeout(() => ghost.classList.add('in'), 10000); }, 800);
+    stage.style.touchAction = 'none';
+    stage.addEventListener('pointerdown', (e) => { stage.setPointerCapture(e.pointerId); dragging = { x: e.clientX - off.x, y: e.clientY - off.y }; ghost.classList.remove('in'); });
+    stage.addEventListener('pointermove', (e) => { if (!dragging) return; off = { x: e.clientX - dragging.x, y: e.clientY - dragging.y }; place(); });
+    stage.addEventListener('pointerup', () => { dragging = null; });
+    root.querySelector('.cu-back').addEventListener('click', () => close());
+    function close() { window.removeEventListener('deviceorientation', onOri); ov.close(); }
+    G.bus.emit('lock:flip');
   };
 
   let pinOpen = false;

@@ -43,7 +43,19 @@
     comp.attack.value = 0.004; comp.release.value = 0.25;
     A.master = ctx.createGain();
     A.master.gain.value = A.volume;
-    A.master.connect(comp); comp.connect(ctx.destination);
+    // master -> [stereo | mono-sum] -> hearing LPF -> compressor -> out
+    A.hearing = ctx.createBiquadFilter(); A.hearing.type = 'lowpass'; A.hearing.frequency.value = 20000; A.hearing.Q.value = 0.5;
+    A.stereoPath = ctx.createGain(); A.stereoPath.gain.value = 1;
+    A.monoPath = ctx.createGain(); A.monoPath.gain.value = 0;
+    const split = ctx.createChannelSplitter(2), merge = ctx.createChannelMerger(2);
+    const sumL = ctx.createGain(), sumR = ctx.createGain(); sumL.gain.value = 0.5; sumR.gain.value = 0.5;
+    A.master.connect(A.stereoPath); A.stereoPath.connect(A.hearing);
+    A.master.connect(split);
+    split.connect(sumL, 0); split.connect(sumL, 1); split.connect(sumR, 0); split.connect(sumR, 1);
+    sumL.connect(merge, 0, 0); sumR.connect(merge, 0, 1);
+    merge.connect(A.monoPath); A.monoPath.connect(A.hearing);
+    A.hearing.connect(comp); comp.connect(ctx.destination);
+    A.comp = comp;
 
     // reverb send (small room / closet-ish)
     A.reverb = ctx.createConvolver();
@@ -426,6 +438,7 @@
       const hum2 = ctx.createOscillator(); hum2.frequency.value = 120; const hg2 = ctx.createGain(); hg2.gain.value = 0.006; hum2.connect(hg2); hg2.connect(g);
       const lfo = ctx.createOscillator(); lfo.frequency.value = 0.07; const lg = ctx.createGain(); lg.gain.value = 0.08; lfo.connect(lg); lg.connect(ng.gain);
       g.connect(bus('amb')); src.start(); hum.start(); hum2.start(); lfo.start();
+      A._hum = [hg, hg2];
       return { g, nodes: [src, hum, hum2, lfo], target: 1 };
     },
     rain() {
@@ -632,5 +645,11 @@
   };
   A.stopSpeak = function () { try { speechSynthesis.cancel(); } catch (e) {} };
 
+  A.osc = (...a) => osc(...a);
+  A.noise = (...a) => noise(...a);
+  A.mtof = mtof;
+  A.ok = ok;
+  A.now = () => A.ctx.currentTime;
+  A.bus = bus;
   G.audio = A;
 })();

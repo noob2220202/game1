@@ -250,3 +250,50 @@ body.dread .fx-vignette { opacity: 1; }
 .muted { color: var(--muted); }
 .pad { padding: 16px; }
 .empty-state { padding: 60px 20px; text-align: center; color: var(--muted); font-size: 14px; line-height: 1.6; }
+
+/* ---------------- status bar extras ---------------- */
+.sb-left { display: inline-flex; align-items: center; gap: 6px; }
+.sb-cast { display: inline-flex; width: 15px; height: 15px; }
+.sb-cast svg, .sb-wifi svg { width: 100%; height: 100%; }
+.sb-wifi { display: inline-flex; width: 15px; height: 15px; }
+.sb-net { font-size: 11px; font-weight: 600; opacity: .9; }
+#screen.powersave .wallpaper, #screen.powersave #app-stack, #screen.powersave #home { filter: brightness(.6); }
+
+/* ---------------- home folders ---------------- */
+.ai-folder { background: rgba(255,255,255,.28) !important; -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); display: grid !important; grid-template-columns: 1fr 1fr; gap: 4px; padding: 8px; }
+.ai-folder i { border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+.ai-folder i svg { width: 70%; height: 70%; }
+.folder-wrap { position: absolute; inset: 0; background: rgba(0,0,0,.35); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .2s; }
+.folder-wrap.in { opacity: 1; }
+.folder-open { width: 78%; max-width: 320px; padding: 18px 14px 22px; border-radius: 30px; background: rgba(255,255,255,.2); transform: scale(.8); transition: transform .25s cubic-bezier(.2,1.1,.3,1); }
+.folder-wrap.in .folder-open { transform: none; }
+.folder-title { color: #fff; font-size: 20px; font-weight: 600; text-align: center; margin-bottom: 14px; }
+.folder-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 4px; }
+
+/* ---------------- quick panel ---------------- */
+.qp-wrap { position: absolute; inset: 0; background: rgba(0,0,0,.25); opacity: 0; transition: opacity .2s; }
+.qp-wrap.in { opacity: 1; }
+.qp { position: absolute; left: 8px; right: 8px; top: calc(var(--sb-h) + 4px); padding: 14px 14px 10px; border-radius: 26px; background: rgba(28,28,32,.86); -webkit-backdrop-filter: blur(30px) saturate(1.5); backdrop-filter: blur(30px) saturate(1.5); color: #fff; transform: translateY(-110%); transition: transform .32s cubic-bezier(.2,1,.3,1); max-height: 80%; overflow-y: auto; }
+.qp-wrap.in .qp { transform: none; }
+.qp-head { display: flex; align-items: baseline; gap: 10px; padding: 0 4px 12px; }
+.qp-head b { font-size: 26px; font-weight: 500; }
+.qp-head span { font-size: 13px; opacity: .7; }
+.qp-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.qp-tile { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 11px; color: #ddd; }
+.qp-ic { width: 54px; height: 54px; border-radius: 50%; background: rgba(255,255,255,.14); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.qp-tile.on .qp-ic { background: #3b82f6; }
+.qp-cards { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+.qp-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px; background: rgba(255,255,255,.1); }
+.qp-card.cast { background: rgba(59,130,246,.22); box-shadow: inset 0 0 0 1px rgba(59,130,246,.5); }
+.qpc-ic { width: 26px; height: 26px; color: #8ab4ff; flex: none; }
+.qpc-ic svg { width: 100%; height: 100%; }
+.qpc-main { flex: 1; display: flex; flex-direction: column; font-size: 12.5px; color: #cfd8e6; }
+.qpc-main b { font-size: 14.5px; color: #fff; }
+.qpc-btn { padding: 8px 14px; border-radius: 14px; background: #fff; color: #111; font-weight: 700; font-size: 13.5px; }
+.qp-notifs { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.qp-n { display: flex; gap: 10px; align-items: center; padding: 9px 10px; border-radius: 14px; background: rgba(255,255,255,.07); font-size: 13px; }
+.qp-n > div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.qp-n > div span { opacity: .75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qp-n small { opacity: .5; font-size: 11px; }
+.qp-n .bn-icon { width: 30px; height: 30px; border-radius: 8px; }
+.qp-grab { width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.4); margin: 12px auto 0; }

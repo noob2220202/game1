@@ -119,11 +119,46 @@
   };
   G.vars = function (k, v) { if (v === undefined) return G.state.vars[k]; G.state.vars[k] = v; G.save(); return v; };
 
-  /* ---------------- game clock ----------------
-   * In-game time starts at 2026-11-24 03:33:00 and advances with real play time.
-   * Director can override (e.g. freeze at 04:44).                                  */
-  const BASE = new Date(2026, 10, 24, 3, 33, 0).getTime();
+  /* ---------------- hooks registry ---------------- */
+  const hooks = {};
+  G.hooks = {
+    set(name, fn) { hooks[name] = fn; },
+    has(name) { return !!hooks[name]; },
+    call(name, ...args) { const fn = hooks[name]; if (!fn) { console.warn('[hooks] missing', name); return undefined; } try { return fn(...args); } catch (e) { console.error('[hooks]', name, e); } },
+  };
+
+  /* ---------------- progress: fragments & mirroring ---------------- */
+  const FRAG_ORDER = ['47', '29', '06'];
+  G.fragCount = function () { return FRAG_ORDER.filter((id) => G.flag('frag' + id)).length; };
+  G.foundFragment = function (id) {
+    id = String(id);
+    if (!FRAG_ORDER.includes(id) || G.flag('frag' + id)) return false;
+    G.flag('frag' + id, true);
+    const n = G.fragCount();
+    G.flag('F' + n, true);
+    G.state.fragments[id] = id;
+    G.save(true);
+    G.bus.emit('fragment', { id, count: n });
+    return true;
+  };
+  G.mirroring = function () { return !!G.flag('M1') && !G.flag('M5'); };
+
+  /* ---------------- game clock (milestone model, design §2.1) ----------------
+   * In-game date is fixed 2026-11-24. Time = last milestone time + (play since milestone) * (60/50),
+   * capped at next milestone - 1 min (seconds then loop 57-58-59).                    */
+  const D = (h, m) => new Date(2026, 10, 24, h, m, 0).getTime();
+  const MILESTONES = [
+    ['start', D(3, 33), 23], ['M1', D(3, 38), 21], ['M2', D(3, 47), 17], ['F1', D(3, 56), 12], ['F2', D(4, 4), 4],
+    ['F3', D(4, 13), 4], ['M4', D(4, 22), 4], ['M5', D(4, 31), 4], ['M6', D(4, 38), 4], ['M7', D(4, 41), 1], ['M8', D(4, 44), 1],
+  ];
+  G.MILESTONES = MILESTONES;
+  const BASE = D(3, 33);
   let lastTick = 0, running = false;
+  function currentStage() {
+    let idx = 0;
+    MILESTONES.forEach(([id], i) => { if (i > 0 && G.flag(id)) idx = Math.max(idx, i); });
+    return idx;
+  }
   G.clock = {
     base: BASE,
     start() { running = true; lastTick = performance.now(); },
@@ -133,13 +168,33 @@
       const t = performance.now(); const dt = t - lastTick; lastTick = t;
       if (dt > 0 && dt < 5000 && !document.hidden) G.state.playMs += dt;
     },
+    freeze(h, m) { G.state.vars.clockFreeze = D(h, m); G.save(); },
+    unfreeze() { delete G.state.vars.clockFreeze; G.save(); },
     now() {
-      if (G.state.vars.clockOverride) return new Date(G.state.vars.clockOverride);
-      // 1 real second = 1 in-game second, capped at 04:43 so the 04:44 beat is reserved for the climax
-      const cap = new Date(2026, 10, 24, 4, 43, 30).getTime();
-      return new Date(Math.min(cap, BASE + G.state.playMs + (G.state.vars.clockSkip || 0)));
+      const v = G.state.vars;
+      if (v.clockFreeze) return new Date(v.clockFreeze + (G.flag('END') ? 0 : 0));
+      if (v.clockOverride) return new Date(v.clockOverride);
+      const idx = currentStage();
+      const [id, t0] = MILESTONES[idx];
+      // when did we reach this stage? (stored on first observation)
+      const key = 'ms_at_' + id;
+      if (v[key] == null) { v[key] = G.state.playMs; }
+      const next = MILESTONES[idx + 1];
+      const cap = next ? next[1] - 60000 : t0 + 3600000;
+      const t = t0 + (G.state.playMs - v[key]) * (60 / 50);
+      if (t >= cap) {
+        // stuck time: seconds loop 57 -> 58 -> 59 -> 57
+        const loop = 57 + (Math.floor(G.state.playMs / 1000) % 3);
+        return new Date(cap - (cap % 60000) + loop * 1000);
+      }
+      return new Date(t);
     },
+    stage() { return MILESTONES[currentStage()][0]; },
     playMinutes() { return G.state.playMs / 60000; },
+  };
+  G.battery = function () {
+    if (G.state.vars.battery != null) return G.state.vars.battery;
+    return MILESTONES[currentStage()][2];
   };
   setInterval(() => { G.clock.tick(); }, 1000);
   document.addEventListener('visibilitychange', () => { lastTick = performance.now(); });

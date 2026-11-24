@@ -61,6 +61,12 @@
     scr.append(bg, inner);
     document.getElementById('screen').appendChild(scr);
     G._title = scr;
+    if (/KAKAOTALK|Instagram|FBAN|FBAV|Line\/|NAVER|DaumApps/i.test(navigator.userAgent)) {
+      const card = el('div.title-screen', { style: { justifyContent: 'center', zIndex: 330 } }, el('div.title-inner', { style: { maxWidth: '320px' } },
+        el('div.warn-box', { html: '카카오톡 안에서는 <b>소리·센서</b>가 제대로 동작하지 않아요.<br>오른쪽 위 <b>⋯</b> → <b>\'다른 브라우저로 열기\'</b>를 눌러 주세요.' }),
+        el('button.title-btn', { style: { width: '100%', marginTop: '14px' }, onclick: () => card.remove() }, '그냥 할래요')));
+      document.getElementById('screen').appendChild(card);
+    }
     async function confirmNew() {
       const ok = await G.phone.dialog({ title: '처음부터 시작할까요?', text: '저장된 진행 상황이 사라집니다.', buttons: [{ label: '취소', value: false }, { label: '새로 시작', value: true, style: 'danger' }] });
       if (ok) { G.resetSave(); warn(); }
@@ -94,12 +100,12 @@
       el('div.title-inner', { style: { maxWidth: '340px' } },
         el('div.title-kicker', null, 'WARNING'),
         el('div.warn-box', { html:
-          '이 게임에는 <b>공포 연출, 갑작스러운 큰 소리, 스토킹·실종</b>을 다루는 내용이 포함되어 있습니다.<br><br>' +
+          '이 게임에는 <b>공포 연출(갑작스러운 소리, 어두운 장면), 스토킹·실종</b>을 다루는 내용이 있습니다. 언제든 설정에서 \'공포 연출: 약하게\'로 바꿀 수 있어요.<br><br>' +
           '🎧 <b>이어폰</b>을 끼면 소리로 숨겨진 단서를 들을 수 있어요.<br>' +
           '🔦 방은 어둡습니다. 화면 밝기를 올려주세요.<br>' +
           '📓 막히면 오른쪽 위 <b>수첩</b>에서 힌트를 볼 수 있어요.<br>' +
           '📱 일부 장면에서 카메라·기울기 권한을 물어볼 수 있지만, 거절해도 진행에는 문제가 없습니다.' }),
-        el('button.title-btn.primary', { style: { width: '100%', marginTop: '18px' }, onclick: () => { ov.remove(); start(false); } }, '알겠어요, 시작할게요'),
+        el('button.title-btn.primary', { style: { width: '100%', marginTop: '18px' }, onclick: () => { ov.remove(); G.scenes.immersion(() => start(false)); } }, '알겠어요'),
         el('button.title-btn', { style: { width: '100%', marginTop: '8px' }, onclick: () => ov.remove() }, '돌아가기')));
     document.getElementById('screen').appendChild(ov);
   }

@@ -51,33 +51,35 @@
 
   /* ---------------- status bar ---------------- */
   function buildStatusBar() {
-    return el('div#statusbar',
-      el('span.sb-time', null, '3:33'),
+    const sb = el('div#statusbar',
+      el('span.sb-left', null, el('span.sb-time', null, '3:33'), el('span.sb-cast', { title: '화면 공유', html: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 20a3 3 0 013-3M3 16.5a6.5 6.5 0 016.5 3.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>' })),
       el('span.sb-notch'),
       el('span.sb-right', null,
-        el('span.sb-signal', { html: '<i></i><i></i><i></i><i></i>' }),
-        el('span.sb-net', null, 'LTE'),
-        el('span.sb-batt', null, el('b.sb-pct', null, '15'), el('span.sb-battbody', null, el('span.sb-battfill')))));
+        el('span.sb-net', null, 'SIM 없음'),
+        el('span.sb-wifi', { html: '<svg viewBox="0 0 24 24"><path d="M2.5 9a14 14 0 0119 0M5.5 12.2a9.5 9.5 0 0113 0M8.6 15.4a5 5 0 016.8 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="19" r="1.7" fill="currentColor"/></svg>' }),
+        el('span.sb-batt', null, el('b.sb-pct', null, '23'), el('span.sb-battbody', null, el('span.sb-battfill')))));
+    // quick panel: pull down from the top edge, or tap the status bar
+    let sy = null;
+    root.addEventListener('pointerdown', (e) => { const r = root.getBoundingClientRect(); const y = e.clientY - r.top; if (y >= 4 && y <= 44 && !P.isLocked()) sy = e.clientY; else sy = null; }, true);
+    root.addEventListener('pointermove', (e) => { if (sy != null && e.clientY - sy > 40) { sy = null; P.quickPanel(); } }, true);
+    root.addEventListener('pointerup', () => { sy = null; }, true);
+    sb.style.pointerEvents = 'auto';
+    sb.addEventListener('click', () => { if (!P.isLocked()) P.quickPanel(); });
+    return sb;
   }
   function updateStatus() {
     const d = G.clock.now();
-    const t = `${d.getHours()}:${pad(d.getMinutes())}`;
-    statusBar.querySelector('.sb-time').textContent = t;
+    statusBar.querySelector('.sb-time').textContent = `${d.getHours()}:${pad(d.getMinutes())}`;
     const b = P.battery();
     statusBar.querySelector('.sb-pct').textContent = b;
     const fill = statusBar.querySelector('.sb-battfill');
     fill.style.width = Math.max(4, b) + '%';
     fill.classList.toggle('low', b <= 15);
-    const bars = G.state.vars.signal != null ? G.state.vars.signal : 1;
-    statusBar.querySelectorAll('.sb-signal i').forEach((n, i) => n.classList.toggle('on', i < bars));
-    statusBar.querySelector('.sb-net').textContent = bars === 0 ? '서비스 없음' : 'LTE';
+    statusBar.querySelector('.sb-cast').style.display = G.mirroring() ? '' : 'none';
+    document.getElementById('screen').classList.toggle('powersave', b <= 1 && !G.flag('END'));
     G.bus.emit('tick', d);
   }
-  P.battery = function () {
-    // 15% at start, -1% every ~3 min of play, never below 3% (story can override)
-    if (G.state.vars.battery != null) return G.state.vars.battery;
-    return Math.max(3, 15 - Math.floor(G.state.playMs / 180000));
-  };
+  P.battery = function () { return G.battery(); };
   P.statusTheme = function (theme) { statusBar.classList.toggle('dark', theme === 'dark'); };
   P.updateStatus = updateStatus;
 
@@ -94,9 +96,11 @@
     homeEl.appendChild(widget);
     const grid = el('div.app-grid');
     const dock = el('div.dock');
+    const folders = {};
     order.forEach((id) => {
       const a = apps[id];
       if (a.hidden && a.hidden()) return;
+      if (a.folder && !a.dock) { (folders[a.folder] = folders[a.folder] || []).push(a); if (folders[a.folder].length > 1) return; grid.appendChild(folderNode(a.folder, folders)); return; }
       const icon = P.iconNode(a);
       (a.dock ? dock : grid).appendChild(icon);
     });
@@ -117,6 +121,61 @@
     return n;
   };
   P.refreshBadges = function () { P.renderHome(); };
+  function folderNode(name, folders) {
+    const n = el('button.app-icon.folder', { 'aria-label': name },
+      el('span.ai-img.ai-folder'), el('span.ai-label', null, name));
+    const fill = () => { const box = n.querySelector('.ai-folder'); box.innerHTML = ''; (folders[name] || []).slice(0, 4).forEach((a) => box.appendChild(el('i', { style: { background: a.icon.bg }, html: a.icon.svg }))); };
+    setTimeout(fill, 0);
+    n.addEventListener('click', () => {
+      G.audio && G.audio.sfx.tap();
+      const inner = el('div.folder-grid', null, (folders[name] || []).map((a) => { const ic = P.iconNode(a); ic.addEventListener('click', () => ov.close()); return ic; }));
+      const box = el('div.folder-open', null, el('div.folder-title', null, name), inner);
+      const ov = P.overlay(el('div.folder-wrap', { onclick: (e) => { if (e.target.classList.contains('folder-wrap')) ov.close(); } }, box), { onBack: () => ov.close() });
+    });
+    return n;
+  }
+
+  /* ---------------- quick panel (notification shade) ---------------- */
+  let qpOpen = null;
+  P.quickPanel = function () {
+    if (qpOpen) return;
+    G.audio && G.audio.sfx.whoosh();
+    const tiles = el('div.qp-tiles');
+    const tile = (label, icon, on, fn) => { const b = el('button.qp-tile' + (on ? '.on' : ''), { html: `<span class="qp-ic">${icon}</span><span>${label}</span>` }); b.addEventListener('click', () => { G.audio && G.audio.sfx.tap(); fn && fn(b); }); tiles.appendChild(b); return b; };
+    tile('Haesol_404', '📶', true, () => P.toast('관리자 네트워크에 연결됨'));
+    tile('블루투스', 'ᛒ', false, () => P.toast('세아의 버즈 · 연결 안 됨'));
+    tile('손전등', '🔦', false, () => { close(); G.camera && G.camera.rear(); });
+    if (G.flag('monoSeen')) tile('모노', '◐', G.audio.isMono(), (b) => { const on = !G.audio.isMono(); G.audio.setMono(on); b.classList.toggle('on', on); });
+    tile('방해 금지', '☾', false, () => P.toast('방해 금지 모드를 켤 수 없습니다 (관리자 설정)'));
+    const cards = el('div.qp-cards');
+    if (G.mirroring()) {
+      const conn = G.state.vars.mirrorStart || '00:12:00';
+      const card = el('div.qp-card.cast', null,
+        el('div.qpc-ic', { html: statusBar.querySelector('.sb-cast').innerHTML }),
+        el('div.qpc-main', null, el('b', null, '화면 공유 중'), el('span', null, 'sagongsa의 Galaxy · 연결 00:12부터')),
+        el('button.qpc-btn', null, '중지'));
+      card.querySelector('.qpc-btn').addEventListener('click', async () => {
+        const ok = await P.dialog({ title: '화면 공유를 중지할까요?', text: '이 휴대폰의 화면이 다른 기기에 더 이상 표시되지 않습니다.', buttons: [{ label: '취소', value: false }, { label: '중지', value: true, style: 'danger' }] });
+        if (ok) { close(); G.cutMirroring && G.cutMirroring(); }
+      });
+      cards.appendChild(card);
+    }
+    const notifs = el('div.qp-notifs', null, (G.state.notifs || []).slice(0, 5).map((n) => {
+      const a = apps[n.app] || {}; const d = new Date(n.time);
+      return el('div.qp-n', null, el('span.bn-icon', { style: { background: (a.icon && a.icon.bg) || '#333' }, html: (a.icon && a.icon.svg) || '' }), el('div', null, el('b', null, G.T(n.title || '')), el('span', null, G.T(n.body || ''))), el('small', null, `${d.getHours()}:${pad(d.getMinutes())}`));
+    }));
+    const d = G.clock.now();
+    const panel = el('div.qp', null, el('div.qp-head', null, el('b', null, `${d.getHours()}:${pad(d.getMinutes())}`), el('span', null, G.util.fmtKDate(d))), tiles, cards, notifs, el('div.qp-grab'));
+    const wrap = el('div.qp-wrap', null, panel);
+    const ov = P.overlay(wrap, { onBack: () => close() });
+    qpOpen = ov;
+    function close() { if (!qpOpen) return; qpOpen = null; ov.close(); }
+    wrap.addEventListener('click', (e) => { if (e.target === wrap) close(); });
+    let sy2 = null;
+    panel.addEventListener('pointerdown', (e) => { sy2 = e.clientY; });
+    panel.addEventListener('pointerup', (e) => { if (sy2 != null && sy2 - e.clientY > 50) close(); sy2 = null; });
+    G.bus.emit('quickpanel');
+  };
 
   /* ---------------- navigation ---------------- */
   P.openApp = function (id, params) {
@@ -266,7 +325,7 @@
     if (!n) { showing = false; return; }
     showing = true;
     const a = apps[n.app] || {};
-    if (!n.silent && G.audio) { G.audio.sfx.notify(); if (n.vibrate !== false) G.audio.sfx.buzz([180]); }
+    if (!n.silent && G.audio) { if (n.tone && G.audio.sfx.tone) G.audio.sfx.tone(n.tone); else G.audio.sfx.notify(); if (n.vibrate !== false && n.tone !== 'him') G.audio.sfx.buzz([180]); }
     const b = el('div.banner' + (n.cls ? '.' + n.cls : ''), null,
       el('span.bn-icon', { style: { background: (a.icon && a.icon.bg) || '#333' }, html: (a.icon && a.icon.svg) || '' }),
       el('div.bn-main', null,
