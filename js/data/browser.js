@@ -156,7 +156,7 @@
     }),
   };
   // his searches (other device) — result lists only
-  P.q_name = { title: '{N} 이름 뜻', url: 'search.daon.net/?q={N}+이름+뜻', render: () => results('{N} 이름 뜻', [{ site: '이름사전', title: "'{N}' — 이름 풀이와 뜻", snip: '한 해의 어느 날, 한 낮과 한 밤이 지나는 동안…' }, { site: '작명소 블로그', title: '{N}라는 이름을 가진 사람들의 성격' }]) };
+  P.q_name = { title: '{N} 이름 뜻', url: 'search.daon.net/?q={N}+이름+뜻', render: () => results('{N} 이름 뜻', [{ site: '이름사전', title: "'{N}' — 이름 풀이와 뜻", snip: '한 해의 어느 날, 한 낮과 한 밤이 지나는 동안…' }, { site: '작명소 블로그', title: '{N이}라는 이름을 가진 사람들의 성격' }]) };
   P.q_newtenant = { title: '해솔빌 404호 새 입주자', url: 'search.daon.net/?q=해솔빌+404호', render: () => results('해솔빌 404호 새 입주자', [{ site: '방구하기', title: '해솔빌 404호 · 원룸 · 계약 완료', snip: '11월 23일 입주 · 붙박이장 있음 · 반려동물 X' }, { site: '해솔빌 입주민 카페', title: '밤마다 404호 쪽 벽에서 긁는 소리 나요ㅠ', page: 'cafe_scratch' }]) };
   P.q_door = { title: '자는 사람 안 깨우고 문 여는 법', url: 'search.daon.net/?q=자는+사람+안+깨우고', render: () => results('자는 사람 안 깨우고 문 여는 법', [{ site: '생활꿀팁', title: '도어락 버튼음 끄는 법 (무음 모드)' }, { site: '지식나눔', title: '새벽에 조용히 문 여닫는 방법 있나요?' }]) };
   P.q_hinge = { title: '옷장 경첩 소리 안 나게 하는 법', url: 'search.daon.net/?q=옷장+경첩+소리', render: () => results('옷장 경첩 소리 안 나게 하는 법', [{ site: '집수리', title: '붙박이장 경첩 삐걱 소리 — 윤활제로 5분 해결' }, { site: '지식나눔', title: '합판 문 소리 안 나게 미는 법' }]) };

@@ -855,6 +855,10 @@
       el('div.vt-ops', null, micBtn, spkBtn, camBtn),
       el('div.vt-endrow', null, endBtn));
     let ov = G.phone.overlay(node, { modal: 'soft', onBack: () => minimize() });
+    // dark call screen: white status-bar text while it is up (talk's own call screen does the same)
+    const stLight = () => { try { G.phone.statusTheme('light'); } catch (e) {} };
+    const stRestore = () => { try { const t = G.phone.top && G.phone.top(); G.phone.statusTheme(t && t.node ? t.node.dataset.status || 'light' : 'light'); } catch (e) {} };
+    stLight();
     const bar = el('button.vt-bar', null, el('i'), el('span.vb-t', null, '보이스톡'), el('span.vb-s', null, statusText));
     document.getElementById('screen').appendChild(bar);
     let minimized = false;
@@ -862,12 +866,14 @@
       if (minimized || !ov) return;
       minimized = true; ov.close(); ov = null;
       bar.classList.add('show');
+      stRestore();
     }
     function restore() {
       if (!minimized) return;
       minimized = false; bar.classList.remove('show');
       node.classList.remove('out');
       ov = G.phone.overlay(node, { modal: 'soft', onBack: () => minimize() });
+      stLight();
     }
     bar.addEventListener('click', () => { sfx('tap'); restore(); });
     minBtn.addEventListener('click', () => { sfx('tap'); minimize(); });
@@ -885,7 +891,7 @@
       close(delay) {
         setTimeout(() => {
           bar.classList.remove('show'); setTimeout(() => bar.remove(), 400);
-          if (ov) { ov.close(); ov = null; }
+          if (ov) { ov.close(); ov = null; stRestore(); }
           H6.active = false; H6.restore = null;
         }, delay || 0);
       },

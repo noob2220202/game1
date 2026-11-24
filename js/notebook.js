@@ -354,7 +354,7 @@
     hints.forEach((h, i) => {
       const n = i + 1;
       if (n <= tier) { const fresh = justRevealed && justRevealed.id === o.id && justRevealed.tier === n; list.appendChild(el('div.nbk-hint.shown', null, el('span.nbk-hn', null, `힌트 ${n}`), el('div.nbk-ht' + (fresh ? '.fresh' : ''), null, T(h)))); return; }
-      if (n > tier + 1) { list.appendChild(el('div.nbk-hint.locked', null, el('span.nbk-hn', null, `힌트 ${n}`), el('div.nbk-hl', null, `힌트 ${n - 1}을 먼저 봐.`))); return; }
+      if (n > tier + 1) { list.appendChild(el('div.nbk-hint.locked', null, el('span.nbk-hn', null, `힌트 ${n}`), el('div.nbk-hl', null, `힌트 ${n - 1}${n - 1 === 2 ? '를' : '을'} 먼저 봐.`))); return; }
       const wait = availIn(o.id, n);
       if (wait > 0) {
         const cd = el('div.nbk-hl.nbk-cd', { dataset: { obj: o.id, tier: String(n) } }, countdown(wait));

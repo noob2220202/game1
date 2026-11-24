@@ -147,6 +147,7 @@
   UI.keyboardMode = function (m) { mode = m; if (kb && active) render(); };
   G.bus.on('screen:pop', () => UI.hideKeyboard());
   G.bus.on('home', () => UI.hideKeyboard());
+  G.bus.on('app:open', () => UI.hideKeyboard()); // app switch via banner/notification (closeAll) must not leave a stale keyboard
 
   /* ---------------- field ---------------- */
   UI.field = function (opts) {

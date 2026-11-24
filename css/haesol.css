@@ -332,6 +332,8 @@
 .hh-key:active { background: #1f3247; }
 .hh-key.del { background: transparent; color: var(--hh-mut); }
 .hh-key svg { width: 26px; height: 26px; }
+/* short screens (360×640): keep the OTP keypad's bottom row clear of the home indicator */
+@media (max-height: 700px) { .hh-otp { margin: 12px 0 2px; } .hh-otp i { height: 46px; } .hh-kp { gap: 6px; margin-top: 6px; } .hh-key { height: 46px; } }
 
 /* dashboard */
 .hh-dash { padding: calc(var(--sb-h) + 10px) 0 calc(var(--safe-bot) + 30px); animation: hhFade .35s ease-out; }

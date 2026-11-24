@@ -41,7 +41,7 @@
         const d = n.t ? G.chat.parseT(n.t) : null;
         notifs.appendChild(el('div.lock-notif', null,
           el('span.ln-icon', { style: { background: (a.icon && a.icon.bg) || '#444' }, html: (a.icon && a.icon.svg) || '' }),
-          el('div.ln-main', null, el('div.ln-top', null, el('span', null, a.name || ''), el('span', null, n.when || (d ? G.util.fmtKTime(d) : '지금'))), el('div.ln-title', null, G.T(n.title || '')), el('div.ln-body', null, G.T(n.body || '')))));
+          el('div.ln-main', null, el('div.ln-top', null, el('span', null, n.appName || a.name || ''), el('span', null, n.when || (d ? G.util.fmtKTime(d) : '지금'))), el('div.ln-title', null, G.T(n.title || '')), el('div.ln-body', null, G.T(n.body || '')))));
       });
     }
     renderNotifs();
@@ -86,7 +86,9 @@
     }
     img.addEventListener('load', place); setTimeout(place, 60);
     stage.style.touchAction = 'none';
-    stage.addEventListener('pointerdown', (e) => { stage.setPointerCapture(e.pointerId); dragging = { x: e.clientX - off.x, y: e.clientY - off.y }; ghost.classList.remove('in'); });
+    stage.addEventListener('pointerdown', (e) => { stage.setPointerCapture(e.pointerId); dragging = { x: e.clientX - off.x, y: e.clientY - off.y }; ghost.classList.remove('in'); clearTimeout(ghostT); });
+    // design P1: ghost-hand hint after 10 s without revealing the date
+    const ghostT = setTimeout(() => { if (!revealed && root.isConnected) ghost.classList.add('in'); }, 10000);
     stage.addEventListener('pointermove', (e) => { if (!dragging) return; off = { x: e.clientX - dragging.x, y: e.clientY - dragging.y }; place(); });
     stage.addEventListener('pointerup', () => { dragging = null; });
     root.querySelector('.cu-back').addEventListener('click', () => close());

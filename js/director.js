@@ -27,6 +27,9 @@
   };
   G.bus.on('keyboard', (on) => { kbOpen = on; });
   G.bus.on('flag', () => { lastFlagAt = Date.now(); });
+  // leads opened here/elsewhere with in-memory done predicates are lost on reload: close them from the flag too
+  G.bus.on('flag:ringHeard', () => { G.notebook && G.notebook.leadDone && G.notebook.leadDone('callme'); });
+  G.bus.on('flag:frag47', () => { G.notebook && G.notebook.leadDone && G.notebook.leadDone('doorAB'); });
 
   /* ---------- his voice ---------- */
   D.his = async function (lines, o) {
@@ -92,7 +95,7 @@
       G.hooks.call('room:refreshLayers');
       await sleep(4000);
       await D.his(BD().f2, { gap: 2200 });
-      G.notebook && G.notebook.lead && G.notebook.lead('callme', '내 번호로 걸어 볼까? (톡 › ' + G.NAME + ')');
+      G.notebook && G.notebook.lead && G.notebook.lead('callme', '내 번호로 걸어 볼까? (톡 › ' + G.NAME + ')', () => G.flag('ringHeard'));
       await sleep(9000);
       managerSlip();
     } },
@@ -185,6 +188,11 @@
   /* ---------- room hooks ---------- */
   G.bus.on('room:view', (v) => {
     if (!G.state.vars.firstRoomLookAt) { G.state.vars.firstRoomLookAt = Date.now(); G.save(); }
+    // B04: first look at the wardrobe -> a 2-frame catchlight in the gap (once, silent). room.js has the glint API.
+    if (v === 'wardrobe' && !fired('B04') && !G.flag('M7')) {
+      fire('B04');
+      setTimeout(() => { const r = G.room && G.room.current && G.room.current(); if (r && r.glint) r.glint(70); }, 900);
+    }
     if (G.flag('M1') && !fired('B07') && v !== 'wardrobe' && D.safe()) {
       fire('B07');
       setTimeout(() => { G.audio.sfx.knock(2, { az: 270, where: 'inside', vol: 0.5, gap: 0.6 }); G.flag('knockInvite', true); G.fx.sub('(옷장 쪽에서… 똑, 똑)', 2600); }, 2200);
@@ -244,4 +252,5 @@
     if (G.flag('M5') && !G.flag('M6')) G.audio.gsm(0.35);
   };
   D.fired = fired; D.fire = fire;
+  D.isSafe = D.safe; // G.sd.isSafe (js/data/talk.js) looks for this name; without it scripted chat beats ignored holds/relief/JS1 windows
 })();

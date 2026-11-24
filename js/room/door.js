@@ -31,7 +31,7 @@
   D.open = function () {
     if (inst) return inst;
     const vars = G.state.vars;
-    let buf = '', star = false, busy = false, last = { k: null, t: 0 };
+    let buf = '', star = false, busy = false, last = { k: null, t: 0 }, nudgeT = 0;
     // geometry in fractions of the keypad photo (G.ROOM.keypad); the plate shows only `crop`
     const KP = Object.assign({
       crop: { x: 0.17, y: 0.1, w: 0.66, h: 0.62 }, panel: { x: 0.258, y: 0.152, w: 0.46, h: 0.586 },
@@ -139,12 +139,15 @@
       const btn = grid.querySelector(`[data-k="${k}"]`);
       if (btn) { btn.classList.remove('hit'); void btn.offsetWidth; btn.classList.add('hit'); }
       if (lockedLeft()) { sfx('doorlockBeep'); return; }
-      if (k === '*') { sfx('doorlockBeep'); buf = ''; star = true; render(); msg('', ''); return; }
+      if (k === '*') { sfx('doorlockBeep'); buf = ''; star = true; render(); msg('', ''); clearTimeout(nudgeT); return; }
       if (k === '#') { sfx('doorlockBeep'); confirm(); return; }
       keyTone(k);
       if (vars.pitchView) pitchBar(k);
       if (buf.length >= 6) buf = buf.slice(1);
       buf += k; render();
+      // six digits and no 확인: real locks need '#' — nudge once the player pauses
+      clearTimeout(nudgeT);
+      if (buf.length === 6) nudgeT = setTimeout(() => { if (inst && buf.length === 6 && !busy && !lockedLeft()) setStatus('# (확인)을 눌러 입력을 마치세요'); }, 2500);
       G.bus.emit('door:key', k);
       // H1: 4 then 7 within 4 s, after the 소리 감지 녹음 was played
       const now = Date.now();
@@ -162,6 +165,7 @@
 
     async function confirm() {
       const code = buf, wasStar = star;
+      clearTimeout(nudgeT); setStatus(defaultStatus());
       buf = ''; star = false; render();
       if (!code) { msg('', ''); return; }
       if (wasStar && code === '0404') return trap();

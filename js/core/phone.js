@@ -52,11 +52,13 @@
   /* ---------------- status bar ---------------- */
   function buildStatusBar() {
     const sb = el('div#statusbar',
-      el('span.sb-left', null, el('span.sb-time', null, '3:33'), el('span.sb-cast', { title: '화면 공유', html: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 20a3 3 0 013-3M3 16.5a6.5 6.5 0 016.5 3.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>' })),
+      el('span.sb-left', null, el('span.sb-time', null, '3:33')),
       el('span.sb-notch'),
       el('span.sb-right', null,
         el('span.sb-net', null, 'SIM 없음'),
         el('span.sb-wifi', { html: '<svg viewBox="0 0 24 24"><path d="M2.5 9a14 14 0 0119 0M5.5 12.2a9.5 9.5 0 0113 0M8.6 15.4a5 5 0 016.8 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="19" r="1.7" fill="currentColor"/></svg>' }),
+        // cast icon sits next to the battery (memo p.1 / P6 hint: '배터리 옆 작은 네모 아이콘')
+        el('span.sb-cast', { title: '화면 공유', html: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 20a3 3 0 013-3M3 16.5a6.5 6.5 0 016.5 3.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>' }),
         el('span.sb-batt', null, el('b.sb-pct', null, '23'), el('span.sb-battbody', null, el('span.sb-battfill')))));
     // quick panel: pull down from the top edge, or tap the status bar
     let sy = null;
@@ -316,24 +318,39 @@
     G.state.notifs.unshift({ id: n.id, app: n.app, title: n.title, body: n.body, time: n.time, route: n.route || null });
     G.state.notifs = G.state.notifs.slice(0, 40);
     G.save();
-    queue.push(n);
     G.bus.emit('notify', n);
+    // same sender while its banner is still up: update it in place (like a real phone) instead of
+    // queueing another 4 s banner — bursts used to cover the top of the screen for 30+ s
+    const same = (o) => o && o.app === n.app && o.title === n.title && (o.cls || '') === (n.cls || '') && !o.duration && !n.duration && !o.onTap && !n.onTap;
+    if (curBanner && !queue.length && same(curBanner.n)) { curBanner.update(n); return; }
+    if (queue.length && same(queue[queue.length - 1])) { bannerSound(n); n._sounded = true; queue[queue.length - 1] = n; return; } // keep only the latest line of a burst (its tone plays now)
+    queue.push(n);
     if (!showing) nextBanner();
   };
+  let curBanner = null;
+  function bannerSound(n) { if (!n.silent && G.audio) { if (n.tone && G.audio.sfx.tone) G.audio.sfx.tone(n.tone); else G.audio.sfx.notify(); if (n.vibrate !== false && n.tone !== 'him') G.audio.sfx.buzz([180]); } }
   async function nextBanner() {
-    const n = queue.shift();
+    let n = queue.shift();
     if (!n) { showing = false; return; }
     showing = true;
     const a = apps[n.app] || {};
-    if (!n.silent && G.audio) { if (n.tone && G.audio.sfx.tone) G.audio.sfx.tone(n.tone); else G.audio.sfx.notify(); if (n.vibrate !== false && n.tone !== 'him') G.audio.sfx.buzz([180]); }
+    if (!n._sounded) bannerSound(n);
     const b = el('div.banner' + (n.cls ? '.' + n.cls : ''), null,
       el('span.bn-icon', { style: { background: (a.icon && a.icon.bg) || '#333' }, html: (a.icon && a.icon.svg) || '' }),
       el('div.bn-main', null,
         el('div.bn-top', null, el('b', null, a.name || n.appName || ''), el('span', null, '지금')),
         el('div.bn-title', null, n.title || ''),
         n.body ? el('div.bn-body', null, n.body) : null));
-    let closed = false;
-    const close = () => { if (closed) return; closed = true; b.classList.remove('in'); setTimeout(() => { b.remove(); nextBanner(); }, 280); };
+    let closed = false, timer = 0;
+    const close = () => { if (closed) return; closed = true; clearTimeout(timer); if (curBanner && curBanner.b === b) curBanner = null; b.classList.remove('in'); setTimeout(() => { b.remove(); nextBanner(); }, 280); };
+    curBanner = { b, n, update(n2) {
+      n = n2; this.n = n2; bannerSound(n2);
+      let body = b.querySelector('.bn-body');
+      if (!body && n2.body) { body = el('div.bn-body'); b.querySelector('.bn-main').appendChild(body); }
+      if (body) body.textContent = n2.body || '';
+      b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump');
+      clearTimeout(timer); timer = setTimeout(close, 4200);
+    } };
     b.addEventListener('click', () => {
       close();
       if (!lockEl.classList.contains('hidden')) return; // locked: tapping does nothing
@@ -344,7 +361,7 @@
     b.addEventListener('touchmove', (e) => { if (sy - e.touches[0].clientY > 18) close(); }, { passive: true });
     bannerEl.appendChild(b);
     requestAnimationFrame(() => b.classList.add('in'));
-    setTimeout(close, n.duration || 4200);
+    timer = setTimeout(close, n.duration || 4200);
   }
   /** route: {app, params} */
   P.route = function (r) { if (!r) return; P.openApp(r.app, r.params || {}); };

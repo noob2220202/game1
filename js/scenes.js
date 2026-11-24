@@ -20,7 +20,7 @@
       { app: 'talk', title: '엄마', body: '부재중 보이스톡 (366)', when: '방금' },
       { app: 'talk', title: '엄마', body: '세아야 오늘로 1년이야. 엄마 오늘도 전화했어.', when: '방금' },
       { app: 'haesol', title: '해솔홈', body: '도어락: 원격 관리자 잠금이 설정되었습니다.', when: '34분 전' },
-      { app: 'settings', title: '배터리 23%', body: '충전기를 연결하세요', when: '1분 전' },
+      { app: 'settings', appName: '배터리', title: '배터리 23%', body: '충전기를 연결하세요', when: '1분 전' },
     ],
     async emergency() {
       await G.phone.callScreen({ name: '긴급 통화', number: '112', async script(api) {
@@ -37,6 +37,12 @@
     },
     onShow() {},
   };
+  // P1: after 3 wrong PINs the notebook (P1 hints) becomes reachable on the lock screen (design §3 P1)
+  G.bus.on('lock:fail', (e) => {
+    if (!e || e.fails < 3 || !G.notebook || !G.notebook.show || !G.phone.isLocked()) return;
+    G.notebook.show(true);
+    if (e.fails === 3 && G.notebook.ping) G.notebook.ping();
+  });
 
   /* ---------------- immersion setup ---------------- */
   SC.immersion = function (done) {

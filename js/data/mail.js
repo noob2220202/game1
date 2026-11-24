@@ -98,7 +98,7 @@
       body: `<div class="ml-brand sc">한빛예대 음향디자인과</div><p>4학년 졸업작품 중간 발표 일정을 안내합니다.</p><table class="ml-tbl"><tr><th>학생</th><td>윤세아</td></tr><tr><th>작품명</th><td>「들리지 않는 방」(가제)</td></tr><tr><th>일시</th><td>11/21(금) 14:00</td></tr><tr><th>장소</th><td>B103 (스튜디오 2)</td></tr></table><p>발표 10분 · 시연 5분. 스테레오/모노 재생 환경을 모두 준비해 오세요.</p>`,
     },
     {
-      id: 'moa_1027', from: '모아마켓', addr: 'order@moamarket.kr', subj: '주문하신 상품이 배송 완료되었습니다', t: '2025-10-27 16:42',
+      id: 'moa_1027', from: '모아마켓', addr: 'order@moamarket.kr', subj: '주문하신 상품이 배송 완료되었습니다', t: '2025-10-28 13:21',
       preview: '문틈 막이 바람막이 2m (화이트) 외 1건', read: true,
       body: `<div class="ml-brand mo">모아마켓</div><p>세아님, 주문하신 상품이 배송 완료되었습니다.</p><table class="ml-tbl"><tr><th>상품</th><td>문틈 막이 바람막이 2m (화이트) 외 1건</td></tr><tr><th>함께 주문</th><td>도어 가드 보조 잠금장치</td></tr><tr><th>받는 곳</th><td>해솔빌 404호 (문 앞)</td></tr></table><p class="ml-foot">상품은 마음에 드셨나요? 리뷰를 남겨 주세요.</p>`,
     },

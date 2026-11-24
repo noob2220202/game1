@@ -47,6 +47,7 @@
   /* ---------- title ---------- */
   function showTitle() {
     const has = G.hasSave() && (function () { try { const s = JSON.parse(localStorage.getItem('haru-escape.save.v1')); return s && s.flags && s.flags.introDone && !s.flags.ending; } catch (e) { return false; } })();
+    const ended = has && (function () { try { return !!JSON.parse(localStorage.getItem('haru-escape.save.v1')).flags.END; } catch (e) { return false; } })();
     const scr = el('div.title-screen');
     const bg = el('div.title-bg', { style: { backgroundImage: `url("${G.ASSET ? G.ASSET.title : ''}")` } });
     const inner = el('div.title-inner', null,
@@ -54,7 +55,7 @@
       el('div.title-name', { html: `${NAME}${B ? '을' : '를'} 위한<br><em>방탈출!</em>` }),
       el('div.title-sub', null, '새벽 3시 33분. 처음 보는 방.\n손에 쥔 건, 내 것이 아닌 휴대폰.'),
       el('div.title-btns', null,
-        has ? el('button.title-btn.primary', { onclick: () => start(true) }, '이어하기') : null,
+        has ? el('button.title-btn.primary', { onclick: () => start(true) }, ended ? '엔딩 다시 보기' : '이어하기') : null,
         el('button.title-btn' + (has ? '' : '.primary'), { onclick: () => (has ? confirmNew() : warn()) }, has ? '처음부터' : '시작하기'),
         el('button.title-btn', { onclick: options }, '설정')),
       el('div.title-foot', null, '🎧 이어폰 필수 · 어두운 곳 · 약 40분\n진행 상황은 자동 저장됩니다'));
