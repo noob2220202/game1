@@ -466,7 +466,7 @@
     nightChip.addEventListener('click', () => {
       sfx('tap');
       setNight(!night.armed);
-      if (night.armed) api.caption('야간 모드 · 셔터를 3초 동안 꾹 누르고 있으세요.', 2600);
+      if (night.armed) api.caption('야간 모드 · 셔터를 3초 동안 꾹 누르고 계세요.', 2600);
     });
     function nightCapture(ev) {
       if (night.busy) return;

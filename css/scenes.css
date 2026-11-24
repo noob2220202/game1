@@ -112,12 +112,12 @@ body.debug .room-spot { outline: 1px dashed rgba(255,0,0,.7); }
 .title-name { font-family: var(--serif); font-size: 38px; font-weight: 700; color: #eee; letter-spacing: -1px; text-align: center; line-height: 1.2; text-shadow: 0 0 30px rgba(200,0,0,.25); animation: titleFlicker 6s infinite; }
 .title-name em { font-style: normal; color: #b91c1c; }
 @keyframes titleFlicker { 0%,93%,100%{opacity:1} 94%{opacity:.3} 95%{opacity:1} 97%{opacity:.5} }
-.title-sub { font-size: 13px; color: #888; letter-spacing: 1px; text-align: center; line-height: 1.7; }
+.title-sub { font-size: 13px; color: #888; letter-spacing: 1px; text-align: center; line-height: 1.7; white-space: pre-line; word-break: keep-all; }
 .title-btns { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 300px; margin-top: 22px; }
 .title-btn { padding: 15px; border-radius: 14px; border: 1px solid #3a3a3a; color: #ddd; font-size: 15px; letter-spacing: 1px; background: rgba(20,20,20,.6); }
 .title-btn.primary { background: #7f1d1d; border-color: #991b1b; color: #fff; }
 .title-btn:active { transform: scale(.98); }
-.title-foot { font-size: 11px; color: #555; margin-top: 16px; text-align: center; line-height: 1.6; }
+.title-foot { font-size: 11px; color: #555; margin-top: 16px; text-align: center; line-height: 1.6; white-space: pre-line; word-break: keep-all; }
 .warn-box { font-size: 13px; line-height: 1.8; color: #aaa; text-align: left; background: rgba(255,255,255,.04); border: 1px solid #222; border-radius: 12px; padding: 14px 16px; }
 .warn-box b { color: #ddd; }
 .opt-row { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 10px 2px; border-bottom: 1px solid #1d1d1d; font-size: 14px; color: #bbb; }

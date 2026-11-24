@@ -479,7 +479,7 @@
       group(null, [
         seg('사운드', 'sound', [[true, '켜기'], [false, '끄기']]),
         seg('진동', 'vibration', [[true, '켜기'], [false, '끄기']]),
-        seg('공포 연출', 'scares', [['full', '보통'], ['light', '덜 무섭게']]),
+        seg('공포 연출', 'scares', [['full', '보통'], ['light', '덜 무섭게'], ['off', '없음']]),
         seg('목소리', 'voice', [[true, '켜기'], [false, '끄기']]),
       ]),
       group('글자 크기', [textSizeControl()]),

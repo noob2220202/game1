@@ -159,7 +159,7 @@ img { -webkit-user-drag: none; user-select: none; }
 .dlg-btn:first-child { border-left: 0; }
 .dlg-btn.primary { font-weight: 700; }
 .dlg-btn.danger { color: var(--danger); }
-.toast { position: absolute; left: 50%; bottom: calc(var(--safe-bot) + 90px); transform: translate(-50%, 20px); background: rgba(40,40,44,.92); color: #fff; padding: 10px 18px; border-radius: 20px; font-size: 14px; opacity: 0; transition: all .3s; z-index: 90; max-width: 80%; text-align: center; }
+.toast { position: absolute; left: 50%; bottom: calc(var(--safe-bot) + 90px); transform: translate(-50%, 20px); background: rgba(40,40,44,.92); color: #fff; padding: 10px 18px; border-radius: 20px; font-size: 14px; opacity: 0; transition: all .3s; z-index: 90; max-width: 80%; text-align: center; pointer-events: none; }
 .toast.in { opacity: 1; transform: translate(-50%, 0); }
 
 /* ---------------- call screen ---------------- */

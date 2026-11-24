@@ -30,6 +30,7 @@
       G.notebook && G.notebook.note && G.notebook.note('SIM이 없다. 112도 안 된다.');
     },
     onUnlock() {
+      G.flag('M1', true); // milestone M1: unlocked (clock 03:38, mirroring on, director beats start)
       G.audio.amb('room', 0.9); G.audio.amb('rain', 0.6); G.audio.tension(0.15);
       G.notebook && G.notebook.show && G.notebook.show(true);
       G.phone.renderHome();
@@ -242,7 +243,7 @@
       el('p', null, '기획·제작 ', el('b', null, maker)), el('p', null, '주인공 ', el('b', null, G.NAME)),
       el('p.dim', null, '목소리: AI 음성 · 사진: AI 생성 + 직접 편집 · 소리: 전부 직접 합성'),
       el('p.dim', null, `플레이 ${mins}분 · 힌트 ${G.state.hintsUsed || 0}회`),
-      el('p.dim', null, '이 게임은 아무 데이터도 보내지 않았어요. 카메라 사진은 방금 지워졌어요.'));
+      el('p.dim', null, '이 게임은 아무 데이터도 보내지 않았어요. 카메라도, 마이크도 쓰지 않았어요.'));
     G.faceFrame = null;
     stage.appendChild(credits); requestAnimationFrame(() => credits.classList.add('in'));
     await sleep(9000);

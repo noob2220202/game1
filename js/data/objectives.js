@@ -17,7 +17,7 @@
   const frags = () => (G.fragCount ? G.fragCount() : ['47', '29', '06'].filter((id) => f('frag' + id)).length);
   const hub = () => f('M2') || frags() > 0;
   const memoOpen = () => any('P3', 'memo_letter', 'memoUnlocked');
-  const blocked = () => any('deviceBlocked', 'P7block', 'blocked', 'mfaStarted', 'mfa') || !!vars().deviceBlocked || !!vars().mfaActive;
+  const blocked = () => any('deviceBlocked', 'P7block', 'blocked', 'mfaStarted', 'mfa') || !!vars().deviceBlocked || !!vars().mfaActive || !!(G.haesol && G.haesol.mfaActive && G.haesol.mfaActive());
   const climax = () => f('M7') && !f('M8') && !f('END');
   const step = (...ids) => climax() && ids.includes(vars().climaxStep);
 

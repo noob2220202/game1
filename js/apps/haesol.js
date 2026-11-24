@@ -157,7 +157,7 @@
       pw.node,
       err,
       btn,
-      el('div.hh-links', null, find, el('i'), el('button.hh-link.dim', { onclick: () => G.phone.toast('아이디는 seah.y 입니다') }, '아이디 찾기'), el('i'), el('button.hh-link.dim', { onclick: () => G.phone.toast('해솔빌 입주민 인증이 필요합니다') }, '회원가입')),
+      el('div.hh-links', null, find, el('i'), el('button.hh-link.dim', { onclick: () => G.phone.toast('아이디는 seah.y입니다') }, '아이디 찾기'), el('i'), el('button.hh-link.dim', { onclick: () => G.phone.toast('해솔빌 입주민 인증이 필요합니다') }, '회원가입')),
       el('div.hh-foot', null, '해솔빌 관리사무소 · 02-338-5120'));
     let busy = false;
     async function doLogin() {
@@ -748,6 +748,7 @@
     G.phone.refreshBadges && G.phone.refreshBadges();
   }
   H.startMFA = startMFA;
+  H.mfaActive = () => mfaRunning; // read by G.OBJECTIVES (P7mfa hints while the bombing runs)
 
   function protectScreen() {
     const body = el('div.hh-pad');
