@@ -115,6 +115,7 @@
       return;
     }
     G.notebook && G.notebook.show && G.notebook.show(false);
+    G.phone.setLocked(true); G.phone.lockLayer().innerHTML = '<div style="position:absolute;inset:0;background:#000"></div>';
     await coldOpen();
     G.director.start(false);
   };

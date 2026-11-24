@@ -193,7 +193,7 @@ body.debug .room-spot { outline: 1px dashed rgba(255,0,0,.7); }
 .cine-reach.hold i::after { transform: scale(1); background: rgba(150,170,255,.25); }
 .cine-reach span { font-family: var(--serif); font-size: 15px; letter-spacing: 2px; color: #aaa; }
 .cine-reach small { font-size: 10.5px; color: #555; }
-.cinema { background: radial-gradient(ellipse at 50% 110%, rgba(40,50,90,.12), #000 60%); }
+.cinema { background: #000 radial-gradient(ellipse at 50% 110%, rgba(40,50,90,.14), rgba(0,0,0,0) 60%); }
 /* lock extras */
 .lock-owner { font-size: 12.5px; opacity: .8; margin-top: 2px; }
 .lock-time.roll { animation: roll .6s steps(6); }
