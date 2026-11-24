@@ -187,7 +187,11 @@
 
   /* ---------- room hooks ---------- */
   G.bus.on('room:view', (v) => {
-    if (!G.state.vars.firstRoomLookAt) { G.state.vars.firstRoomLookAt = Date.now(); G.save(); }
+    if (!G.state.vars.firstRoomLookAt) {
+      G.state.vars.firstRoomLookAt = Date.now(); G.save();
+      // first look: teach the flashlight if the player hasn't found it
+      setTimeout(() => { if (!G.flag('usedFlash') && G.room && G.room.isOpen()) G.fx.sub('너무 어둡다. 오른쪽 위 ⚡ 플래시를 켜 보자.', 3200); }, 2600);
+    }
     // B04: first look at the wardrobe -> a 2-frame catchlight in the gap (once, silent). room.js has the glint API.
     if (v === 'wardrobe' && !fired('B04') && !G.flag('M7')) {
       fire('B04');

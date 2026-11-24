@@ -300,3 +300,23 @@ body.dread .fx-vignette { opacity: 1; }
 .qp-n small { opacity: .5; font-size: 11px; }
 .qp-n .bn-icon { width: 30px; height: 30px; border-radius: 8px; }
 .qp-grab { width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.4); margin: 12px auto 0; }
+
+/* ---------------- LEAD layout overrides: keep floating controls out of app content ----------------
+ * The notebook button and the recorder mini-player live INSIDE the status bar row so they never
+ * cover headers, list rows or toggles. */
+.sb-notch { display: none !important; }
+.nb-fab.nbk-fab { top: calc(var(--safe-top) + 3px) !important; left: 66px !important; right: auto !important; width: 34px !important; height: 24px !important; border-radius: 8px !important; border-right: 1px solid rgba(255, 220, 170, .22) !important; padding-left: 0 !important; z-index: 82 !important; box-shadow: 0 1px 6px rgba(0,0,0,.35) !important; }
+.nb-fab.nbk-fab svg { width: 16px !important; height: 16px !important; }
+.nb-fab.nbk-fab.ping::after { top: -3px !important; left: auto !important; right: -3px !important; width: 8px !important; height: 8px !important; }
+.nb-fab.nbk-fab.hide, .nb-fab.nbk-fab.hide-open { transform: translateY(-40px) !important; }
+@media (min-width: 600px) and (min-height: 640px) { .nb-fab.nbk-fab { top: 10px !important; left: 76px !important; } }
+.rc-mini { top: calc(var(--safe-top) + 3px) !important; left: 106px !important; height: 24px !important; z-index: 82 !important; transform: translateY(-8px) scale(.92) !important; padding: 0 2px 0 2px !important; box-shadow: 0 1px 6px rgba(0,0,0,.4) !important; }
+.rc-mini.in { transform: none !important; }
+.rc-mini-main { height: 24px !important; padding: 0 4px 0 6px !important; gap: 4px !important; }
+.rc-mini-b { width: 24px !important; height: 24px !important; }
+.rc-mini-b svg { width: 14px !important; height: 14px !important; }
+.rc-mini-b:not(.play):not(.x) { display: none !important; }
+.rc-mini-time { font-size: 10.5px !important; }
+@media (min-width: 600px) and (min-height: 640px) { .rc-mini { top: 10px !important; left: 116px !important; } }
+/* keyboard must not hide the home indicator */
+.home-bar { z-index: 90; }

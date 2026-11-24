@@ -34,6 +34,7 @@
       G.audio.amb('room', 0.9); G.audio.amb('rain', 0.6); G.audio.tension(0.15);
       G.notebook && G.notebook.show && G.notebook.show(true);
       G.phone.renderHome();
+      setTimeout(() => { G.notebook && G.notebook.note && G.notebook.note('이 폰 카메라로 방을 비춰 볼 수 있다. 플래시도 있다.'); }, 4000);
     },
     onShow() {},
   };
