@@ -610,7 +610,7 @@
 .fac-t td:nth-child(3) { white-space: nowrap; }
 .fac-t b { font-weight: 700; white-space: nowrap; } .fac-t b.ok { color: #1f9d48; } .fac-t b.hold { color: #b7791f; } .fac-t b.bad { color: #d92d20; }
 .fac-foot { margin: 16px 14px 0; padding: 12px 14px; border-radius: 12px; background: #fff7ed; color: #9a3412; font-size: 13px; line-height: 1.6; white-space: pre-line; }
-.fac-last { margin: 18px 16px 0; min-height: 20px; font-size: 13px; color: #b91c1c; font-family: ui-monospace, Menlo, monospace; }
+.fac-last { margin: 18px 16px 0; min-height: 20px; font-size: 13.5px; color: #b91c1c; font-weight: 600; letter-spacing: -.2px; }
 .fac-last:not(.done)::after { content: '▍'; animation: breathe 1s steps(2) infinite; }
 .as-box { margin: 4px 14px; padding: 16px; border-radius: 16px; background: #f5f6f8; display: flex; flex-direction: column; gap: 10px; }
 .as-box small { font-size: 13px; color: #666; }

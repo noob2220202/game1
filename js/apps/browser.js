@@ -137,7 +137,9 @@
   function historyItems() {
     const base = (G.STORY.history || []).filter((h) => !h.show || h.show()).slice().sort((a, b) => +G.chat.parseT(b.t) - +G.chat.parseT(a.t));
     const v = G.state.vars.brVisited || {};
-    const extra = Object.keys(v).filter((id) => !['news', 'home'].includes(id) && !base.some((h) => h.page === id) && page(id)).map((id) => ({ page: id, title: page(id).title, when: '방금', t: v[id], sec: '오늘', fresh: true }));
+    const now = G.clock.now().getTime();
+    const ago = (t) => { const m = Math.floor((now - t) / 60000); return m < 1 ? '방금' : m < 60 ? `${m}분 전` : `${Math.floor(m / 60)}시간 전`; };
+    const extra = Object.keys(v).filter((id) => !['news', 'home'].includes(id) && !base.some((h) => h.page === id) && page(id)).map((id) => ({ page: id, title: page(id).title, when: ago(v[id]), t: v[id], sec: '오늘', fresh: true }));
     extra.sort((a, b) => b.t - a.t);
     return [metaRow()].concat(extra, base);
   }
