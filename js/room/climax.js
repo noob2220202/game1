@@ -77,8 +77,9 @@
     const root = el('div.cx');
     const stage = el('div.cx-stage');
     const cap = el('div.cx-cap');
+    const mid = el('div.cx-mid');
     const assistBtn = el('button.cx-assist', null, '조금 쉽게');
-    root.append(stage, cap, assistBtn);
+    root.append(stage, mid, cap, assistBtn);
     assistBtn.addEventListener('click', () => {
       V().climaxAssist = true; G.save();
       assistBtn.classList.remove('show');
@@ -88,7 +89,7 @@
     });
     root.addEventListener('contextmenu', (e) => e.preventDefault());
     r.ov = G.phone.overlay(root, { modal: 'hard' });
-    r.root = root; r.stage = stage; r.cap = cap; r.assistBtn = assistBtn;
+    r.root = root; r.stage = stage; r.cap = cap; r.mid = mid; r.assistBtn = assistBtn;
     if (fails() >= 2 && !assist()) assistBtn.classList.add('show');
     return root;
   }
@@ -96,7 +97,8 @@
   function caption(r, text, ms, cls) {
     ensureOverlay(r);
     const line = el('p' + (cls ? '.' + cls : ''), null, T(text));
-    r.cap.innerHTML = ''; r.cap.appendChild(line);
+    const box = cls === 'center' ? r.mid : r.cap;
+    r.cap.innerHTML = ''; r.mid.innerHTML = ''; box.appendChild(line);
     requestAnimationFrame(() => line.classList.add('in'));
     if (ms) setTimeout(() => { line.classList.remove('in'); }, ms);
     return line;
@@ -493,6 +495,7 @@
   async function hideAndListen(r, from) {
     ensureOverlay(r);
     r.stage.innerHTML = '';
+    r.cap.innerHTML = ''; r.mid.innerHTML = '';
     const big = fails() >= 1 || assist();
     const holdBtn = el('button.cx-hold', { 'aria-label': '꾹 눌러 숨기' }, el('i'), el('i'), el('span.cx-hold-ic', { html: '<svg viewBox="0 0 24 24"><path d="M9 11V5.5a1.5 1.5 0 013 0V10m0-1.5a1.5 1.5 0 013 0V11m0-1a1.5 1.5 0 013 0v4.5c0 3.6-2.4 6-6 6h-1c-2.4 0-3.7-1.2-5-3.2L4.6 14a1.5 1.5 0 012.5-1.6L9 14.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>' }));
     const hideBox = el('div.cx-hide' + (big ? '.big' : ''), null,
@@ -575,7 +578,9 @@
         segIdx = SCRIPT.findIndex((s) => s.id === 'approach');
       }
       hideBox.querySelector('.cx-hide-t').textContent = '다시 꾹 눌러 빛을 가리세요';
-      hideBox.classList.add('in');
+      // let the penalty line read first (the hold still works meanwhile)
+      const tShow = setTimeout(() => { if (!r.hideCtl.hidden) hideBox.classList.add('in'); }, 2300);
+      r.cleanup.push(() => clearTimeout(tShow));
       await new Promise((res) => { const off = r.hideCtl.on((h) => { if (h) { off(); res(); } }); r.cleanup.push(off); });
       alive(r);
       hideBox.classList.remove('in');
@@ -585,6 +590,7 @@
   /* ---------------- mom calls (must decline) ---------------- */
   async function momCall(r) {
     ensureOverlay(r);
+    r.cap.innerHTML = ''; r.mid.innerHTML = '';
     const vars = V();
     const callFails = vars.climaxCallFails || 0;
     const windowMs = assist() ? 25000 : callFails >= 1 ? 12000 : 6000;

@@ -183,6 +183,7 @@
     return T(m.text || m.sys || '');
   }
   C.preview = preview;
+  const sig = (m) => [m.deleted ? 1 : 0, m.img || '', m.text || '', m.pending ? 1 : 0, m.fail ? 1 : 0, m.sending ? 1 : 0, m.share ? 1 : 0].join('|');
 
   C.open = function (kind, id, opts) {
     opts = opts || {};
@@ -267,6 +268,7 @@
         !me && isTalk ? (first ? avatarNode(m.avatar || th.avatar, th.name) : el('div.chat-av-sp')) : null,
         col, fail, fail ? null : meta);
       if (m.sending) row.classList.add('sending');
+      row._sig = sig(m);
       if (m.id) nodeById[m.id] = row;
       frag.appendChild(row);
       return frag;
@@ -428,7 +430,13 @@
     };
     openViews[key] = view;
     const offFlag = G.bus.on('flag', () => renderChips());
-    G.phone.push(scr, { onClose: () => { if (openViews[key] === view) delete openViews[key]; offFlag(); G.ui.hideKeyboard && G.ui.hideKeyboard(); }, anim: 'slide' });
+    // other modules may mutate a pushed message in place and re-emit 'chat:msg' (e.g. the 관리실 slip)
+    const offMsg = G.bus.on('chat:msg', (e) => {
+      if (!e || e.kind !== kind || e.id !== id || !e.msg || !e.msg.id) return;
+      const n = nodeById[e.msg.id];
+      if (n && n.isConnected && n._sig !== sig(e.msg)) view.replace(e.msg);
+    });
+    G.phone.push(scr, { onClose: () => { if (openViews[key] === view) delete openViews[key]; offFlag(); offMsg(); G.ui.hideKeyboard && G.ui.hideKeyboard(); }, anim: 'slide' });
     requestAnimationFrame(() => scrollEnd(false));
     setTimeout(() => scrollEnd(false), 60);
     if (C.isTyping(kind, id)) setTyping(true);

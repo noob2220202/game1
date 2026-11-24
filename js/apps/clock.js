@@ -107,7 +107,7 @@
 
   /* ---------------- 세계 시각 ---------------- */
   function worldTab(wrap) {
-    const big = el('div.wt-time');
+    const big = el('span.wt-time');
     const sec = el('span.wt-sec');
     const date = el('div.wt-date');
     const zones = el('div.wt-zones');

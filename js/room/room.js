@@ -650,6 +650,10 @@
     else { const id = cur.view.id; const st = G.state.vars.roomLayers || {}; return st[id] || {}; }
     return true;
   });
+  /* H5: viewing the sticker's QR page proves 관리실 = him (story-data's page also sets it; this is a
+   * deferred safety net so its own note still fires first) */
+  G.bus.on('browser:page', (id) => { if (id === 'qr404') setTimeout(() => { if (!G.flag('managerExposed')) G.flag('managerExposed', true); }, 0); });
+
   /* debug helper: computed layer state for every view (what setView would apply now) */
   R.layerState = function () {
     const out = {};

@@ -41,7 +41,7 @@
       function shift(d) { m += d; if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; } G.audio.sfx.tap(); render(); }
       function render() {
         wrap.innerHTML = '';
-        scr.querySelector('.sv-title').textContent = mode === 'month' ? `${y}년 ${m + 1}월` : '모든 일정';
+        scr.querySelector('.sv-title').textContent = mode === 'month' ? '캘린더' : '모든 일정';
         if (mode === 'list') { wrap.appendChild(listAll()); return; }
         const head = el('div.cal-nav', null,
           el('button', { 'aria-label': '이전 달', onclick: () => shift(-1) }, '‹'),

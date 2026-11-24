@@ -310,9 +310,10 @@
   function textSizeControl() {
     const opts = [[0.9, '90%'], [1, '100%'], [1.15, '115%'], [1.3, '130%']];
     const cur = G.settings.textSize || 1;
+    const near = opts.reduce((a, o) => (Math.abs(o[0] - cur) < Math.abs(a - cur) ? o[0] : a), opts[0][0]);
     const preview = el('div.ts-prev', null, '세아야 오늘로 1년이야.');
     const seg = el('div.ts-seg', null, opts.map(([v, l], i) => {
-      const b = el('button' + (Math.abs(cur - v) < 0.03 ? '.on' : ''), { style: { fontSize: 12 + i * 3 + 'px' } }, '가', el('small', null, l));
+      const b = el('button' + (v === near ? '.on' : ''), { style: { fontSize: 12 + i * 3 + 'px' } }, '가', el('small', null, l));
       b.addEventListener('click', () => { G.audio.sfx.tap(); G.settings.textSize = v; G.saveSettings(); seg.querySelectorAll('button').forEach((x) => x.classList.remove('on')); b.classList.add('on'); });
       return b;
     }));

@@ -220,7 +220,9 @@ body.debug .rv-spot { outline: 1px dashed rgba(255,0,0,.75); }
 .cx-cap { position: absolute; z-index: 4; left: 26px; right: 26px; bottom: calc(var(--safe-bot) + 196px); text-align: center; pointer-events: none; }
 .cx-cap p { margin: 0; font-family: var(--serif); font-size: calc(16px * var(--ts, 1)); line-height: 1.7; color: #e8e4da; text-shadow: 0 1px 3px #000, 0 0 18px #000; opacity: 0; transform: translateY(6px); transition: opacity .6s, transform .6s; word-break: keep-all; }
 .cx-cap p.in { opacity: 1; transform: none; }
-.cx-cap p.center { position: fixed; left: 26px; right: 26px; top: 45%; }
+.cx-mid { position: absolute; z-index: 4; inset: 0; display: flex; align-items: center; justify-content: center; padding: 0 26px 8%; pointer-events: none; text-align: center; }
+.cx-mid p { margin: 0; font-family: var(--serif); font-size: calc(16px * var(--ts, 1)); line-height: 1.7; color: #e8e4da; text-shadow: 0 1px 3px #000, 0 0 18px #000; opacity: 0; transform: translateY(6px); transition: opacity .6s, transform .6s; word-break: keep-all; }
+.cx-mid p.in { opacity: 1; transform: none; }
 .cx-assist { position: absolute; z-index: 6; right: 14px; top: calc(var(--sb-h) + 12px); height: 34px; padding: 0 14px; border-radius: 17px; background: rgba(255,255,255,.12); color: #fff; font-size: 13px; font-weight: 600; border: 1px solid rgba(255,255,255,.18); opacity: 0; pointer-events: none; transform: translateY(-6px); transition: all .35s; }
 .cx-assist.show { opacity: 1; pointer-events: auto; transform: none; }
 .cx-scene { position: absolute; inset: 0; background: #000; overflow: hidden; }
