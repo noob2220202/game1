@@ -698,7 +698,10 @@
     cur = api;
     setView(vi);
     if (motionOK() && G.settings.gyro !== false) setGyro(true);
-    setTimeout(() => hint.classList.add('fade'), 3800);
+    const seen = G.state.seen || (G.state.seen = {});
+    seen.roomHintN = (seen.roomHintN || 0) + 1;
+    if (seen.roomHintN > 2) hint.style.display = 'none';
+    else setTimeout(() => hint.classList.add('fade'), 3800);
     G.bus.emit('room:open', { mode: opts.mode || 'camera' });
     // climax resume: room opened while M7..END is pending
     setTimeout(() => { if (cur === api && G.climax && G.climax.onRoomOpen) G.climax.onRoomOpen(api); }, 0);

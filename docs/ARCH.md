@@ -1,5 +1,24 @@
 # 하루를 위한 방탈출! — Implementation contract (ARCH)
 
+> ## ⛔ OVERRIDE FROM THE CLIENT (supersedes the design doc AND any task brief)
+> **No camera and no hardware sensors anywhere. Only pure in-app tricks.**
+> - Do NOT use `getUserMedia` (no front/rear camera, no face login, no selfie, no rear-camera sting), no microphone,
+>   no `DeviceMotionEvent` / `DeviceOrientationEvent` (no tilt, no shake, no face-down detection, no gyro look-around),
+>   no permission prompts of any kind. Vibration output (`navigator.vibrate`) is still OK.
+> - Replacements:
+>   - P1 polaroid glare: finger-drag only.
+>   - P4 undo: NO shake. Undo via the memo toolbar `↶` button, `⋯ › 실행 취소`, three-finger swipe, Ctrl/Cmd+Z.
+>     지민 clue chat (2025.08.14) becomes: `세아: 아 그리고 메모 날려도 위에 ↶ 누르면 살아나는 거 앎??` / `세아: 과제 다 날렸다가 그걸로 살림ㅋㅋㅋ` / `지민: 헐 대박 몰랐어` / `지민: 근데 넌 왜 맨날 날리냐ㅋㅋ`.
+>     Remove the settings row `흔들어서 실행 취소`. Hints: T3 = `메모 위 ↶ (또는 ⋯ › 실행 취소)`.
+>   - H3 night-mode alt path: press-and-HOLD the shutter for 3 s (pointer drift > 8 px resets). No motion sensor.
+>   - P5 해솔홈: NO `[얼굴로 로그인]` button. Only 비밀번호 찾기 → 보안질문 → OTP.
+>   - P6 shared-album photo: always `G.IMG.haru_fallback` (someone on this bed holding a glowing phone, seen from the wardrobe gap) — no camera composite.
+>   - P8 hide: instead of turning the phone face-down, the player must **press and hold anywhere on the screen** (`화면을 꾹 눌러 빛을 가리세요`; desktop: hold mouse or Space). While held the screen is pure black and the 22 s binaural script plays; releasing early = `…빛이 샜다.` penalty exactly as designed for lifting.
+>   - JS3: message-only sting (no camera).
+>   - Room view: drag/arrows only (no gyro).
+>   - Onboarding: earphone L/R test only (no motion/camera rows).
+
+
 Design source of truth: `docs/DESIGN.md` (copy of final design). This file = how the code is organized,
 who owns which file, and the exact cross-module APIs. **Do not edit files you don't own.** If you need
 a core change, implement a local helper in your own module and mention it in your report.

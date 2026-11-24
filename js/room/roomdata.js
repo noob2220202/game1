@@ -89,13 +89,14 @@
   /* ---------- room state (§6.3) ---------- */
   function gapStage() {
     const f = G.fragCount ? G.fragCount() : 0;
-    const bonus = +((G.state && G.state.vars && G.state.vars.lookAwayBonus) || 0);
+    const v = (G.state && G.state.vars) || {};
+    const bonus = +(v.lookBonus || v.lookAwayBonus || 0); // director's look-away bonus
     const cap = flag('M7') ? 4 : flag('M4') ? 3 : flag('M2') ? 2 : 1;
     return Math.max(0, Math.min(f + (flag('M5') ? 1 : 0) + bonus, cap));
   }
   function glassState() { return flag('M4') ? 'empty' : flag('F2') ? 'half' : 'full'; }
   function rackFallen() {
-    if (flag('rackFallen')) return true;
+    if (flag('rackFallen') || (G.state && G.state.vars.rackFallen)) return true; // director B23 sets vars.rackFallen
     const t = G.state && G.state.flags && G.state.flags.M6;
     return !!t && Date.now() - t > 20000;
   }
@@ -133,28 +134,28 @@
         ],
         glows: [{ id: 'keypad', kind: 'led', at: B.keypadLed }],
         hotspots: [
-          { id: 'doorlock', ...B.keypad, label: '도어락', needLight: false,
-            tap(api) { if (G.hooks && G.hooks.has && G.hooks.has('door:keypad')) G.hooks.call('door:keypad'); else if (G.door) G.door.open(); } },
+          { id: 'shoes', ...B.shoes, label: '운동화', tap(api) { api.caption('내 운동화. 어제 이사 오면서 벗어 둔 그대로다.'); } },
+          { id: 'parcel', ...B.parcel, label: '택배 상자', tap(api) { api.caption('택배 상자. 아직 못 뜯었다.'); } },
+
+          { id: 'sticker', ...B.sticker, label: '스티커',
+            tap(api) {
+              if (api.zoom >= 2) { api.caption('작은 스티커. 관리사무소 번호랑 QR 코드가 있다.'); return; }
+              api.caption('문에 작은 스티커가 붙어 있다. 너무 작아서 안 보인다. 확대해 볼까?');
+            } },
+          { id: 'peephole', ...B.peephole, label: '현관 렌즈', tap(api) { R.peephole(api); } },
+          { id: 'guard', ...B.guard, label: '도어가드', when: () => guardLatched(),
+            tap(api) {
+              api.caption('…도어가드가 걸려 있다. 아까는 분명 열려 있었는데.');
+              note('도어가드가 혼자 걸려 있었다.');
+            } },
           { id: 'handle', ...B.handle, label: '문 손잡이', needLight: false,
             tap(api) {
               G.audio && G.audio.sfx.lockClick && G.audio.sfx.lockClick();
               api.caption('…잠겨 있다. 손잡이가 꿈쩍도 안 한다.');
               note('현관은 도어락으로 잠겨 있다. 비밀번호 여섯 자리.');
             } },
-          { id: 'peephole', ...B.peephole, label: '현관 렌즈', tap(api) { R.peephole(api); } },
-          { id: 'sticker', ...B.sticker, label: '스티커',
-            tap(api) {
-              if (api.zoom >= 2) { api.caption('작은 스티커. 관리사무소 번호랑 QR 코드가 있다.'); return; }
-              api.caption('문에 작은 스티커가 붙어 있다. 너무 작아서 안 보인다. 확대해 볼까?');
-            } },
-          { id: 'guard', ...B.guard, label: '도어가드', when: () => guardLatched(),
-            tap(api) {
-              api.caption('…도어가드가 걸려 있다. 아까는 분명 열려 있었는데.');
-              note('도어가드가 혼자 걸려 있었다.');
-            } },
-          { id: 'shoes', ...B.shoes, label: '운동화', tap(api) { api.caption('내 운동화. 어제 이사 오면서 벗어 둔 그대로다.'); } },
-          { id: 'parcel', ...B.parcel, label: '택배 상자', tap(api) { api.caption('택배 상자. 아직 못 뜯었다.'); } },
-        ],
+          { id: 'doorlock', ...B.keypad, label: '도어락', needLight: false,
+            tap(api) { if (G.hooks && G.hooks.has && G.hooks.has('door:keypad')) G.hooks.call('door:keypad'); else if (G.door) G.door.open(); } },        ],
       },
       /* ---------------- 90° 침대 ---------------- */
       {
@@ -189,7 +190,8 @@
         id: 'wardrobe', name: '옷장', az: 270, key: 'room_wardrobe', litKey: 'room_lit_nest', w: 1024, h: 1536,
         layers: [
           { id: 'gap', pick: () => { const g = gapStage(); return g ? 'gap_stage_' + g : null; }, box: B.gapStage },
-          { id: 'fingers', kind: 'fingers', litOnly: true, pick: () => (gapStage() === 3 ? 'fingers_gap' : null), box: B.fingers },
+          // gap_stage_3/4.png already contain the fingers; set G.ROOM.fingersOverlay = true to add fingers_gap (35 %, flashlight only)
+          { id: 'fingers', kind: 'fingers', litOnly: true, pick: () => (R.fingersOverlay && gapStage() === 3 ? 'fingers_gap' : null), box: B.fingers },
           { id: 'glint', kind: 'glint', pick: () => (gapStage() >= 4 ? 'glint' : null), at: B.glint },
           { id: 'rack', pick: () => (rackFallen() ? 'patch_rack_fallen' : null), box: B.rackFallen },
         ],

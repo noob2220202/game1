@@ -63,6 +63,7 @@
 /* hotspots */
 .rv-spot { position: absolute; border-radius: 10px; background: transparent; -webkit-tap-highlight-color: transparent; }
 .rv-spot:active { background: rgba(255,255,255,.05); }
+.rv-spot::after { content: ''; position: absolute; left: 50%; top: 50%; width: max(100%, calc(44px * var(--iz, 1))); height: max(100%, calc(44px * var(--iz, 1))); transform: translate(-50%, -50%); }
 body.debug .rv-spot { outline: 1px dashed rgba(255,0,0,.75); }
 .rv-spot.cx-pulse { border-radius: 50%; animation: cxSpot 1.6s ease-out infinite; }
 @keyframes cxSpot { 0% { box-shadow: 0 0 0 0 rgba(255,214,10,.55), inset 0 0 0 calc(1.5px * var(--iz,1)) rgba(255,214,10,.8); } 100% { box-shadow: 0 0 0 calc(18px * var(--iz,1)) rgba(255,214,10,0), inset 0 0 0 calc(1.5px * var(--iz,1)) rgba(255,214,10,.2); } }

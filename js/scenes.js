@@ -50,18 +50,11 @@
     let earState = s.audioMode ? (s.audioMode === 'ear' ? '✓ 이어폰' : '스피커') : null;
     if (earState) earBtn.textContent = earState;
     earBtn.addEventListener('click', () => earTest(earBtn));
-    // motion
-    const motBtn = el('button.imm-btn' + (s.motionOK ? '.on' : ''), null, s.motionOK ? '✓ 켜짐' : '켜기');
-    motBtn.addEventListener('click', async () => { const ok = await requestMotion(); s.motionOK = ok; G.saveSettings(); motBtn.textContent = ok ? '✓ 켜짐' : '사용 안 함'; motBtn.classList.toggle('on', ok); });
-    // camera opt-in (no prompt now)
-    const camBtn = el('button.imm-btn' + (s.cameraOptIn ? '.on' : ''), null, s.cameraOptIn ? '✓ 허용' : '허용');
-    camBtn.addEventListener('click', () => { s.cameraOptIn = !s.cameraOptIn; G.saveSettings(); camBtn.textContent = s.cameraOptIn ? '✓ 허용' : '허용'; camBtn.classList.toggle('on', s.cameraOptIn); G.audio.sfx.tap(); });
     inner.append(
       el('div.title-kicker', null, 'SETUP'),
       el('div', { style: { fontFamily: 'var(--serif)', fontSize: '20px', color: '#ddd', marginBottom: '6px', textAlign: 'center' } }, '몰입 설정'),
       row('🎧 이어폰 테스트', '이 게임의 소리에는 방향이 있습니다', earBtn),
-      row('📱 기울기·흔들기 센서', '권장 · 거절해도 진행 가능', motBtn),
-      row('📷 카메라 (선택)', '게임 속 한 장면에서만 켜지고, 사진은 이 기기 밖으로 절대 나가지 않아요. 엔딩에서 자동 삭제.', camBtn),
+      el('div.imm-note', null, '🔆 화면 밝기를 올리고, 어두운 곳에서 해주세요.'),
       el('div', { style: { fontSize: '11.5px', color: '#666', textAlign: 'center', margin: '8px 0' } }, '이 게임은 어떤 데이터도 서버로 보내지 않습니다.'),
       el('button.title-btn.primary', { style: { width: '100%' }, onclick: () => { scr.remove(); done(); } }, '시작'));
 
@@ -85,20 +78,10 @@
       G.saveSettings();
     }
   };
-  async function requestMotion() {
-    try {
-      let ok = true;
-      if (window.DeviceMotionEvent && typeof DeviceMotionEvent.requestPermission === 'function') ok = (await DeviceMotionEvent.requestPermission()) === 'granted';
-      if (ok && window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') ok = (await DeviceOrientationEvent.requestPermission()) === 'granted';
-      if (!window.DeviceMotionEvent) return false;
-      return ok;
-    } catch (e) { return false; }
-  }
-
   /* ---------------- start / continue ---------------- */
   SC.start = async function (cont) {
     const st = G.state.vars, s = G.settings;
-    st.motionOK = !!s.motionOK; st.cameraOptIn = !!s.cameraOptIn;
+    st.motionOK = false; st.cameraOptIn = false; // client decision: no sensors, no camera
     if (!st.firstOpenReal) st.firstOpenReal = Date.now();
     G.state.vars.reloads = (G.state.vars.reloads || 0) + (cont ? 1 : 0);
     G.save();

@@ -65,7 +65,7 @@
     const ghost = el('div.case-ghost', null, '☝ 빛을 손가락으로 밀어 보세요');
     const root = el('div.case-view', null, el('button.cu-back', { 'aria-label': '돌아가기', html: '<svg viewBox="0 0 24 24"><path d="M15 4l-8 8 8 8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>' }), stage, tip, ghost);
     const ov = G.phone.overlay(root, { onBack: () => close() });
-    let off = { x: 0, y: 0 }, base = null, gotOrient = false, revealed = false, dragging = null;
+    let off = { x: 0, y: 0 }, revealed = false, dragging = null;
     function rect() {
       const r = stage.getBoundingClientRect(); const iw = img.naturalWidth || 1024, ih = img.naturalHeight || 1536;
       const sc = Math.min(r.width / iw, r.height / ih); const w = iw * sc, h = ih * sc;
@@ -85,20 +85,12 @@
       }
     }
     img.addEventListener('load', place); setTimeout(place, 60);
-    function onOri(e) {
-      if (e.beta == null) return; gotOrient = true;
-      if (!base) base = { b: e.beta, g: e.gamma };
-      off = { x: (e.gamma - base.g) * 12, y: (e.beta - base.b) * 10 };
-      place();
-    }
-    if (G.state.vars.motionOK || G.settings.motionOK) window.addEventListener('deviceorientation', onOri);
-    setTimeout(() => { if (!gotOrient) setTimeout(() => ghost.classList.add('in'), 10000); }, 800);
     stage.style.touchAction = 'none';
     stage.addEventListener('pointerdown', (e) => { stage.setPointerCapture(e.pointerId); dragging = { x: e.clientX - off.x, y: e.clientY - off.y }; ghost.classList.remove('in'); });
     stage.addEventListener('pointermove', (e) => { if (!dragging) return; off = { x: e.clientX - dragging.x, y: e.clientY - dragging.y }; place(); });
     stage.addEventListener('pointerup', () => { dragging = null; });
     root.querySelector('.cu-back').addEventListener('click', () => close());
-    function close() { window.removeEventListener('deviceorientation', onOri); ov.close(); }
+    function close() { ov.close(); }
     G.bus.emit('lock:flip');
   };
 

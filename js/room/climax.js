@@ -149,12 +149,15 @@
     return false;
   };
 
+  /** true while the climax or the H6 call is running (director: treat as a safe zone) */
+  C.safeZone = () => !!C.running || !!(G.h6 && G.h6.active);
+
   C.start = function (from) {
     if (run) teardown(run);
     const r = (run = { tok: ++tokSeq, cleanup: [] });
     r.showAssist = () => { ensureOverlay(r); r.assistBtn.classList.add('show'); };
     C.running = true;
-    G.state.vars.scriptedScene = true;
+    G.bus.emit('scripted', true);
     wakeLock(r, true);
     sequence(r, from || 'handle').catch((e) => {
       if (e !== ABORT) { console.error('[climax]', e); }
@@ -168,7 +171,7 @@
     wakeLock(r, false);
     if (run === r) run = null;
     C.running = !!run;
-    if (!run) { G.state.vars.scriptedScene = false; G.room && (G.room.flashGrant = false); }
+    if (!run) { G.bus.emit('scripted', false); G.room && (G.room.flashGrant = false); }
   }
 
   /* =========================================================
@@ -893,7 +896,6 @@
   function firstCall(threadId) {
     const ui = callUI(threadId, '연결 중…');
     G.bus.emit('call:start', 'h6');
-    G.state.vars.scriptedCall = true;
     const A = G.audio;
     const phone = sfx('ringHaru', { az: 270 }) || { stop() {} };
     const buzz = sfx('buzzWood', { az: 270 }) || { stop() {} };
@@ -904,7 +906,6 @@
       try { phone.stop(); } catch (e) {} try { buzz.stop(); } catch (e) {}
       if (rb) try { rb.stop(); } catch (e) {}
       glow(0);
-      G.state.vars.scriptedCall = false;
       G.bus.emit('call:end', 'h6');
     }
     let rb = null;
