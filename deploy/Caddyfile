@@ -1,0 +1,43 @@
+# 하루를 위한 방탈출! — Caddy 설정
+# 이 블록을 서버의 /etc/caddy/Caddyfile 에 넣고:  sudo systemctl reload caddy
+# Caddy가 Let's Encrypt 인증서를 자동으로 발급/갱신합니다.
+
+haru.pengueverything.cloud {
+	root * /var/www/haru
+	encode zstd gzip
+
+	# git 폴더나 배포 설정 파일은 외부에 노출하지 않음
+	@hidden path /.git /.git/* /deploy/* /.gitignore
+	respond @hidden 404
+
+	# 웹 매니페스트 MIME
+	@manifest path *.webmanifest
+	header @manifest Content-Type "application/manifest+json"
+
+	# 이미지는 길게 캐시, 코드는 항상 최신 확인 (업데이트 즉시 반영)
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=604800"
+	@code path / *.html *.js *.css
+	header @code Cache-Control "no-cache"
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# 게임의 카메라/기울기 트릭용 (같은 사이트에서만 허용)
+		Permissions-Policy "camera=(self), microphone=(self), accelerometer=(self), gyroscope=(self), fullscreen=(self)"
+		-Server
+	}
+
+	file_server
+
+	# 없는 주소로 들어오면 게임의 404 페이지로
+	handle_errors {
+		@404 expression {err.status_code} == 404
+		handle @404 {
+			root * /var/www/haru
+			rewrite * /404.html
+			file_server
+		}
+	}
+}
