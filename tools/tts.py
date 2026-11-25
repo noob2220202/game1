@@ -13,7 +13,7 @@ jobs = [
 def run(j):
     name, voice, text, inst = j
     body = {"model":"gpt-4o-mini-tts","voice":voice,"input":text,"instructions":inst,"response_format":"wav"}
-    req = urllib.request.Request("https://api.openai.com/v1/audio/speech", data=json.dumps(body).encode(), headers={"Authorization":"Bearer proxy-injected","Content-Type":"application/json"})
+    req = urllib.request.Request("https://api.openai.com/v1/audio/speech", data=json.dumps(body).encode(), headers={"Authorization":"Bearer " + os.environ.get("OPENAI_API_KEY", "proxy-injected"),"Content-Type":"application/json"})
     try:
         b = urllib.request.urlopen(req, timeout=120).read()
         open(os.path.join(OUT, name + ".raw.wav"), "wb").write(b); return name, len(b)

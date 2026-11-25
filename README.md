@@ -33,6 +33,7 @@ ENDING_LETTER: '...',       // 엔딩 편지
 - `js/room/`: 방 카메라 뷰, 도어락, 클라이맥스
 - `js/director.js`: 공포 연출 디렉터
 - `js/scenes.js`: 오프닝과 엔딩
-- `tools/`: 에셋 생성·합성 스크립트
+- `tools/`: 에셋 생성·합성 스크립트 (`get_fonts.sh`, `OPENAI_API_KEY` 환경변수 사용)
+- `docs/HANDOFF.md`: 2편·시리즈 작업을 PC에서 이어가는 방법
 
 > ⚠️ 정답과 스포일러가 `docs/DESIGN.md` 에 있어요. 플레이할 사람에게는 보여주지 마세요.

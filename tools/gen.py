@@ -9,7 +9,7 @@ def run(j):
     body = {'model': MODEL, 'prompt': j['prompt'], 'size': j.get('size','1024x1536'), 'quality': j.get('quality','high'), 'n':1}
     for a in range(3):
         try:
-            req = urllib.request.Request('https://api.openai.com/v1/images/generations', data=json.dumps(body).encode(), headers={'Authorization':'Bearer proxy-injected','Content-Type':'application/json'})
+            req = urllib.request.Request('https://api.openai.com/v1/images/generations', data=json.dumps(body).encode(), headers={'Authorization':'Bearer ' + os.environ.get('OPENAI_API_KEY', 'proxy-injected'),'Content-Type':'application/json'})
             d = json.load(urllib.request.urlopen(req, timeout=400))
             open(path,'wb').write(base64.b64decode(d['data'][0]['b64_json']))
             open(os.path.join(out,'_usage.jsonl'),'a').write(json.dumps({'name':j['name'],'q':body['quality'],'size':body['size'],'usage':d.get('usage')})+'\n')
@@ -36,7 +36,7 @@ def edit(j, path):
     body = b''.join(parts)
     for a in range(3):
         try:
-            req = urllib.request.Request('https://api.openai.com/v1/images/edits', data=body, headers={'Authorization':'Bearer proxy-injected','Content-Type':f'multipart/form-data; boundary={bnd}'})
+            req = urllib.request.Request('https://api.openai.com/v1/images/edits', data=body, headers={'Authorization':'Bearer ' + os.environ.get('OPENAI_API_KEY', 'proxy-injected'),'Content-Type':f'multipart/form-data; boundary={bnd}'})
             d = json.load(urllib.request.urlopen(req, timeout=400))
             open(path,'wb').write(base64.b64decode(d['data'][0]['b64_json']))
             open(os.path.join(out,'_usage.jsonl'),'a').write(json.dumps({'name':j['name'],'q':j.get('quality','high'),'edit':True,'usage':d.get('usage')})+'\n')

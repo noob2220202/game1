@@ -2,11 +2,14 @@
 import numpy as np, math, random
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance, ImageOps, ImageChops
 
-SCR = '/tmp/claude-0/-home-user-game1/6f991bc5-f42b-5b5f-963c-5e6d10dd3159/scratchpad'
+import os as _os
+REPO = _os.path.abspath(_os.path.join(_os.path.dirname(__file__), '..'))
+# working folder for generated sources (gen/), fonts (fonts/) — not committed
+SCR = _os.environ.get('HARU_WORK', _os.path.join(REPO, 'work'))
 FONT_SANS = SCR + '/fonts/sans.ttf'
 FONT_BOLD = SCR + '/fonts/sansb.ttf'
 FONT_PEN = SCR + '/fonts/pen.ttf'
-OUT = '/home/user/game1/assets/img/'
+OUT = _os.environ.get('HARU_OUT', _os.path.join(REPO, 'assets', 'img')) + '/'
 
 def load(name):
     return Image.open(f'{SCR}/gen/{name}.png').convert('RGB')
