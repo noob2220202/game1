@@ -376,7 +376,7 @@
     if (voiceCache[id]) return voiceCache[id];
     voiceCache[id] = new Promise((res) => {
       if (!A.ctx || location.protocol === 'file:') { res(null); return; }
-      fetch('assets/audio/' + id + '.wav').then((r) => (r.ok ? r.arrayBuffer() : null)).then((ab) => {
+      fetch((G.AUDIO_BASE || 'assets/audio/') + id + '.wav').then((r) => (r.ok ? r.arrayBuffer() : null)).then((ab) => {
         if (!ab) return res(null);
         A.ctx.decodeAudioData(ab, (b) => res(b), () => res(null));
       }).catch(() => res(null));

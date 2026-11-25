@@ -46,8 +46,8 @@
 
   /* ---------- title ---------- */
   function showTitle() {
-    const has = G.hasSave() && (function () { try { const s = JSON.parse(localStorage.getItem('haru-escape.save.v1')); return s && s.flags && s.flags.introDone && !s.flags.ending; } catch (e) { return false; } })();
-    const ended = has && (function () { try { return !!JSON.parse(localStorage.getItem('haru-escape.save.v1')).flags.END; } catch (e) { return false; } })();
+    const has = G.hasSave() && (function () { try { const s = JSON.parse(localStorage.getItem(G.SAVE_KEY)); return s && s.flags && s.flags.introDone && !s.flags.ending; } catch (e) { return false; } })();
+    const ended = has && (function () { try { return !!JSON.parse(localStorage.getItem(G.SAVE_KEY)).flags.END; } catch (e) { return false; } })();
     const scr = el('div.title-screen');
     const bg = el('div.title-bg', { style: { backgroundImage: `url("${G.ASSET ? G.ASSET.title : ''}")` } });
     const inner = el('div.title-inner', null,

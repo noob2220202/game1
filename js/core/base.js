@@ -76,7 +76,8 @@
   G.saveSettings = function () { try { localStorage.setItem(SKEY, JSON.stringify(G.settings)); } catch (e) {} G.bus.emit('settings', G.settings); };
 
   /* ---------------- state & autosave ---------------- */
-  const KEY = 'haru-escape.save.v1';
+  const KEY = (window.CONFIG && window.CONFIG.SAVE_KEY) || 'haru-escape.save.v1';
+  G.SAVE_KEY = KEY;
   function fresh() {
     return {
       v: 1,
