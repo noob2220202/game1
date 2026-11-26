@@ -16,6 +16,10 @@
 .md2-miss { visibility: hidden; }
 
 /* ---------- shared: empty state, rows, chips, toggles, tabs ---------- */
+/* Korean prose wraps between words (어절), never inside one — e.g. '…표시됩니' / '다' at 130 % (text size). break-word only
+   splits a single word that cannot fit the line (long names / addresses). Rules further down that set their own word-break keep it. */
+.md2-empty, .md2-pi, .md2-kang, .md2-ghost-h, .md2-fp-sub, .md2-rec-cap, .md2-al-sub, .md2-ring-title, .md2-ring-mid, .md2-cal-evm, .md2-cal-dh,
+.md2-memo-ph, .md2-br-after, .md2-cbs-org, .md2-cbs-foot, .md2-tl-card { word-break: keep-all; overflow-wrap: break-word; }
 .md2-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 56px 24px; color: var(--md-mut); text-align: center; }
 .md2-empty.tall { min-height: 60vh; }
 .md2-empty b { font-size: calc(17px * var(--ts, 1)); font-weight: 600; color: var(--md-ink); opacity: .78; }
@@ -31,7 +35,7 @@
 .md2-kv { display: flex; gap: 14px; padding: 12px 20px; font-size: calc(14.5px * var(--ts, 1)); line-height: 1.45; border-bottom: .5px solid var(--md-line); }
 .md2-kv > span { flex: none; width: 6.2em; color: var(--md-mut); }
 .md2-kv > b { flex: 1; font-weight: 500; word-break: keep-all; overflow-wrap: anywhere; }
-.md2-band { margin: 10px 14px 4px; padding: 10px 14px; border-radius: 12px; background: var(--md-bg2); color: var(--md-mut); font-size: calc(13px * var(--ts, 1)); line-height: 1.45; }
+.md2-band { margin: 10px 14px 4px; padding: 10px 14px; border-radius: 12px; background: var(--md-bg2); color: var(--md-mut); font-size: calc(13px * var(--ts, 1)); line-height: 1.45; word-break: keep-all; overflow-wrap: break-word; }
 .md2-hr { border: 0; border-top: .5px solid var(--md-line); margin: 14px 20px 4px; }
 .md2-chips { display: flex; gap: 8px; padding: 8px 14px 2px; overflow-x: auto; scrollbar-width: none; }
 .md2-chips::-webkit-scrollbar { display: none; }
@@ -246,7 +250,13 @@
 .md2-ring.in { opacity: 1; }
 .md2-ring.done { opacity: 0; transition: opacity .4s; }
 .md2-ring-top { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.md2-ring-time { font-size: calc(58px * var(--ts, 1)); font-weight: 200; letter-spacing: .5px; font-variant-numeric: tabular-nums; }
+/* '오후 11:10' stays one centred line at every text size: the 58 px × ts face is capped by the width it really has
+   ("오후 11:10" ≈ 4.6 em wide → ≤ 20 % of the ring's content box; 16vw where container units are missing = phone width) */
+.md2-ring-time { font-size: min(calc(58px * var(--ts, 1)), 16vw); font-weight: 200; letter-spacing: .5px; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: center; max-width: 100%; }
+@supports (container-type: inline-size) {
+  .md2-ring { container-type: inline-size; }
+  .md2-ring-time { font-size: min(calc(58px * var(--ts, 1)), 20cqw); }
+}
 .md2-ring-title { font-size: calc(20px * var(--ts, 1)); font-weight: 500; opacity: .9; }
 .md2-ring-mid { margin-top: auto; margin-bottom: auto; display: flex; align-items: center; gap: 10px; font-size: calc(16px * var(--ts, 1)); opacity: .82; }
 .md2-ring-eq { display: inline-flex; align-items: flex-end; gap: 3px; height: 16px; }

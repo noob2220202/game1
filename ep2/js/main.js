@@ -1,6 +1,8 @@
 /* =========================================================
  * ep2/js/main.js (flow) — boot + resume (DESIGN_EP2 §9.2 다시 열기 규칙 · §6.1.8 재개표 · §9.7 · §9.8 · §5.3 ·
  * ARCH §4.1 init order · §8 first boot / resume).
+ *   Release gate, second lock: before release (no ?debug=1 / ?preview=1) this file shuts the page even if gate.js never
+ *   ran — no init, no storage write, location.replace('../series/').
  *   boot(): load save → settings (--ts, body classes) → inits in ARCH §4.1 order (each optional) → preload 'start' →
  *           G.e2.seriesBoot() → title (or the warning directly after a 시작하기/처음부터 reset reload).
  *   resumeFrom(state, {fromTitle}): unlock (gesture) + G.clock.start() → the §8.2 row for the saved state.
@@ -21,6 +23,30 @@
   const M = (G.main = G.main || {});
 
   function safe(fn, d) { try { return fn(); } catch (e) { console.error('[main]', e); return d; } }
+
+  /* ---------- release gate, fail-closed (DESIGN §12 MT-A · SERIES §4.1) ----------
+   * ep2/js/gate.js is the gate; this is the second lock for when it never ran (404, blocked, cached error). Same rule:
+   * ?debug=1 / ?preview=1 or G.series.isReleased(2); a missing series engine or any error = closed. Checked when this
+   * file runs (before DOMContentLoaded / moment.js's load-time init) and again at the top of boot(). Closed → nothing is
+   * initialised, every storage write of this page becomes a no-op (base.js saves on pagehide; moment.js inits on load),
+   * and the page replaces itself with the picker. */
+  function released() {
+    try {
+      if (/[?&](debug|preview)=1\b/.test(location.search || '')) return true;
+      return !!(G.series && typeof G.series.isReleased === 'function' && G.series.isReleased(2));
+    } catch (e) { return false; }
+  }
+  let gateShut = false;
+  function shutGate() {
+    if (gateShut) return; gateShut = true;
+    M._booted = true;
+    try { document.documentElement.style.visibility = 'hidden'; } catch (e) {}
+    const noop = function () { return undefined; };
+    try { G.save = noop; G.saveSettings = noop; G.resetSave = noop; } catch (e) {}
+    try { const SP = window.Storage && window.Storage.prototype; if (SP) { SP.setItem = noop; SP.removeItem = noop; SP.clear = noop; } } catch (e) {}
+    try { location.replace('../series/' + (location.protocol === 'file:' ? 'index.html' : '')); } catch (e) {}
+  }
+  if (!released()) { shutGate(); return; }
   function flag(n) { try { return !!G.flag(n); } catch (e) { return false; } }
   function call(obj, fn, ...a) { try { if (obj && typeof obj[fn] === 'function') return obj[fn](...a); } catch (e) { console.error('[main] ' + fn, e); } return undefined; }
   function scr() { return document.getElementById('screen'); }
@@ -177,7 +203,9 @@
 
   /* ---------- boot (ARCH §4.1 · §8.1) ---------- */
   M.boot = function () {
-    if (M._booted) return; M._booted = true;
+    if (M._booted) return;
+    if (!released()) { shutGate(); return; }     // fail closed: nothing below (init · seriesBoot · save) runs
+    M._booted = true;
     if (G.DEBUG && document.body) document.body.classList.add('debug');
     safe(() => { if (G.hasSave && G.hasSave() && G.load) G.load(); });
     applySettings();
@@ -252,7 +280,8 @@
     }
     call(G.notebook, 'show', true);
     if (flag('doorOpened') || flag('END')) { call(G.ending, 'resume', vars.endStep || null); return; }
-    if (fromTitle) call(G.lock, 'show', vars.user || 'n');
+    // M8 ∧ ¬doorOpened: the forced door view comes up and the door then puts {N} on the home (§9.2) — no lock under it
+    if (fromTitle && !flag('M8')) call(G.lock, 'show', vars.user || 'n');
     if (flag('M8')) { call(G.ending, 'resume', vars.endStep || null); return; }
     if (flag('M6') && !flag('M7')) call(G.climax, 'resume');
     if (flag('M7')) { call(G.climax, 'resume'); call(G.ending, 'resume', vars.endStep || null); }

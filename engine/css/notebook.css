@@ -56,6 +56,9 @@
    plain .kb, which is the keyboard's own class in core.css (it would hide the whole sheet). */
 .nbk-sheet.nbk-kbopen { height: 100%; border-radius: 0; padding-top: var(--safe-top, 0px); }
 .nbk-sheet.nbk-kbopen .nbk-body { padding-bottom: calc(var(--kbh, 300px) + 24px); }
+/* the stats footer ('플레이 n분 · 힌트 n회') follows the memo field, which ends right at the keyboard's top edge — while typing
+   it would show cut in half above the key rows, so it steps aside (space kept: no jump when the keyboard closes) */
+.nbk-sheet.nbk-kbopen .nbk-stats, #phone.kb-open .nbk-sheet .nbk-stats { visibility: hidden; }
 
 .nbk-sec { font-family: var(--hand); font-size: calc(24px * var(--ts, 1)); line-height: 34px; margin-top: 10px; color: #8a2c1d; word-break: keep-all; }
 .nbk-sec.grey { color: #a39077; }

@@ -239,7 +239,6 @@
       foot.appendChild(n);
     });
     root.appendChild(head); root.appendChild(bldg); root.appendChild(list); root.appendChild(foot);
-    D.title = NREUL + ' 위한 방탈출!';
   }
 
   function render() {

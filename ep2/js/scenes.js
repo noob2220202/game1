@@ -74,7 +74,9 @@
     const has = !!f.introDone;
     const ended = !!f.END;
     const hookDone = !!f.hookDone;
-    const replay = !!(G.state && G.state.vars && G.state.vars.replay);
+    const vars0 = (G.state && G.state.vars) || {};
+    const replay = !!vars0.replay;
+    const recanonDone = !!vars0.recanonDone;     // this save already rewrote the canon (a fresh 처음부터 save starts without it)
     const nameLine = T('{N를} 위한 방탈출! 2');
     const cut = nameLine.lastIndexOf(' 위한 ');
     const nameNode = cut > 0
@@ -86,7 +88,11 @@
     if (has) btns.appendChild(el('button.fl2-btn' + (hookDone ? '.primary' : ''), { 'data-qa': 'title.restart', onclick: () => restart() }, hookDone ? '처음부터' : '시작하기'));
     else btns.appendChild(el('button.fl2-btn.primary', { 'data-qa': 'title.start', onclick: () => { sfxTap(); fresh(); } }, '시작하기'));
     if (ended) smalls.appendChild(el('button.fl2-small', { 'data-qa': 'title.hookReplay', onclick: () => hookReplay() }, '훅 다시 보기'));
-    if (ended && replay) smalls.appendChild(el('button.fl2-small', { 'data-qa': 'title.recanon', onclick: () => recanon() }, '이번 선택을 이야기로 남기기'));
+    const recanonBtn = ended && replay && !recanonDone
+      ? el('button.fl2-small', { 'data-qa': 'title.recanon', onclick: () => recanon() }, '이번 선택을 이야기로 남기기') : null;
+    // the overwrite's one-line confirmation: an empty live region in the same row (0 px until it speaks), shown for ~3 s
+    const note = recanonBtn ? el('div.fl2-t-note', { role: 'status', 'aria-live': 'polite' }) : null;
+    if (recanonBtn) smalls.append(recanonBtn, note);
     const bg = el('div.fl2-t-bg');
     const src = img('title_ep2');
     if (src) bg.style.backgroundImage = `url("${src}")`;
@@ -97,9 +103,12 @@
       el('div.fl2-t-by', null, T('made by {MAKER} for {N}')),
       btns, smalls,
       el('div.fl2-t-foot', null, '🎧 이어폰 권장 · 어두운 곳에서 · 약 45분')));
-    if (/KAKAOTALK|Instagram|FBAN|FBAV|Line\//i.test(navigator.userAgent)) {
+    const ua = String(navigator.userAgent || '');
+    if (/KAKAOTALK|Instagram|FBAN|FBAV|Line\//i.test(ua)) {
+      // §4.0 card (canonical inside KakaoTalk); any other in-app web view is '이 앱' — no other brand is named
+      const app = /KAKAOTALK/i.test(ua) ? '카카오톡' : '이 앱';
       const card = el('div.fl2-confirm.fl2-inapp', null, el('div.fl2-confirm-in', null,
-        el('p', null, "카카오톡 안에서는 소리가 제대로 나오지 않을 수 있어요. 오른쪽 위 ⋯ → '다른 브라우저로 열기'를 눌러 주세요."),
+        el('p', null, `${app} 안에서는 소리가 제대로 나오지 않을 수 있어요. 오른쪽 위 ⋯ → '다른 브라우저로 열기'를 눌러 주세요.`),
         el('div.fl2-confirm-btns', null, el('button.fl2-btn', { 'data-qa': 'title.inapp.ok', onclick: () => card.remove() }, '그냥 할래요'))));
       titleEl.appendChild(card);
     }
@@ -133,7 +142,20 @@
       sfxTap();
       const ok = await confirmBox(titleEl, STR('recanonQ', '이번 플레이의 선택으로 바꿀까요? 다음 편은 바뀐 선택을 기억합니다.'),
         [{ label: '취소', value: false, qa: 'cancel' }, { label: '바꾸기', value: true, primary: true, qa: 'change' }]);
-      if (ok) safe(() => G.e2 && G.e2.commit && G.e2.commit({ overwrite: true }));
+      if (!ok) return;
+      // E2.commit answers !!vars.committed — already true from END — so a failed overwrite only shows as one more commitTries
+      const v = (G.state && G.state.vars) || {};
+      const tries0 = v.commitTries | 0;
+      const done = !!safe(() => G.e2 && G.e2.commit && G.e2.commit({ overwrite: true }), false) && (v.commitTries | 0) === tries0;
+      if (!done) return;                         // failure: the title stays as it was (the player may try again)
+      v.recanonDone = true;
+      safe(() => G.save && G.save(true));
+      if (recanonBtn && recanonBtn.parentNode) recanonBtn.remove();
+      if (!note) return;
+      note.textContent = '이번 선택으로 바꿨어요.';
+      note.classList.add('in');
+      // ~3 s, then fade + collapse (ep2.css .fl2-t-note.fade) and back to an empty, off-layout live region
+      setTimeout(() => { note.classList.add('fade'); setTimeout(() => { note.classList.remove('in', 'fade'); note.textContent = ''; }, 800); }, 3000);
     }
   };
   function fresh() {
@@ -173,7 +195,8 @@
       start);
     preEl.appendChild(inner);
 
-    let step = 0, done = false, timer = 0;
+    let step = 0, done = false, timer = 0, card = null;
+    const cardUp = () => !!(card && card.isConnected);
     const s = G.settings || (G.settings = {});
     const finish = (mode, line) => {
       done = true; clearTimeout(timer);
@@ -184,10 +207,15 @@
       start.disabled = false;
       requestAnimationFrame(() => start.classList.add('ready'));
     };
+    // 8 s with no answer after a bell → the sound card. Every answer disarms it; the next bell re-arms it.
     const armSilence = () => { clearTimeout(timer); timer = setTimeout(() => { if (!done) soundCard(); }, 8000); };
-    const bell = (az) => { inner.dataset.ring = az === 270 ? 'left' : 'right'; cue('bell.small', { az }); armSilence(); };
+    const bell = (az) => {
+      if (done || cardUp()) return;            // the card is up: [다시 듣기] restarts the test, nothing rings under it
+      inner.dataset.ring = az === 270 ? 'left' : 'right'; cue('bell.small', { az }); armSilence();
+    };
     const answer = (side) => {
-      if (done) return;
+      if (done || cardUp()) return;
+      clearTimeout(timer);
       sfxTap();
       const want = step === 0 ? 'left' : 'right';
       if (side !== want) return finish('speaker', '스피커로도 끝까지 할 수 있어요.');
@@ -203,12 +231,13 @@
 
     function soundCard() {
       clearTimeout(timer);
-      if (inner.querySelector('.fl2-confirm')) return;
-      const card = el('div.fl2-confirm', { role: 'dialog' }, el('div.fl2-confirm-in', null,
+      if (cardUp() || done || !preEl) return;    // one card at a time (it lives in preEl, above the test)
+      const close = () => { if (card) card.remove(); card = null; };
+      card = el('div.fl2-confirm', { role: 'dialog' }, el('div.fl2-confirm-in', null,
         el('p', null, STR('soundCard', '소리가 들리지 않으면 무음 모드를 끄고 볼륨을 올려 주세요.')),
         el('div.fl2-confirm-btns', null,
-          el('button.fl2-btn', { 'data-qa': 'ear.retry', onclick: () => { sfxTap(); card.remove(); unlock(); step = 0; done = false; setTimeout(() => bell(270), 500); } }, '다시 듣기'),
-          el('button.fl2-btn', { 'data-qa': 'ear.silent', onclick: () => { sfxTap(); card.remove(); if (!s.subs) s.subs = 'info'; finish('speaker', ''); } }, '소리 없이 할게요'))));
+          el('button.fl2-btn', { 'data-qa': 'ear.retry', onclick: () => { sfxTap(); close(); unlock(); step = 0; done = false; setTimeout(() => bell(270), 500); } }, '다시 듣기'),
+          el('button.fl2-btn', { 'data-qa': 'ear.silent', onclick: () => { sfxTap(); close(); if (!s.subs) s.subs = 'info'; finish('speaker', ''); } }, '소리 없이 할게요'))));
       preEl.appendChild(card);
     }
     setTimeout(() => { if (!done) bell(270); }, 700);

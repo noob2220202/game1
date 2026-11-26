@@ -1202,7 +1202,11 @@
 .so2-ml-from { display: flex; gap: 12px; align-items: flex-start; margin: 14px 0 16px; padding-bottom: 14px; border-bottom: 1px solid #eef0f2; }
 .so2-ml-fromt { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: calc(13.5px * var(--ts, 1)); }
 .so2-ml-fromt b { font-weight: 650; }
-.so2-ml-k { display: inline-block; min-width: 64px; color: #9a9ca3; }
+/* 보낸 사람 / 받는 사람 rows: label column grows with the text size (a fixed 64 px left no gap at 130 %), a real gap after it,
+   and a long sender wraps under itself, not under the label */
+.so2-ml-fromt > div:not(.so2-ml-date) { display: flex; align-items: baseline; column-gap: 8px; min-width: 0; }
+.so2-ml-fromt > div:not(.so2-ml-date) > :not(.so2-ml-k) { min-width: 0; word-break: keep-all; overflow-wrap: anywhere; }
+.so2-ml-k { flex: none; min-width: calc(56px * var(--ts, 1)); color: #9a9ca3; white-space: nowrap; }
 .so2-ml-date { font-size: 12.5px; color: #9a9ca3; }
 .so2-ml-body { font-size: calc(15px * var(--ts, 1)); line-height: 1.72; color: #222; -webkit-user-select: text; user-select: text; }
 .so2-ml-line { white-space: pre-wrap; word-break: keep-all; overflow-wrap: anywhere; }

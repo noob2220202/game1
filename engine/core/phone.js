@@ -661,6 +661,7 @@
       el('div.bn-main', null, el('div.bn-top', null, el('b', null, name), el('span', null, ' · '), whenEl), titleEl, bodyEl));
     if (!n.title) titleEl.style.display = 'none';
     let closed = false, timer = 0;
+    // 280 ms ≥ the lock-screen fade-out (main.css, .25 s): the node never vanishes while still visible
     const close = () => { if (closed) return; closed = true; clearTimeout(timer); if (curBanner && curBanner.b === b) curBanner = null; b.classList.remove('in'); setTimeout(() => { b.remove(); nextBanner(); }, 280); };
     curBanner = { b, n, close, update(n2) {
       this.n = n2; b.setAttribute('data-qa', 'banner:' + n2.id);

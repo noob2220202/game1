@@ -14,7 +14,8 @@
  * Hooks called: 'end:reached' {right} (flow) — at the exact append of jRight / jNone · 'settings:screen' 'notif.perChat' (shell)
  * Sched ids (G.e2.sched, owner prefix 'social:'): q:<thread> (scripted lines / typing), m5b m5c, B11, where, chip4, P1, P2
  * Bus emitted: 'chat:open' {thread} · 'chat:msg' {thread, msg} · 'moment:thread' {id}
- * Bus listened: flag:M5 flag:C2 flag:M7 · clock:min clock:jump · wifi:change · notify:shown · users:switched
+ * Bus listened: flag:M5 flag:C2 flag:M6 flag:M7 flag:M8 · clock:min clock:jump · wifi:change · notify:shown · users:switched ·
+ *        end:step (flow — 'k0110' lets K go, §12.9 #13)
  * Flags set (ARCH §4.4 — sole setter): jiminOpened factJimin vmPlayed dashMoment draftSeen fakeKnown fakeReplied hiddenSeen
  *        C1 C1b makerStayDown makerArrived whereAsked whereTank fakeLineSeen ; stage e2_fakeReply (via G.e2.stage)
  * Saved state: vars.so (enums / ints / ids only) · G.state.threads['moment:<id>'] = [{id, t, from?, chip?, edited?, slot?, ok?, read?, fail?}]
@@ -75,7 +76,7 @@
   function fmtStamp(t) { try { if (C.fmtK) return C.fmtK(t); } catch (e) {} const d = new Date(t), h = d.getHours(); return `${h < 12 ? '오전' : '오후'} ${h % 12 === 0 ? 12 : h % 12}:${String(d.getMinutes()).padStart(2, '0')}`; }
   function passed(hm) { try { if (G.clock && G.clock.passed) return G.clock.passed(hm); } catch (e) {} return nowMs() >= +dateOf(hm); }
   const stamp = (at) => (at ? Math.max(nowMs(), +dateOf(at)) : nowMs());
-  /** a new line never sorts before the thread's last one — K carries 01:12 while the clock is held at 01:10 (§4.10.1) */
+  /** a new line never sorts before the thread's last one (K keeps its own 01:12 story stamp — §4.10.1 · §12.9 #13) */
   function notBefore(thread, t) { const a = live(thread), l = a.length ? +a[a.length - 1].t || 0 : 0; return Math.max(t, l); }
 
   /* ---------------- answers (core's E2 with §9.5-5 verbatim fallback) ---------------- */
@@ -400,12 +401,16 @@
       s.done.A = 1; mark('B19');
       enqueue('real', [{ id: 'cA1', ms: 1000, n11: true }, { id: 'cA2', ms: 1600, n11: true }, { id: 'cA3', ms: 1400, n11: true, act: ['arrived'] }]);
     }
-    // K (§3.13 · §4.1.6 K · §4.10.1 — 01:12): from M8 (01:10) the clock is held for the door scene and jumps to 01:20 on the next
-    // card, so K cannot wait for passed('01:12'). It goes out with Kang's voice at the door (M8 ∨ doorOpened — M8 always comes
-    // first; doorOpened covers a resume) or when the clock passes 01:12, whichever is first — ~1.2 s / 2.6 s later, while the
-    // phone UI is still up (the eye view at the door hides banners) and always before the 01:20 card. Both lines carry the
-    // story stamp 오전 1:12 (thread time + banner time), never the held or jumped clock.
-    if (flag('C1') && !s.done.K && (passed(at.K) || flag('M8') || flag('doorOpened'))) {
+    // K (§3.13 · §4.1.6 K · §4.10.1 · §12.9 #13 — 01:12): K comes after the M8 door opens and before the 01:20 card. From M8
+    // (01:10) the clock is held for the door scene and jumps to 01:20 on the next card, so K cannot wait for passed('01:12')
+    // alone, and it must not go out at M8 itself (Kang's S18 at the door, status bar 01:10). It goes out once the 01:10
+    // card is done — ending.js's end:step 'k0110', or vars.endStep set at all on a resume (k0110 is the first step) — or
+    // when the clock passes 01:12 (fallback), and only while the user is {N}: a '—' user is switched to {N} right after
+    // k0110 (G.users.forceN → users:switched re-runs this). ending.js then sets the 01:20 card aside, moves the clock to
+    // 01:12 and waits for cK2 (banners sit under the card layer). Both lines carry the story stamp 오전 1:12 (thread time +
+    // banner time), never the held or jumped clock.
+    const doorCardDone = !!(G.state.vars && G.state.vars.endStep);
+    if (flag('C1') && !s.done.K && !isDash() && (passed(at.K) || doorCardDone)) {
       s.done.K = 1;
       const t = +dateOf(at.K), when = fmtStamp(t);
       enqueue('real', [{ id: 'cK1', ms: 1200, n11: true, t, when }, { id: 'cK2', ms: 1400, n11: true, t, when }]);
@@ -1383,13 +1388,13 @@
       G.bus.on('flag:' + fl('C2'), () => { if (flag('C1') && !so().done.P1) SCH.at((pmOf('C2') || pm()) + (((TH().c1 || {}).timing || {}).p1AfterC2 || 28000) - 1200, 'social:P1'); });
       G.bus.on('flag:' + fl('M7'), () => { if (flag('C1') && !flag('C2') && !so().done.P2) SCH.at((pmOf('M7') || pm()) + (((TH().c1 || {}).timing || {}).p2AfterM7 || 5000) - 1200, 'social:P2'); });
       G.bus.on('flag:' + fl('M6'), () => refreshView('real'));
-      G.bus.on('flag:' + fl('M8'), () => { clockTick(); refreshView('real'); });   // K (01:12) — see clockTick
-      G.bus.on('flag:' + fl('doorOpened'), clockTick);
+      G.bus.on('flag:' + fl('M8'), () => refreshView('real'));
+      G.bus.on('end:step', (e) => { if (e && e.step === 'k0110') clockTick(); });   // K (01:12) — see clockTick
       G.bus.on('clock:min', clockTick);
       G.bus.on('clock:jump', clockTick);
       G.bus.on('wifi:change', () => { flushQueue(); clockTick(); rootRefresh(); Object.keys(views).forEach((k) => refreshView(k)); });
       G.bus.on('notify:shown', (e) => { if (e && e.id === 'N08') setFlag('fakeLineSeen'); });
-      G.bus.on('users:switched', () => { root = null; });
+      G.bus.on('users:switched', () => { root = null; clockTick(); });   // K waits for {N} (see clockTick)
     }
     clockTick();
     // resume queued lines (local fallback scheduler only — G.e2.sched persists its own)

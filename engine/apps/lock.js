@@ -30,6 +30,15 @@
   const sfx = (n) => { try { G.audio && G.audio.sfx && G.audio.sfx[n] && G.audio.sfx[n](); } catch (e) {} };
   const cue = (id, o) => { try { return G.audio && G.audio.cue ? G.audio.cue(id, o) : undefined; } catch (e) {} };
   const vib = (k) => { try { G.audio && G.audio.vibrate && G.audio.vibrate(k); } catch (e) {} };
+  /* PIN 오답 = cue 'pin.error' (ui.error −4 dB + [80], §7) — one tone, one buzz. The cue vibrates itself; when it cannot sound
+   * (sound off · no WebAudio · paused) the [80] still goes out alone (vibration is its own setting). The pads that call this pass
+   * silentError:true, so G.ui.pinPad adds no second sfx.error / vibrate on top. */
+  const pinError = () => {
+    const A = G.audio;
+    const sounds = !!(A && A.cue && A.ok && A.ok() && !A.paused && A._cues && A._cues['pin.error']);
+    cue('pin.error');
+    if (!sounds) vib('pin');
+  };
   const img = (k) => { try { if (G.e2 && G.e2.img) return G.e2.img(k) || ''; } catch (e) {} return (G.IMG && G.IMG[k]) || ''; };
   const now = () => (G.clock && G.clock.now ? G.clock.now() : new Date(2026, 11, 24, 23, 12));
   const hm = () => { if (G.clock && G.clock.hm) return G.clock.hm(); const d = now(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
@@ -320,11 +329,11 @@
     sfx('whoosh');
     const fails = () => SH().nPinFails || 0;
     const padNode = G.ui.pinPad({
-      dots: true, maxLength: 16, submitLabel: TXT.ok, title: TXT.pinTitle, sub: '', theme: 'dark', qa: 'lock.pin',
+      dots: true, maxLength: 16, submitLabel: TXT.ok, title: TXT.pinTitle, sub: '', theme: 'dark', qa: 'lock.pin', silentError: true,
       async onSubmit() {
-        if (nLock.left() > 0) return STR('pinLock').replace('{s}', String(nLock.left()));
+        if (nLock.left() > 0) { pinError(); return STR('pinLock').replace('{s}', String(nLock.left())); }
         SH().nPinFails = fails() + 1; save();
-        cue('pin.error'); vib('pin');
+        pinError();
         if (SH().nPinFails % 5 === 0) { nLock.start(); setTimeout(() => startCountdown(padNode, () => nLock.left()), 30); return STR('pinLock').replace('{s}', '30'); }
         return STR('pinWrong');
       },
@@ -356,12 +365,12 @@
     sfx('whoosh');
     setFlag('pinPadOpened');
     const padNode = G.ui.pinPad({
-      dots: false, maxLength: 16, submitLabel: TXT.ok, title: TXT.dash, sub: TXT.pinTitle, theme: 'dark',
+      dots: false, maxLength: 16, submitLabel: TXT.ok, title: TXT.dash, sub: TXT.pinTitle, theme: 'dark', silentError: true,
       async onSubmit(code) {
-        if (dLock.left() > 0) return STR('pinLock').replace('{s}', String(dLock.left()));
+        if (dLock.left() > 0) { pinError(); return STR('pinLock').replace('{s}', String(dLock.left())); }
         const ok = G.users && G.users.unlockDash ? G.users.unlockDash(code) : code === '0310';
         if (ok) { setTimeout(() => unlock('pin'), 60); return true; }
-        cue('pin.error'); vib('pin');
+        pinError();
         const f = G.users && G.users.dashFails ? G.users.dashFails() : 1;
         if (f % 5 === 0) { dLock.start(); setTimeout(() => startCountdown(padNode, () => dLock.left(), TXT.pinTitle), 30); return STR('pinLock').replace('{s}', '30'); }
         return STR('pinWrong');

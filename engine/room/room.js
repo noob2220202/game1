@@ -1039,8 +1039,9 @@
       const box = el('div.rm2-cuv'), inner = el('div.rm2-cui');
       inner.style.width = w + 'px'; inner.style.height = h + 'px';
       box.appendChild(inner);
-      let s = 1, cx = 0.5, cy = 0.5, bw = 1, bh = 1, f = 1, moved = false;
-      const vw = { box, inner, moved: () => moved, get scale() { return s; } };
+      let s = 1, cx = 0.5, cy = 0.5, bw = 1, bh = 1, f = 1, moved = false, g = 0;
+      /** gestures(): bumps on every zoom the player makes by hand (pinch · double-tap · wheel) — pans don't count */
+      const vw = { box, inner, moved: () => moved, gestures: () => g, get scale() { return s; } };
       vw.layout = function () { const r = box.getBoundingClientRect(); bw = r.width || 1; bh = r.height || 1; f = fit === 'cover' ? Math.max(bw / w, bh / h) : Math.min(bw / w, bh / h); apply(); };
       function apply(anim) {
         const k = f * s, W = w * k, H = h * k;
@@ -1064,7 +1065,7 @@
       box.addEventListener('pointerdown', (e) => {
         ps.set(e.pointerId, { x: e.clientX, y: e.clientY });
         if (ps.size === 1) { st = { x: e.clientX, y: e.clientY, cx, cy }; moved = false; }
-        else if (ps.size === 2) { const a = Array.from(ps.values()); pin = { d: Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) || 1, s0: s }; moved = true; }
+        else if (ps.size === 2) { const a = Array.from(ps.values()); pin = { d: Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) || 1, s0: s }; moved = true; g++; }
       });
       box.addEventListener('pointermove', (e) => {
         if (!ps.has(e.pointerId)) return;
@@ -1081,8 +1082,8 @@
       };
       box.addEventListener('pointerup', up); box.addEventListener('pointercancel', up);
       box.addEventListener('dblclick', (e) => { if (!e.target.closest('button')) dbl(e); });
-      function dbl(e) { const r = inner.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height; if (s > 1.3) vw.zoomTo(0.5, 0.5, 1); else vw.zoomTo(x, y, Math.min(2, maxZ)); }
-      box.addEventListener('wheel', (e) => { e.preventDefault(); s = clamp(s * (e.deltaY < 0 ? 1.15 : 1 / 1.15), 1, maxZ); apply(); }, { passive: false });
+      function dbl(e) { g++; const r = inner.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height; if (s > 1.3) vw.zoomTo(0.5, 0.5, 1); else vw.zoomTo(x, y, Math.min(2, maxZ)); }
+      box.addEventListener('wheel', (e) => { e.preventDefault(); g++; s = clamp(s * (e.deltaY < 0 ? 1.15 : 1 / 1.15), 1, maxZ); apply(); }, { passive: false });
       return vw;
     }
     function cuImg(inner, key, w, h, onfail) {
@@ -1113,7 +1114,7 @@
       node.append(viewer.box, c.capEl);
       if (!def.noBack) {
         const bb = el('button.rm2-btn.rm2-cuback', { 'data-qa': 'closeup.close', 'aria-label': '돌아가기', html: ICON.left });
-        bb.addEventListener('click', () => closeCloseup());
+        bb.addEventListener('click', () => cuBack());
         node.appendChild(bb);
       }
       c.node = node; c.onSpot = () => {};
@@ -1142,6 +1143,20 @@
       if (!cu.length) { cuLayer.classList.remove('on'); root.classList.remove('rm2-hascu'); layout(); }
       c.resolve && c.resolve();
       applyYaw();
+    }
+    /** ‹ · Esc · phone back on the top close-up. While the box lid's handwriting zoom is up (lidZoom — §3.1 ①, the lid tap
+     *  is the only other way out of it) the first press steps back out to the whole box; the next one closes. Only that
+     *  zoom: once the player pinches / double-taps / wheels, the zoom is theirs and ‹ closes as on any other close-up. */
+    function cuBack() {
+      const c = cuTop(); if (!c) return;
+      const vw = c.viewer;
+      if (c.lidZoomed && vw && vw.scale > 1.05 && vw.gestures() === c.lidG) {
+        c.lidZoomed = false;
+        sfx('back');
+        vw.zoomTo(0.5, 0.5, 1);
+        return;
+      }
+      closeCloseup();
     }
     inst.closeup = (id) => openCloseup(id) || Promise.resolve();
 
@@ -1303,15 +1318,18 @@
      *  DOM {N} as laid out now — fitted to the screen (≤ lid.maxZ); tap again → back to 1×. Legacy data: a fixed lid.zoomTo. */
     function lidZoom(c, L) {
       const vw = c.viewer;
-      if (!L.text) { const z = L.zoomTo || { x: 0.5, y: 0.5, z: 2 }; if (vw.scale > 1.4) vw.zoomTo(0.5, 0.5, 1); else vw.zoomTo(z.x, z.y, z.z); return; }
+      // c.lidZoomed / c.lidG: the zoom-in is the lid's (cuBack steps out of it first) until the player zooms by hand
+      const zin = (x, y, z) => { vw.zoomTo(x, y, z); c.lidZoomed = vw.scale > 1.05; c.lidG = vw.gestures(); };
+      const zout = () => { vw.zoomTo(0.5, 0.5, 1); c.lidZoomed = false; };
+      if (!L.text) { const z = L.zoomTo || { x: 0.5, y: 0.5, z: 2 }; if (vw.scale > 1.4) zout(); else zin(z.x, z.y, z.z); return; }
       const r = { x0: L.text.x0, y0: L.text.y0, x1: L.text.x1, y1: L.text.y1 };
       const grow = (x0, y0, x1, y1) => { r.x0 = Math.min(r.x0, x0); r.y0 = Math.min(r.y0, y0); r.x1 = Math.max(r.x1, x1); r.y1 = Math.max(r.y1, y1); };
       const nm = vw.inner.querySelector('.rm2-lidname'), ir = vw.inner.getBoundingClientRect(), nr = nm && nm.getBoundingClientRect();
       if (nr && nr.width > 0 && ir.width > 0 && ir.height > 0) grow((nr.left - ir.left) / ir.width, (nr.top - ir.top) / ir.height, (nr.right - ir.left) / ir.width, (nr.bottom - ir.top) / ir.height);
       else { const q = (c.st && (c.st.lifted || !c.st.m0)) ? data.GEO.lidNameLifted() : data.GEO.lidName(); q.forEach((p) => grow(p[0], p[1], p[0], p[1])); }   // not laid out: the whole name slot
       const z = vw.fitZoom(r, L.maxZ || 2.6, L.fill || 0.92);
-      if (vw.scale > Math.min(1.4, 1 + (z - 1) * 0.6)) vw.zoomTo(0.5, 0.5, 1);
-      else vw.zoomTo((r.x0 + r.x1) / 2, (r.y0 + r.y1) / 2, z);
+      if (vw.scale > Math.min(1.4, 1 + (z - 1) * 0.6)) zout();
+      else zin((r.x0 + r.x1) / 2, (r.y0 + r.y1) / 2, z);
     }
     function lidName(host, q, w, h) {
       const qq = q.map((p) => [p[0] * w, p[1] * h]);
@@ -1389,7 +1407,7 @@
 
     /* ---------- back / close ---------- */
     function back() {
-      if (cu.length) { if (cuTop().def.noBack) return true; closeCloseup(); return true; }
+      if (cu.length) { if (cuTop().def.noBack) return true; cuBack(); return true; }
       if (cur() && cur().kind === 'sub') { exitAllSubs(); return true; }
       if (eye) return true;                      // eye views consume back (ARCH §4.15)
       close('closed');
@@ -1408,8 +1426,37 @@
         setTimeout(rm, 4000);
         return;
       }
-      if (via === 'handle') { setTimeout(() => close('handle'), 3600); return; }
+      if (via === 'handle') { closeAfterDoorCard(); return; }
       if (via === 'until') { root.classList.add('rm2-fadeout'); setTimeout(() => close('until'), 650); return; }
+    }
+    /** B20: the lit door stays the backdrop of the 01:10 card (ending.js — a translucent layer above the eye view) and goes
+     *  down synchronously on the first ending step after the handle tap — the card's [계속] (setStep 'k0110': vars.endStep
+     *  changes first, then 'end:step'; whichever comes first). The eye view hides banners (#screen.eye-mode), so it is gone
+     *  before any 'end:step' listener runs. Safety: no bus / no ending module → the old 3.6 s; the 01:10 card never came up
+     *  within 10 s of play time (broken chain) → close; never later than 120 s. */
+    function closeAfterDoorCard() {
+      const bus = G.bus, en = G.ending;
+      if (!bus || typeof bus.on !== 'function' || !en) { setTimeout(() => close('handle'), 3600); return; }
+      const t0 = now();
+      let played = 0, last = t0, poll = 0, off = false;
+      const shut = () => {
+        if (off) return; off = true;
+        clearInterval(poll);
+        try { bus.off('end:step', shut); bus.off('var:endStep', shut); } catch (e) {}
+        close('handle');
+      };
+      bus.on('end:step', shut); bus.on('var:endStep', shut);
+      poll = setInterval(() => {
+        if (inst.closed) { shut(); return; }
+        const t = now();
+        let running = !document.hidden;
+        try { if (G.clock && typeof G.clock.running === 'function') running = !!G.clock.running(); } catch (e) {}
+        if (running) played += Math.min(500, t - last);
+        last = t;
+        let cardUp = true;
+        try { if (typeof en.isCardUp === 'function') cardUp = !!en.isCardUp(); } catch (e) {}
+        if (t - t0 >= 120000 || (!cardUp && played >= 10000)) shut();
+      }, 250);
     }
     inst.finish = finish;
     function close(why, fromShell) {

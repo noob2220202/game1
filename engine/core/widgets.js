@@ -2,13 +2,15 @@
  * engine/core/widgets.js — reusable widgets (core · DESIGN_EP2 §9.1 widgets row, §9.5-2/-3 · ARCH_EP2 §4.12)
  *
  * G.ui.pinPad({ length, dots=true, maxLength=16, submitLabel:'확인', onSubmit(code) → Promise<true|false|string>, title, sub,
- *               theme:'dark'|'light', qa='pin', letters=true, leftKey, onKey }) → node (.reset() .setMsg(t) .setBusy(b) .code())
+ *               theme:'dark'|'light', qa='pin', letters=true, leftKey, onKey, silentError }) → node (.reset() .setMsg(t) .setBusy(b) .code())
  *     length ⇒ auto-submit at length (ep1). No length / dots:false ⇒ free length: no placeholder dots (the pad never tells the
  *     PIN's length — '자릿수 점 없음'), each entered digit is shown as one bullet, [확인] submits. Keys: <qa>.key:<d> · <qa>.ok ·
  *     <qa>.del. Physical digits / Backspace / Enter while visible and no keyboard is open. Never creates a predict bar.
  *     setBusy(b) = the caller's lockout (e.g. 30 s after 5 wrong tries): a state of its own, separate from the pad's internal
  *     submit wait — a submit finishing never lifts it; every setBusy call clears the entered digits; keys and [확인] are ignored
  *     while it is on (and during the wrong-answer shake).
+ *     A wrong answer shakes the pad and plays sfx.error + vibrate('pin'); silentError:true ⇒ the caller already gave that
+ *     feedback itself (e.g. cue 'pin.error' = ui.error −4 dB + [80], §7) — the shake and the message stay, no second buzz.
  * G.ui.holdButton({ ms=800, size=64, ring=true, onDone, onCancel, qa, label }) → node   (fingerprint icon, ring fills in ms;
  *     cancel on > 10 px move / early release; Space when focused; G.audio.vibrate('fp') on done; data-qa = qa verbatim)
  * G.ui.voiceBubble({ id, dur, getBuffer, subs:[{t0,t1,text}], unplayed, from:'voice', zoom=false, label='음성 메시지',
@@ -85,8 +87,7 @@
       if (r === true) node.classList.add('ok');
       else {
         node.classList.add('wrong');
-        sfx('error');
-        vibrate('pin', [80]);
+        if (!o.silentError) { sfx('error'); vibrate('pin', [80]); }   // silentError: the caller's own error cue already played
         if (typeof r === 'string') msg.textContent = T(r);
         await sleep(500);
         node.classList.remove('wrong');

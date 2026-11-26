@@ -2,7 +2,9 @@
  * engine/core/fx.js — screen FX for episode 2 (core · ARCH_EP2 §4.23, §2.3 layer #fx-layer z 300 / .c2-black z 460)
  *
  * G.fx.init()
- * G.fx.sub(text, ms=3200, {az, cls}) → Promise   bottom sound-subtitle channel (G.audio.sub decides when/what)
+ * G.fx.sub(text, ms=3200, {az, cls, replace}) → Promise   bottom sound-subtitle channel (G.audio.sub decides when/what);
+ *                                                replace = a class name: lines carrying it are swapped out, not stacked
+ * G.fx.subScope({cls, replace}, fn)              opts for every G.fx.sub rendered synchronously inside fn (via G.audio.sub)
  * G.fx.mono(text, ms=3200) → Promise             monologue channel (separate layer, no sound, no toast) — G.e2.mono, recap
  * G.fx.dirArc(az, ms=1200)                       speaker-mode edge arc ◀ ▶ ▲ ▼ relative to G.audio.getYaw()
  * G.fx.edgeShake(px=3, ms=300)                   no-op with G.settings.reduceShake or G.e2.less()
@@ -46,18 +48,34 @@
   const ready = () => { if (!layer || !layer.isConnected) FX.init(); };
 
   /* ---------- sound subtitles ---------- */
+  let subScope = null;
   FX.sub = async function (text, ms, opts) {
-    opts = opts || {};
+    opts = Object.assign({}, subScope, opts);
     ready();
     const line = mk('div', 'c2-sub' + (opts.cls ? ' ' + opts.cls : ''), T(String(text == null ? '' : text)));
     if (opts.az != null) line.dataset.az = String(Math.round(opts.az));
+    // opts.replace (a class name): a newer line of the same family takes the old line's place instead of stacking under it
+    // (S09 music-box tiers during one volume drag). It shows at once — an in-place text change, not a second fade-in.
+    let replaced = false;
+    if (opts.replace) {
+      Array.prototype.slice.call(subsBox.children).forEach((c) => { if (c.classList.contains(opts.replace)) { c.remove(); replaced = true; } });
+    }
+    if (replaced) line.classList.add('in');
     subsBox.appendChild(line);
     while (subsBox.children.length > 3) subsBox.removeChild(subsBox.firstChild);
-    requestAnimationFrame(() => line.classList.add('in'));
+    if (!replaced) requestAnimationFrame(() => line.classList.add('in'));
     await sleep(ms || 3200);
     line.classList.remove('in'); line.classList.add('out');
     await sleep(450);
     line.remove();
+  };
+  /** G.fx.subScope({cls, replace}, fn) → fn()'s result. Every G.fx.sub line rendered synchronously inside fn gets these opts
+   *  (explicit opts win). Lets a caller that routes through G.audio.sub (which owns the subtitle mode · mono queue · wording
+   *  and forwards only {az}) still tag its line; a line the audio layer defers (mono queue) renders later without them. */
+  FX.subScope = function (opts, fn) {
+    const prev = subScope;
+    subScope = Object.assign({}, prev, opts);
+    try { return fn(); } finally { subScope = prev; }
   };
 
   /* ---------- monologue (one line at a time) ---------- */

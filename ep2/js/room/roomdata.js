@@ -167,8 +167,10 @@
       ],
       /** M0 eye view (cold open): the whole door opens it — nothing else is a hotspot (§3.1, §4.7.6 'M0 전') */
       m0Spots: [{ id: 'door', x: 0.505, y: 0.262, w: 0.325, h: 0.48, act: 'openDoorM0' }],
-      /** M8 eye view: the handle is the only hotspot (§3.17 B20 — no floating button, no text) */
-      handleSpots: [{ id: 'handle', x: 0.515, y: 0.492, w: 0.08, h: 0.042, act: 'handle' }],
+      /** M8 eye view: the handle is the only hotspot (§3.17 B20 — no floating button, no text, no caption). It is the whole
+       *  doorlock block — panel (x .524–.551 · y .452–.521) + lever / door_handle_r2 patch (to x .591 · y .533) — with a margin,
+       *  so a tap on the lock, its LED or the lever opens the door: ≥ 60 × 60 px from 360 × 640 up (cover fit = screen height / 1536) */
+      handleSpots: [{ id: 'handle', x: 0.48, y: 0.435, w: 0.145, h: 0.12, act: 'handle' }],
     },
     /* ---------------- 90° 창 ---------------- */
     { id: 'r2_window', az: 90, key: 'r2_window', w: 1024, h: 1536, mask: 'r2_window_mask', refl: 'p_win_refl',

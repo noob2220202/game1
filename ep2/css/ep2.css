@@ -44,6 +44,13 @@
 .fl2-t-btns { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 300px; margin-top: 22px; }
 .fl2-t-smalls { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 14px; min-height: 0; }
 .fl2-t-foot { font-size: calc(11px * var(--ts, 1)); color: #5c5c62; margin-top: 10px; letter-spacing: .3px; word-break: keep-all; }
+/* '이번 선택으로 바꿨어요.' — a live region kept off the layout while empty (no flex gap / no line); shown in the row where
+   the recanon button was (same 44 px), then faded and collapsed (scenes.js adds .fade, then drops .in) */
+.fl2-t-note { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.fl2-t-note.in { position: static; width: auto; height: auto; overflow: hidden; clip-path: none; white-space: normal; flex-basis: 100%; display: flex; align-items: center; justify-content: center;
+  min-height: 44px; max-height: 44px; font-size: calc(12.5px * var(--ts, 1)); color: #b4b4ba; letter-spacing: .3px; word-break: keep-all; animation: fl2Fade .3s ease both;
+  transition: opacity .35s ease, min-height .4s ease .3s, max-height .4s ease .3s; }
+.fl2-t-note.in.fade { opacity: 0; min-height: 0; max-height: 0; }
 
 /* ---------------- content warning · earphone test ---------------- */
 .fl2-pre { display: flex; align-items: center; justify-content: center; padding: calc(var(--sb-h, 30px) + 16px) 22px calc(var(--safe-bot, 0px) + 28px); background: radial-gradient(ellipse at 50% 30%, #101014 0, #000 70%); }
@@ -127,6 +134,9 @@
 .fl2-credits { display: flex; align-items: center; justify-content: center; padding: 30px 26px; background: radial-gradient(ellipse at 50% 40%, #0c0c10 0, #000 70%); transition: opacity 1.2s ease; cursor: pointer; }
 .fl2-cred-in { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; max-width: 340px; }
 .fl2-cred-title { font-family: var(--serif); font-size: calc(22px * var(--ts, 1)); font-weight: 700; color: #ececec; line-height: 1.5; margin-bottom: 14px; word-break: keep-all; }
+/* two lines like the title screen (ending.js splits at the last ' · '): name line, then the subtitle a step smaller */
+.fl2-cred-l1, .fl2-cred-l2 { display: block; }
+.fl2-cred-l2 { margin-top: 4px; font-size: .82em; font-weight: 400; letter-spacing: 1px; color: #cfc6b8; }
 .fl2-credits p { margin: 0; font-size: calc(14.5px * var(--ts, 1)); color: #bdbdc2; line-height: 1.7; word-break: keep-all; }
 .fl2-credits p.dim { font-size: calc(12px * var(--ts, 1)); color: #77777d; margin-top: 6px; }
 .fl2-credits p.small { font-size: calc(11.5px * var(--ts, 1)); color: #5f5f65; margin-top: 6px; font-variant-numeric: tabular-nums; }
@@ -138,6 +148,10 @@
 .fl2-check-in { max-width: 360px; display: flex; flex-direction: column; gap: 10px; }
 .fl2-check-in p { margin: 0; font-size: calc(14.5px * var(--ts, 1)); line-height: 1.75; color: #cfcfd3; word-break: keep-all; }
 .fl2-check-in p:last-child { margin-top: 8px; color: #e8e8ea; font-weight: 600; }
+/* help line (ending.js checkLine / fitCheckLine): label + number never split; a wrapped part takes its own line, no '·' */
+.fl2-check-help .fl2-nw { white-space: nowrap; }
+.fl2-check-help .fl2-nw.wrap { white-space: normal; }
+.fl2-check-help .fl2-nw.own { display: block; }
 .fl2-check.fade-black { opacity: 1; background: #000; }
 .fl2-check.fade-black > * { opacity: 0; transition: opacity .6s; }
 

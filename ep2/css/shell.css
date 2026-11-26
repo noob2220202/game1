@@ -126,6 +126,12 @@ button.sh2-row:active { background: #f3f3f6; }
 .sh2-s { font-size: calc(13px * var(--ts)); color: #7b7b82; line-height: 1.4; word-break: keep-all; }
 .sh2-meta { font-size: calc(13.5px * var(--ts)); color: #8a8a90; flex: none; text-align: right; max-width: 52%; word-break: keep-all; }
 .sh2-meta.mono { font-variant-numeric: tabular-nums; }
+/* a value ending in a date + time (내 디바이스 찾기 — security.js keepDateTime): the date + time never splits, and when title + value
+   do not fit on one line the whole value drops under the title, right-aligned, instead of breaking '오전' / '4:51' (§10 H) */
+.sh2-nb { white-space: nowrap; }
+.sh2-row.dtv { flex-wrap: wrap; row-gap: 2px; }
+.sh2-row.dtv .sh2-main { flex: 1 1 auto; }
+.sh2-row.dtv .sh2-meta { margin-left: auto; max-width: 100%; }
 .sh2-chev { width: 16px; height: 16px; color: #c4c4c8; flex: none; display: flex; } .sh2-chev svg { width: 100%; height: 100%; }
 .sh2-tgwrap { display: inline-flex; align-items: center; gap: 10px; flex: none; }
 .sh2-tgl { font-size: calc(13px * var(--ts)); color: #8a8a90; }
@@ -181,7 +187,8 @@ button.sh2-row:active { background: #f3f3f6; }
 .sh2-pc-g { color: #b0b0b6; }
 .sh2-freq { width: 72px; height: 6px; border-radius: 3px; background: #ececf0; overflow: hidden; flex: none; }
 .sh2-freq i { display: block; height: 100%; background: #c4c4cb; border-radius: 3px; }
-.sh2-sort { min-height: 40px; padding: 0 12px; border-radius: 20px; color: #3478f6 !important; font-size: calc(13.5px * var(--ts)) !important; font-weight: 600; white-space: nowrap; }
+/* header sort chip (개인 단어 목록): grows only to 110 % so the screen title keeps its room at 130 % on 360 px (§10 H) */
+.sh2-sort { min-height: 40px; padding: 0 8px; border-radius: 20px; color: #3478f6 !important; font-size: calc(13.5px * min(var(--ts, 1), 1.1)) !important; font-weight: 600; white-space: nowrap; }
 .sh2-sort::after { content: ' ▾'; }
 .sh2-row.word { min-height: 46px; padding-top: 8px; padding-bottom: 8px; }
 .sh2-row.word .sh2-t { font-size: calc(16px * var(--ts)); }

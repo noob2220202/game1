@@ -906,6 +906,8 @@ G.ui.pinPad({ length, dots=true, maxLength=16, submitLabel:'확인', onSubmit(co
    → node with node.reset() · node.setMsg(text) · node.setBusy(bool)   // ep1 return shape kept. length given ⇒ auto-submit at length (ep1);
    // dots:false ⇒ no length, [확인] submits ('—' pad). A string result is shown via setMsg. Keys data-qa 'pin.key:<d>' / 'pin.ok' / 'pin.del'
    // (lock {N} pad: caller passes qa:'lock.pin' ⇒ 'lock.pin.key:<d>' / 'lock.pin.ok'). Busy countdowns (30 s) are the caller's (setBusy+setMsg).
+   // silentError:true ⇒ a wrong answer still shakes + shows the message but plays no sfx.error / vibrate — the caller gives its own
+   // feedback (lock.js / security.js pinError(): cue 'pin.error' = tone + [80], or vibrate('pin') alone when sound cannot play).
 G.ui.inputActive() → bool             // keyboard open ∨ a G.ui.pinPad node is attached to #screen and visible (director S1 — §6.1.3 'PIN 패드 포함')
 G.ui.zoomViewer(src, o) ; G.ui.typing() ; G.ui.onLongPress(node, fn, ms) ; G.ui.waveform(canvas, analyser, color)   // ep1
 ```

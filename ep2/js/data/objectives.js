@@ -79,9 +79,16 @@
     // §3.16 Hints — state-aware: early lure #2 pulled the speaker's plug before M6 (lureCount 2 ∧ musicCut ∧ ¬C2 —
     // BT row '연결 안 됨'), so the three tiers stop pointing at an impossible action. Same tiers, same 2 s hold / 60 s gaps,
     // nothing automatic. (The plug goes at lure #2 + 45 s and M6 waits ≥ last lure + 130 s, so the card is born after the cut.)
+    // M8 ∧ ¬doorOpened (01:10 — Kang's voice at the door, the forced r2_door eye view): every path ends at the same door, so
+    // the tiers point at the one thing left to do — the handle (§3.17 B20). Same tiers, same 2 s hold / 60 s gaps, nothing automatic.
     { id: 'door', title: '문', grayAfterM7: true,
       show: () => f('M6'), done: () => f('C2') || f('M7'), doneMark: () => f('C2'),
       get hints() {
+        if (f('M8') && !f('doorOpened')) {
+          return ['문 너머의 목소리는 경찰이다. 이제 열어도 된다.',
+            '현관 도어락 바로 아래.',
+            '현관 손잡이를 눌러 문을 연다.'];
+        }
         if ((v('lureCount') || 0) >= 2 && f('musicCut') && !f('C2')) {
           return ['스피커는 이미 끊겼다. 이제 소리로 그를 떼어 낼 수는 없다.',
             '빈집에서 두 번 울린 소리. 누군가는 들었다.',

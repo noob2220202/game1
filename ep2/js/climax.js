@@ -65,17 +65,24 @@
   const SUB_AZ = { S06: 70, S07: 0, S08: 0, S09a: 115, S09b: 115, S09c: 115, S10: 0, S11: 0, S12: 0, S13: 70, S14: 115, S14v: 115, S16: 115, S17: 70, S23: 55 };
   const SUB_INFO = { S23: true };   // mood subtitles: only through audio (subs 'all')
   let lastSubAt = 0;
+  /** o.cls / o.replace tag the bottom-channel line (G.fx.sub): S09 tiers replace each other instead of stacking */
   function sub(id, o) {
     o = o || {};
     lastSubAt = now();
     const az = o.az != null ? o.az : SUB_AZ[id];
+    const tag = o.cls || o.replace ? { cls: o.cls, replace: o.replace } : null;
     try {
-      if (A().sub) { A().sub(id, { az, text: o.text, ms: o.ms }); return; }
+      if (A().sub) {
+        const go = () => A().sub(id, Object.assign({ az, text: o.text, ms: o.ms }, tag));
+        if (tag && G.fx && G.fx.subScope) G.fx.subScope(tag, go); else go();
+        return;
+      }
       if (SUB_INFO[id]) return;
       const t = o.text || SUB_FB[id]; if (!t) return;
-      if (G.room && G.room.isOpen && G.room.isOpen() && az != null) G.room.dirSub(t, az, o.ms || 2400); else if (G.fx && G.fx.sub) G.fx.sub(t, o.ms || 2400);
+      if (G.room && G.room.isOpen && G.room.isOpen() && az != null) G.room.dirSub(t, az, o.ms || 2400); else if (G.fx && G.fx.sub) G.fx.sub(t, o.ms || 2400, tag || undefined);
     } catch (e) {}
   }
+  const S09_TAG = { cls: 's09', replace: 's09' };
   /** S09 / S14 wording: '오르골' → '소리' for gallery videos & voice messages (§0.2 E5, ARCH §4.8 c2Src) */
   function subText(id, from) {
     if (from === 'recorder' || from == null) return undefined;
@@ -236,7 +243,7 @@
   function onBtStart(from, id) {
     btPlayingId = id || null; lastFrom = from || null;
     const s = step(btVol()); lastStep = s;
-    sub(s, { text: subText(s, from) });
+    sub(s, Object.assign({ text: subText(s, from) }, S09_TAG));
     if (phase === 'drill') wobble();
   }
   function onMediaPlay(e) { if (e && e.target === 'bt') onBtStart(e.from, e.id); }
@@ -250,7 +257,7 @@
     try { const st = G.media && G.media.state && G.media.state(); playing = !!(st && st.playing && st.target === 'bt'); if (st && st.from) from = st.from; } catch (er) {}
     if (!playing) return;
     const s = step(e.v != null ? e.v : btVol());
-    if (s !== lastStep) { lastStep = s; sub(s, { text: subText(s, from) }); }
+    if (s !== lastStep) { lastStep = s; sub(s, Object.assign({ text: subText(s, from) }, S09_TAG)); }
   }
 
   /* ======================= C2 watcher (§3.16 판정 C2 · §9.7 판정) ======================= */

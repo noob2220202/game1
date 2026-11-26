@@ -405,9 +405,13 @@
     if (G.save) G.save(true);
     return !!v.committed;
   };
-  function retryCommit() {
+  /** §9.3: END ∧ ¬committed → quiet retry (max 5, UI 0) on the next screen change / boot. While the engine is in memory
+   *  mode (storage failed this session — it stays failed until a reload) an in-session retry cannot land, so only 'boot'
+   *  retries run then; the 5-try cap is spent across boots, not within one broken session. */
+  function retryCommit(why) {
     const v = G.state && G.state.vars;
     if (!v || !flag('END') || v.committed || (v.commitTries | 0) >= 5) return;
+    if (why !== 'boot') { let mm = false; try { mm = !!(G.series && G.series.memory && G.series.memory()); } catch (e) {} if (mm) return; }
     E2.commit();
   }
   /** ⑤ hook end (idempotent — monotone keys only). opts.soft = pagehide / hidden while the hook is up: the series patch is
@@ -417,14 +421,14 @@
     const F = (k) => flag(k), plays = G.state.vars.hookPlays | 0;
     try {
       if (!G.series) throw new Error('series engine missing');
-      G.series.patch((r) => {
+      const ok = G.series.patch((r) => {
         r.seen = r.seen || {}; r.sea = Array.isArray(r.sea) ? r.sea : [];
         const add = (id) => { if (!r.sea.includes(id) && r.sea.length < 16) r.sea.push(id); };
         if (F('hookOpened')) r.seen.e2_piyo = true;                 // ★S2-7
         if (plays >= 2 || F('hookZoom')) add('sig_piyo');           // 두 번 이상 재생 또는 파형 첫 0.5 s 확대
         if (F('hookFull')) add('sig_fifth');                        // 끝까지 재생(다섯째 음)
       });
-      G.state.vars.patched = true;
+      if (ok === true) G.state.vars.patched = true;                 // false = not stored (read-only · storage failed)
     } catch (e) {}
     if (!(opts && opts.soft) || F('hookOpened')) { if (!F('hookDone')) G.flag('hookDone', true); }
     if (G.save) G.save(true);

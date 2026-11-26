@@ -15,7 +15,13 @@
  *   backfillEp1() → rec             bible §7.4 code (idempotent)
  *   endEp1() → bool                 P-2: ep1 END → eps.1 src 'live', canon true, s.e1_*, seen.e1_*
  *   clearAll() · readOnly() → bool · memory() → bool · DEFAULTS · SEEN_KEYS · KEY
- *   _fixture({rec, e1, blocked})    DEBUG QA profiles (§9.3 S1–S10) — switches to memory mode, never touches storage
+ *   _fixture({rec, e1, blocked})    DEBUG only — defined only when G.DEBUG is already set when this file loads (ep2
+ *                                   js/config.ep2.js; never on ep1 or series/). QA profiles (§9.3 S1–S10): memory mode by
+ *                                   design, real storage never touched.
+ * Write results (commit / patch / endEp1 · write()): true = the record landed in localStorage (or the DEBUG fixture store).
+ *   false = not stored: read-only (future v) · over 8 KB · or localStorage failed (this call or earlier this session). After a
+ *   storage failure the engine stays in memory mode for the session — the memory copy keeps this page consistent, but it is
+ *   NOT committed: callers keep their 'not yet written' state and retry on the next boot (DESIGN §9.3 'END ∧ ¬committed').
  * Multi-tab: every write re-reads the stored record and field-merges (st max · canon OR · seen OR · sea ∪ · rev = max + 1);
  *   the 'storage' event only invalidates the read cache.
  * Privacy (bible §7.7): only bool / small int / fixed enums / dates are written. Never names, free text, UA, times.
@@ -59,7 +65,9 @@
   function warn(k, msg) { if (warned[k]) return; warned[k] = 1; try { console.warn('[series] ' + msg); } catch (e) {} }
 
   /* ---------------- storage layer ---------------- */
-  var memory = false;    // storage unusable → everything lives in `mem`
+  var memory = false;    // memory mode: everything lives in `mem` — set by a storage failure OR a DEBUG fixture
+  var storageFailed = false; // localStorage threw this session (get or set) → memory-only writes are not committed
+  var fixture = false;   // DEBUG QA fixture active → memory mode by design, writes count as landed
   var mem = null;        // in-memory record (memory mode / fixture)
   var memRaw = null;     // fixture: raw string to simulate a corrupt record
   var ro = false;        // future schema version → read only
@@ -68,11 +76,11 @@
 
   function lsGet(k) {
     if (memory) return null;
-    try { return W.localStorage.getItem(k); } catch (e) { memory = true; return null; }
+    try { return W.localStorage.getItem(k); } catch (e) { memory = true; storageFailed = true; return null; }
   }
   function lsSet(k, v) {
     if (memory) return false;
-    try { W.localStorage.setItem(k, v); return true; } catch (e) { memory = true; return false; }
+    try { W.localStorage.setItem(k, v); return true; } catch (e) { memory = true; storageFailed = true; return false; }
   }
 
   function freshRec() { return { v: V, rev: 0, created: ymd(new Date()), last: 0, eps: {}, s: {}, seen: {}, sea: [] }; }
@@ -133,7 +141,8 @@
     return out;
   }
 
-  /** write a record (merging the latest stored copy first). true = landed in the session's store. */
+  /** write a record (merging the latest stored copy first). true = landed in localStorage (or the DEBUG fixture store);
+   *  false = refused (read-only · 8 KB) or storage failed now / earlier this session (the memory copy still serves reads). */
   function write(rec) {
     if (ro) { warn('ro', 'future record version — read-only, write skipped'); return false; }
     var stored = memory ? (mem ? clone(mem) : null) : null;
@@ -146,10 +155,11 @@
     var json = JSON.stringify(out);
     if (json.length > CAP) { warn('cap', 'record would exceed 8 KB — write refused'); return false; }
     cache = clone(out);
-    if (memory) { mem = out; return true; }
-    if (lsSet(KEY, json)) return true;
-    mem = out;                                                   // storage just failed → memory mode
-    return true;
+    if (!memory && lsSet(KEY, json)) return true;
+    mem = out;                                                   // memory copy: this page stays consistent either way
+    if (fixture) return true;                                    // DEBUG fixture store = the session's store by design
+    warn('store', 'localStorage unavailable — memory mode for this session; series writes are not stored');
+    return false;                                                // storage failed (now or earlier) → not committed; retry next boot
   }
 
   function current() { return read() || (cache ? clone(cache) : null); }
@@ -387,16 +397,19 @@
     mem = null; memRaw = null; cache = null; ro = false;
   };
 
-  /** DEBUG QA fixture (DESIGN §9.3 S1–S10): memory mode, real storage untouched.
+  /** DEBUG QA fixture (DESIGN §9.3 S1–S10): memory mode, real storage untouched. Never shipped live: only defined when the
+   *  page set G.DEBUG before this file loaded (ep2 js/config.ep2.js — ?debug=1 off the production host, or CONFIG.DEBUG).
    *  fx.rec: record object | null | 'corrupt' (string) · fx.e1: ep1 save object | null · fx.blocked: simulate no storage */
-  S._fixture = function (fx) {
-    fx = fx || {};
-    memory = true; ro = false; cache = null; mem = null; memRaw = null;
-    if (typeof fx.rec === 'string') memRaw = fx.rec;
-    else if (fx.rec) mem = clone(fx.rec);
-    fixtureE1 = fx.e1 === undefined ? null : fx.e1;
-    return true;
-  };
+  if (G.DEBUG) {
+    S._fixture = function (fx) {
+      fx = fx || {};
+      memory = true; fixture = true; storageFailed = false; ro = false; cache = null; mem = null; memRaw = null;
+      if (typeof fx.rec === 'string') memRaw = fx.rec;
+      else if (fx.rec) mem = clone(fx.rec);
+      fixtureE1 = fx.e1 === undefined ? null : fx.e1;
+      return true;
+    };
+  }
 
   G.series = S;
 

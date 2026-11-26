@@ -26,6 +26,15 @@
   const sfx = (n) => { try { G.audio && G.audio.sfx && G.audio.sfx[n] && G.audio.sfx[n](); } catch (e) {} };
   const cue = (id, o) => { try { return G.audio && G.audio.cue ? G.audio.cue(id, o) : undefined; } catch (e) {} };
   const vib = (k) => { try { G.audio && G.audio.vibrate && G.audio.vibrate(k); } catch (e) {} };
+  /* PIN 오답 = cue 'pin.error' (ui.error −4 dB + [80], §7) — one tone, one buzz. The cue vibrates itself; when it cannot sound
+   * (sound off · no WebAudio · paused) the [80] still goes out alone (vibration is its own setting). The pads that call this pass
+   * silentError:true, so G.ui.pinPad adds no second sfx.error / vibrate on top. */
+  const pinError = () => {
+    const A = G.audio;
+    const sounds = !!(A && A.cue && A.ok && A.ok() && !A.paused && A._cues && A._cues['pin.error']);
+    cue('pin.error');
+    if (!sounds) vib('pin');
+  };
   const vget = (k, d) => { const v = G.state && G.state.vars ? G.state.vars[k] : undefined; return v === undefined ? d : v; };
   const vset = (k, v) => { if (G.vars) G.vars(k, v); };
   const SH = () => { const v = (G.state && G.state.vars) || {}; if (!v.sh) v.sh = {}; return v.sh; };
@@ -78,12 +87,12 @@
       const body = el('div.sh2-verify');
       const ok = (where) => { if (!fin) return; cue('fp.ok'); G.bus && G.bus.emit('security:finger', { ok: true, where: 'verify' }); if (where === 'finger') setFlag('fingerIconTouched'); fin(true); };
       const pinPad = () => {
-        const padNode = G.ui.pinPad({ dots: true, maxLength: 16, submitLabel: V.ok || '확인', theme: 'light', qa: 'pin',
+        const padNode = G.ui.pinPad({ dots: true, maxLength: 16, submitLabel: V.ok || '확인', theme: 'light', qa: 'pin', silentError: true,
           async onSubmit(code) {
-            if (vLock.left() > 0) return STR('pinLock').replace('{s}', String(vLock.left()));
+            if (vLock.left() > 0) { pinError(); return STR('pinLock').replace('{s}', String(vLock.left())); }
             if (dash) { const want = (G.STORY.users && G.STORY.users.dash && G.STORY.users.dash.pin) || '0310'; if (String(code) === want) { setTimeout(() => ok('pin'), 80); return true; } }
             SH().vfFails = (SH().vfFails || 0) + 1; save();
-            cue('pin.error'); vib('pin');
+            pinError();
             if (SH().vfFails % 5 === 0) { vLock.start(); countdown(padNode); return STR('pinLock').replace('{s}', '30'); }
             return STR('pinWrong');
           } });
@@ -240,6 +249,18 @@
   }
   /** a row whose value is a date/time — keep '오후 2:31' on one line (§10 H 360 px · 130 %) */
   function oneLine(r) { const m = r && r.querySelector('.sh2-meta'); if (m) { m.style.whiteSpace = 'nowrap'; m.style.maxWidth = 'none'; } return r; }
+  /** a value that ends in a date + time ('꺼짐 · 2026.11.24 오전 4:51'): the date + time is one unbreakable piece (never '오전' /
+   *  '4:51'), and a row too narrow for title + value drops the value under the title, right-aligned (.sh2-row.dtv, §10 H 360 px ·
+   *  130 %). Only the DOM is split — textContent stays the canonical string (no NBSP in the data). */
+  const DT_RE = /(?:\d{4}\.\d{1,2}\.\d{1,2} )?오[전후] \d{1,2}:\d{2}/;
+  function keepDateTime(r) {
+    const m = r && r.querySelector('.sh2-meta'); if (!m) return r;
+    const s = m.textContent, x = DT_RE.exec(s); if (!x) return r;
+    m.textContent = '';
+    m.append(s.slice(0, x.index), el('span.sh2-nb', null, x[0]), s.slice(x.index + x[0].length));
+    r.classList.add('dtv');
+    return r;
+  }
   function reg(key, def) { if (G.settingsApp && G.settingsApp.register) G.settingsApp.register(key, def); }
   SEC.open = function (key, params) { G.bus && G.bus.emit('security:screen', { key }); return G.settingsApp && G.settingsApp.open ? G.settingsApp.open(key, params) : false; };
 
@@ -320,7 +341,7 @@
         rowsD.forEach(([t, m], i) => {
           if (i === 0) out.push(row({ key: 'bio.finger', title: t, meta: dash ? '' : cnt }));
           else if (i === 1) out.push(row({ title: t, meta: dash ? (ST.dash || {}).lockType : m, onClick: dash ? null : () => SEC.verify({ reason: 'lockType', pinOnly: true }), chev: false }));
-          else if (i === 2) out.push(row({ title: t, meta: m, onClick: () => PH().toast(STR('needDaon')), chev: false, qa: 'settings.row:bio.findMy' }));
+          else if (i === 2) out.push(keepDateTime(row({ title: t, meta: m, onClick: () => PH().toast(STR('needDaon')), chev: false, qa: 'settings.row:bio.findMy' })));
           else out.push(row({ title: t, meta: m }));
         });
         return el('div', null, group(null, out));

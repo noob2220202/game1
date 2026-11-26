@@ -7,7 +7,8 @@
  * B20 (sched 'end:m8' = pm(M7) + 72 000): boots.snow 55° → 0° → 1.5 s → flag M8 + v2_kang_door + S18 + door-gap torch
  *   → voice end + 1.5 s → G.room.forceView({view:'r2_door', handle:true}) → handle: doorlock.open + S26 + doorOpen(6000)
  *   + lightsOn + switch.click + doorlock.close (soft) → doorOpened, peepholeTaped off, footprints 2, bt.retire(),
- *   room601 warm → card k0110 → [계속] → G.users.forceN() if '—' → 01:20 …
+ *   room601 warm → card k0110 → [계속] → G.users.forceN() if '—' (or a lock is still up) → C1: card aside, clock 01:12,
+ *   {MAKER}'s K banners (moment.js, on end:step k0110) → 01:20 …
  * Cards: layer `.fl2-card` (z 150). It is HIDDEN while shell/media UIs it calls are up (lockDash, nearShare, gallery
  * receive) and shown again when they resolve. Back / Esc are consumed while a card is up (G.phone.pushBack).
  * END: hook 'end:reached' ({right}) — called by social at the exact moment `…{N} 씨구나.` / `…괜찮아요. 형사님이 {N} 씨
@@ -55,6 +56,11 @@
   function img(key) { return safe(() => (G.e2 && G.e2.img ? G.e2.img(key) : (G.IMG && G.IMG[key]) || ''), ''); }
   function user() { return safe(() => (G.users && G.users.current ? G.users.current() : 'n'), 'n'); }
   function screenEl() { return document.getElementById('screen'); }
+  function lockShown() { return safe(() => (G.lock && G.lock.isShown ? !!G.lock.isShown() : !!document.querySelector('#lock:not(.hidden)')), false); }
+  function forceN() { return safe(() => (G.users && G.users.forceN ? G.users.forceN() : null), null); }
+  function online() { return safe(() => { const w = G.phone && G.phone.wifi; return !(w && w.connected && !w.connected()); }, true); }
+  /** social's persisted thread (read only): has line `id` reached G.state.threads['moment:<thread>']? */
+  function hasLine(thread, id) { return safe(() => (((G.state && G.state.threads) || {})['moment:' + thread] || []).some((e) => e && e.id === id), false); }
 
   /* ---------- the card layer (z 150) ---------- */
   const Card = {
@@ -187,10 +193,32 @@
     for (const s of d.scene || []) { await wait(400); c.scene(s); }
     await c.next();
     setStep('k0110');
-    if (user() === 'dash') { await Card.close(); await safe(() => (G.users && G.users.forceN ? G.users.forceN() : null), null); }
+    // from here to END the user is {N}, on the home, never behind the lock screen (§3.17 · §9.2): '—' → the 2 s shell;
+    // a lock still up under the door view (reload at the door, a lock before M8) goes without the shell (forceN on {N})
+    if (user() === 'dash') { await Card.close(); await forceN(); }
+    else if (lockShown()) await forceN();
+  }
+  /** C1 only — {MAKER}'s K lines `형사님 올라가셨어` / `나 여기 있어`, stamped 오전 1:12, come after the door opens and before
+   *  the 01:20 card (§4.10.1 · §12.9 #13). moment.js lets them go on end:step 'k0110' once the user is {N} (or when the
+   *  clock passes 01:12). Banners sit under the card layer (#banners z 70 < .fl2-card z 150) and the status bar there still
+   *  reads 01:10, so the card steps aside, the clock moves to 01:12 and the 01:20 card waits for the second line (≤ 5 s,
+   *  then 1.6 s to read it). Offline the lines stay queued with their 1:12 stamp (§5.6) — no wait then. Resume-safe. */
+  async function kBeat() {
+    if (!flag('C1') || hasLine('real', 'cK2') || !online()) return;
+    await Card.close();
+    jump('01:12');
+    await new Promise((res) => {
+      let done = false;
+      const fin = () => { if (done) return; done = true; if (off) safe(off); res(); };
+      const off = G.bus ? G.bus.on('chat:msg', (e) => { if (e && e.thread === 'real' && e.msg && e.msg.id === 'cK2') fin(); }) : null;
+      if (hasLine('real', 'cK2')) fin();
+      wait(5000).then(fin);
+    });
+    await wait(1600);
   }
   async function k0120() {
     const d = D().k0120 || {};
+    await kBeat();
     jump('01:20'); mark('B21');
     const c = Card.open('k0120', d.time);
     await lines(c, d.lines);
@@ -354,12 +382,15 @@
     amb('roofWind', true, { gainDb: -18, fade: 4 });
     const mins = Math.round(((G.state && G.state.playMs) || 0) / 60000);
     const stats = String(d.stats || '플레이 {m}분 · 힌트 {n}회').replace('{m}', mins).replace('{n}', (G.state && G.state.hintsUsed) || 0);
-    // the line may break only before the '·' (never '방탈출! 2 ·' / '돌려줄게' at 130 %): '· 돌려줄게' is one nowrap span
+    // two block lines like the title screen — `{N를} 위한 방탈출! 2` / `돌려줄게` — so no line ever starts or ends with the
+    // '·' (the full string is wider than a 360 px phone at 100 %). Line 1 keeps '방탈출! 2' together (no lone '2').
     const ttl = String(T(d.title || '{N를} 위한 방탈출! 2 · 돌려줄게'));
     const cut = ttl.lastIndexOf(' · ');
+    const glue = (s) => s.replace(/ (\S{1,3})$/, '\u00a0$1');
     const titleNode = cut > 0
-      ? el('div.fl2-cred-title', null, ttl.slice(0, cut + 1), el('span', { style: { whiteSpace: 'nowrap' } }, ttl.slice(cut + 1)))
-      : el('div.fl2-cred-title', null, ttl);
+      ? el('div.fl2-cred-title', null,
+        el('span.fl2-cred-l1', null, glue(ttl.slice(0, cut))), el('span.fl2-cred-l2', null, ttl.slice(cut + 3)))
+      : el('div.fl2-cred-title', null, glue(ttl));
     const scr = el('div.fl2-scene.fl2-credits', { 'data-qa': 'credits.skip', role: 'button' },
       el('div.fl2-cred-in', null,
         titleNode,
@@ -382,17 +413,54 @@
     scr.classList.remove('in'); scr.classList.add('out');
     setTimeout(() => scr.remove(), 700);
   }
+  /** check-card line. One with ' · ' (the help line `스토킹·디지털 성범죄 피해: 112 · 여성긴급전화 1366`) is built as
+   *  nowrap parts joined by separator spans, so each number stays with its label; the data string is unchanged. */
+  function checkLine(text) {
+    const s = String(text);
+    const parts = s.split(' · ');
+    if (parts.length < 2) return el('p', null, s);
+    const p = el('p.fl2-check-help');
+    parts.forEach((x, i) => {
+      if (i) p.appendChild(el('span.fl2-sep', null, ' · '));
+      p.appendChild(el('span.fl2-nw', null, x));
+    });
+    return p;
+  }
+  /** a part that no longer fits after its separator starts its own line and that separator goes (never `…112 ·` / a line
+   *  opening with '·'); a part wider than the whole line may wrap inside (very large text). Re-entrant: resets first. */
+  function fitCheckLine(p) {
+    if (!p || !p.isConnected) return;
+    const parts = Array.from(p.querySelectorAll('.fl2-nw')), seps = Array.from(p.querySelectorAll('.fl2-sep'));
+    seps.forEach((x) => { x.hidden = false; });
+    parts.forEach((x) => x.classList.remove('own', 'wrap'));
+    const w = p.clientWidth;
+    if (!w) return;
+    parts.forEach((x) => { if (x.getBoundingClientRect().width > w + 0.5) x.classList.add('wrap'); });
+    for (let i = 1; i < parts.length; i++) {
+      const prev = parts[i - 1].getClientRects(), cur = parts[i].getClientRects();
+      if (!prev.length || !cur.length) continue;
+      if (cur[0].top > prev[prev.length - 1].top + 2) { seps[i - 1].hidden = true; parts[i].classList.add('own'); }
+    }
+  }
   async function check() {
     const arr = D().check || [];
     const nxt = el('button.fl2-next.fl2-check-next', { 'data-qa': 'check.continue' }, D().next || '계속');
-    const scr = el('div.fl2-scene.fl2-check', null, el('div.fl2-check-in', null, arr.map((t) => el('p', null, T(t)))), nxt);
+    const scr = el('div.fl2-scene.fl2-check', null, el('div.fl2-check-in', null, arr.map((t) => checkLine(T(t)))), nxt);
     screenEl().appendChild(scr);
     requestAnimationFrame(() => scr.classList.add('in'));
+    // the help line is laid out once the card has a size, again when the web font lands / the text size or viewport changes
+    const fit = () => scr.querySelectorAll('p.fl2-check-help').forEach(fitCheckLine);
+    requestAnimationFrame(() => requestAnimationFrame(fit));
+    safe(() => { if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => requestAnimationFrame(fit)); });
+    window.addEventListener('resize', fit);
+    const offSettings = G.bus ? G.bus.on('settings', () => requestAnimationFrame(fit)) : null;
     const rb = safe(() => (G.phone && G.phone.pushBack ? G.phone.pushBack(() => true) : null), null);
     const tapped = new Promise((res) => nxt.addEventListener('click', () => { safe(() => G.audio.sfx.tap()); res(); }, { once: true }));
     await wait(1200);
     nxt.classList.add('in');
     await tapped;
+    window.removeEventListener('resize', fit);
+    if (typeof offSettings === 'function') safe(offSettings);
     setStep('check');
     if (typeof rb === 'function') safe(rb);
     scr.classList.add('fade-black');

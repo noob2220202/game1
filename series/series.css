@@ -89,7 +89,9 @@ body.pk-leave .pk { opacity: 0; }
 .pk-row.lit .pk-glyph { background: linear-gradient(#ffe7ae, #f0a548); border-color: #b9853f; box-shadow: 0 0 10px rgba(255, 186, 96, .5); }
 .pk-room { flex: none; font-size: 12px; letter-spacing: 1.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .pk-titles { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.pk-title { font-family: var(--serif); font-size: 14.5px; line-height: 1.3; color: #e4e4e4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* titles wrap (keep-all: whole words) instead of an ellipsis — a long {N} must never cut the '2' that tells 601 from 404 */
+.pk-title { font-family: var(--serif); font-size: 14.5px; line-height: 1.3; color: #e4e4e4; white-space: normal; word-break: keep-all;
+  overflow-wrap: anywhere; overflow: visible; text-overflow: clip; }
 .pk-sub { font-family: var(--hand); font-size: 22px; line-height: 1; color: #cfc6b8; }
 .pk-chip { flex: none; padding: 3px 8px 4px; border-radius: 999px; font-size: 11px; letter-spacing: 1px; color: #f3c3c3;
   border: 1px solid #8f2323; background: rgba(127, 29, 29, .28); }
