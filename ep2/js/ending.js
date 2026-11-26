@@ -391,15 +391,23 @@
       ? el('div.fl2-cred-title', null,
         el('span.fl2-cred-l1', null, glue(ttl.slice(0, cut))), el('span.fl2-cred-l2', null, ttl.slice(cut + 3)))
       : el('div.fl2-cred-title', null, glue(ttl));
+    // the small print `목소리: AI 음성 · 사진: … · 소리: 전부 직접 합성` uses the check-card help-line layout: each
+    // 'label: value' part stays whole, a part that wraps takes its own line and its '·' goes (360 px at 130 %)
+    const voiceNode = checkLine(d.voice || ''); voiceNode.classList.add('dim');
     const scr = el('div.fl2-scene.fl2-credits', { 'data-qa': 'credits.skip', role: 'button' },
       el('div.fl2-cred-in', null,
         titleNode,
         el('p.fl2-cred-maker', null, T(d.maker || '만든 사람 {MAKER} · {N}에게')),
-        el('p.dim', null, d.voice || ''),
+        voiceNode,
         el('p.small', null, stats),
         el('p.dim', null, d.data || '')));
     screenEl().appendChild(scr);
     requestAnimationFrame(() => scr.classList.add('in'));
+    const fitV = () => fitCheckLine(voiceNode);
+    requestAnimationFrame(() => requestAnimationFrame(fitV));
+    safe(() => { if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => requestAnimationFrame(fitV)); });
+    window.addEventListener('resize', fitV);
+    const offSetV = G.bus ? G.bus.on('settings', () => requestAnimationFrame(fitV)) : null;
     const rb = safe(() => (G.phone && G.phone.pushBack ? G.phone.pushBack(() => true) : null), null);
     await wait(1600);
     cue('piano.two'); sub('S25');
@@ -409,6 +417,8 @@
       wait(d.ms || 20000).then(fin);
     });
     setStep('cred');
+    window.removeEventListener('resize', fitV);
+    if (typeof offSetV === 'function') safe(offSetV);
     if (typeof rb === 'function') safe(rb);
     scr.classList.remove('in'); scr.classList.add('out');
     setTimeout(() => scr.remove(), 700);
