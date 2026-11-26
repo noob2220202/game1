@@ -144,6 +144,8 @@
 .fl2-credits .fl2-cred-in > :nth-child(2) { animation-delay: 1.2s; } .fl2-credits .fl2-cred-in > :nth-child(3) { animation-delay: 2.4s; }
 .fl2-credits .fl2-cred-in > :nth-child(4) { animation-delay: 3.4s; } .fl2-credits .fl2-cred-in > :nth-child(5) { animation-delay: 4.4s; }
 @keyframes fl2Rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+/* app build (G.APP — ending.js builds the title block alone): no bottom margin, so the block sits in the scene's centre */
+.fl2-credits.app .fl2-cred-title { margin-bottom: 0; }
 .fl2-check { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; padding: 30px 26px calc(var(--safe-bot, 0px) + 30px); background: #050506; transition: opacity .8s ease, background 1s; }
 .fl2-check-in { max-width: 360px; display: flex; flex-direction: column; gap: 10px; }
 .fl2-check-in p { margin: 0; font-size: calc(14.5px * var(--ts, 1)); line-height: 1.75; color: #cfcfd3; word-break: keep-all; }

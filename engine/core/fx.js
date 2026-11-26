@@ -156,7 +156,7 @@
     ['room:open', 'room:close', 'room:view', 'screen:push', 'screen:pop', 'home', 'app:open', 'lock:show', 'lock:unlock', 'users:switched']
       .forEach((ev) => { try { G.bus.on(ev, () => { syncRoom(); later(); }); } catch (e) {} });
   }
-  FX.roomLook = roomVisible;   // QA / debug: which vignette look is in force
+  if (!G.APP || G.DEBUG) FX.roomLook = roomVisible;   // QA / debug: which vignette look is in force (not in the app build)
 
   /* ---------- black cover ---------- */
   FX.black = async function (ms) {

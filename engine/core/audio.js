@@ -559,8 +559,8 @@
   A.isMono = () => false;
   A.ringtone = function () { warn('ringtone not used'); return { stop() {} }; };
 
-  /* ---------------- DEBUG meter (QA levels §7.1.6) ---------------- */
-  A.meter = function (ms) {
+  /* ---------------- DEBUG meter (QA levels §7.1.6) — not in the app build (G.APP ∧ ¬G.DEBUG) ---------------- */
+  if (!G.APP || G.DEBUG) A.meter = function (ms) {
     return new Promise((res) => {
       if (!ok()) return res(null);
       if (!A._meter) { A._meter = A.ctx.createAnalyser(); A._meter.fftSize = 2048; A.out.connect(A._meter); }

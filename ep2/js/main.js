@@ -206,7 +206,7 @@
     if (M._booted) return;
     if (!released()) { shutGate(); return; }     // fail closed: nothing below (init · seriesBoot · save) runs
     M._booted = true;
-    if (G.DEBUG && document.body) document.body.classList.add('debug');
+    if (G.DEBUG && !G.APP && document.body) document.body.classList.add('debug');   // no debug class under G.APP
     safe(() => { if (G.hasSave && G.hasSave() && G.load) G.load(); });
     applySettings();
     if (G.bus) G.bus.on('settings', applySettings);

@@ -434,6 +434,7 @@
     onTick(fn) { tickFns.push(fn); return () => { const i = tickFns.indexOf(fn); if (i >= 0) tickFns.splice(i, 1); }; },
     _scale(x) { if (x != null) scale = Math.max(0, +x || 0); return scale; },
   };
+  if (G.APP && !G.DEBUG) delete G.clock._scale;   // time acceleration is a QA helper (haru.time): not in the app build
 
   function tick() {
     const now = performance.now();
