@@ -1,0 +1,12 @@
+[
+ {
+  "id": "n_roof_snow",
+  "name": "e_roof_snow",
+  "size": "1024x1536",
+  "quality": "high",
+  "note": "review fix n_roof_snow_ghosting: the 0310 #2 album photo as one edit of the (re-run) G28 right part instead of m_roof_snow on a reframed crop",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material and colour identical unless the instruction below changes it. The same rooftop view a few days later, after a heavy snowfall: about five centimetres of fresh, even snow lies on every horizontal surface — the rooftop floor, the top of the concrete parapet, the top of the steel pipe railing, the lower roof next door and its shed roof, the window ledges; walls and every other vertical surface stay bare. Overcast white-grey sky, soft flat daylight, no sun and no hard shadows, no snow falling. Nobody, no footprints, no marks in the snow. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/ref_fix_roofsnow.png",
+  "force": true
+ }
+]

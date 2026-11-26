@@ -1,0 +1,22 @@
+[
+ {
+  "id": "G28",
+  "name": "g_move_day",
+  "size": "1536x1024",
+  "quality": "high",
+  "note": "review fix s2_crumpled_texture (G28 walls) + tank_padlock_missing: re-run at high from G01 with the padlock patch (old result g_move_day.v1.png)",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material and colour identical unless the instruction below changes it. Change the moment: the same rooftop on a clear, cold December afternoon around 3:20 pm, in bright low winter sunlight from the right with long shadows, under a pale blue sky; no snow, no flurries; the bulkhead lamp is off. A stack of brown moving boxes and a mattress wrapped in plastic film stand on the floor near the left edge of the frame. The water-tank room's rusted steel door stands ajar about 30 centimetres, its interior dark; the small open padlock still hangs from its latch. Every wall keeps its own plain concrete, cinder-block and painted-steel texture exactly as in the photograph. The view is slightly tilted and hand-held, as if filmed on a phone. Nobody is visible. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/ref_fix_plate_lock.png",
+  "force": true
+ },
+ {
+  "id": "G07-lit",
+  "name": "e_tank_ajar_lit",
+  "size": "1024x1536",
+  "quality": "high",
+  "note": "review fix tank_ajar_lit_posterized (+ padlock): the open door lit by the bulkhead lamp again, light taken from G06 (+padlock); p_tank_ajar (dark) = this x R_dark",
+  "prompt": "Edit the first photograph. Keep its camera position, lens, framing and perspective, the door's open position and angle, the pitch-black interior behind the door, the snow, the quarter-circle swept in the snow by the door and the boot prints exactly as they are. Change only the light: the caged bulkhead lamp off to the left is switched on again, so the scene has exactly the same cold white light, light direction, exposure and colour as the second photograph, which shows the same door closed with the lamp on. Also, on the open door leaf, replace the S-shaped hook hanging from the barrel bolt with the same small open padlock as in the second photograph, hanging from the bolt. The inside of the water-tank room stays pitch black with no detail. Nobody is visible. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": ["work/gen_ep2/g_roof_tank_ajar.png", "work/gen_ep2/ref_fix_tank_snow_lock.png"],
+  "force": true
+ }
+]

@@ -1,0 +1,16 @@
+[
+ {
+  "id": "G09",
+  "name": "g_js_tank_cap",
+  "pass": 5,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "low",
+  "prompt": "Using the second image only as a reference for the shape of the black cap: at the top of the lit sliver inside the door gap of the first image, add the curved edge of a dark baseball cap's brim catching the phone's light, just a thin crescent of brim — no forehead, no eyes, no face. Everything else stays identical to the first image. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": [
+   "work/gen_ep2/g_js_tank_hand.png",
+   "work/gen_ep2/ref_figcap.png"
+  ],
+  "fidelity_doc": "low"
+ }
+]

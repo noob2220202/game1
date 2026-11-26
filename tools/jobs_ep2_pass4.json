@@ -1,0 +1,35 @@
+[
+ {
+  "id": "G07",
+  "name": "g_roof_tank_ajar",
+  "pass": 4,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material and colour identical unless the instruction below changes it. The rusted steel door now stands open by about 40 centimetres, swung outward, its bottom edge having pushed a quarter-circle through the snow; behind it, a pitch-black interior with no detail. The open padlock still hangs on the hasp. The lamp is switched off: the scene is lit only by the faint orange-grey sky glow reflected on the snow, very dark. A few boot prints in the snow directly in front of the threshold. Nobody is visible. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/g_roof_tank_snow.png",
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G08",
+  "name": "g_js_tank_hand",
+  "pass": 4,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material and colour identical unless the instruction below changes it. Inside the narrow 2 cm gap of the door, a phone screen has just lit up from within: its cold bluish-white light reveals, in the gap only, a thin vertical sliver of fingers in a black nitrile glove holding the edge of a phone, and the light spills in a thin bright line onto the snow at the threshold and across the inner edge of the door. Nothing else of the person is visible. The door does not move. The rest of the scene stays exactly as it is. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/g_roof_tank_snow.png",
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G12",
+  "name": "g_roof_rail_steps",
+  "pass": 4,
+  "star": false,
+  "size": "1536x1024",
+  "quality": "low",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material and colour identical unless the instruction below changes it. A single trail of adult winter-boot footprints now comes in from the left and ends at the railing in the foreground; there, over a width of about 60 cm, the snow on top of the railing and parapet has been scraped off as if someone climbed over, and a few scuffed marks continue on the lower roof beyond. Slightly softened by new snow. No person is visible. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/g_roof_rail_snow.png",
+  "fidelity_doc": "high"
+ }
+]

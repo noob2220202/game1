@@ -1,0 +1,12 @@
+[
+ {
+  "id": "G10",
+  "name": "g_roof_rail",
+  "size": "1536x1024",
+  "quality": "high",
+  "note": "review fix rail_subview_misregistered: the first G10 re-framed the view (railing slope, window, brick panel up to 0.2 W off the plate crop: parallax, no rect fits both) -> re-run as a detail-only edit of ref_rail so roof_rail = the plate's own rail_rect. Previous results kept as g_roof_rail.v2.png (and .v2 of G11/G12/G13)",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material and colour identical unless the instruction below changes it. This is a 2.5x enlarged crop of a night photograph, so it is soft and blurry. Turn it into the same photograph taken with a sharp telephoto lens from exactly the same spot: keep every object exactly where it is, exactly as large as it is and at exactly the same angle — the painted steel pipe railing and its posts on the concrete parapet, the parapet itself, the flat roof of the adjacent building one storey lower with its small sheet-metal storage shed, the rear wing of the neighbouring building and its single dark, curtainless window of an empty flat, the distant hillside apartments — and only add true fine detail, texture and sharpness. In that window: bare dark interior, dusty glass, a deep inner sill; on the sill, almost invisible in the dark, a small dark cylindrical object. Cold light from the left fades across the railing; faint orange sky glow; fine flurries. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/ref_rail.png",
+  "force": true
+ }
+]

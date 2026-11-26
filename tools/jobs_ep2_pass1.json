@@ -1,0 +1,155 @@
+[
+ {
+  "id": "G01",
+  "name": "g_roof_plate",
+  "pass": 1,
+  "star": true,
+  "size": "1536x1024",
+  "quality": "high",
+  "prompt": "Photorealistic photograph taken with a recent smartphone camera, natural lens, believable exposure, fine realistic sensor noise, everyday Korean setting, not cinematic, not stylised, no HDR halo, no lens dirt. Setting: the flat concrete rooftop of an old five-storey red-brick multi-family \"villa\" building in a dense hillside residential neighbourhood of Eunpyeong-gu, Seoul, South Korea, on a cold winter night (Christmas Eve, around 11 pm). On the roof stand: a small white-painted cinder-block rooftop room (oktapbang) with a grey painted steel front door and an aluminium sliding window; a squat grey concrete water-tank room about 2.2 m tall with one heavy rusted green-grey steel door that stands ajar by a narrow dark vertical gap of about 2 cm, a hasp with an open padlock merely hanging on it; right beside the water-tank room, the stairwell head-house with its own steel door and one caged cold-white LED bulkhead lamp above that door, which is the only light on the roof. The roof edge has a waist-high concrete parapet topped with a painted steel pipe railing. Beyond the railing on the right, the adjacent older building's flat roof sits one storey lower with a small sheet-metal storage shed; past it, that building's rear wing faces us across a narrow light-well, with one dark, curtainless window of an empty flat about two storeys below our roof level. Low overcast sky with a faint orange city glow; blurred lights of distant hillside apartments. View: looking straight out from just inside the rooftop room's open window at standing eye height, a slightly downward 80-degree landscape view of the rooftop; the window frame itself is not visible. Composition from left to right: at the far left edge, the corner of the stairwell head-house with its steel door and the caged cold-white bulkhead lamp above it; at about one quarter from the left and about six metres away, the water-tank room with its rusted green-grey steel door facing the camera squarely, the narrow dark vertical gap along its right edge, the open padlock hanging on the hasp; in the centre, an open stretch of dry grey concrete roof floor with old puddle stains, a coiled green garden hose and a blue plastic crate against the parapet; in the right third, the parapet and steel railing receding diagonally toward the right edge, the lower roof of the adjacent building with its small sheet-metal shed just beyond the railing, and in the lower right, further down beyond that roof's edge, the dark curtainless window of the empty flat in the rear wing. The bulkhead lamp throws a cold pool of light on the floor in front of the water-tank room that fades toward the right; fine snow flurries drift through the light, nothing has settled yet. On the water-tank room's door at eye level, a faded, repainted pale-grey rectangle, completely blank, where an old stencilled label used to be. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described."
+ },
+ {
+  "id": "G14",
+  "name": "g_r2_door",
+  "pass": 1,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Photorealistic photograph taken with a recent smartphone camera, natural lens, believable exposure, fine realistic sensor noise, everyday Korean setting, not cinematic, not stylised, no HDR halo, no lens dirt. Setting: a small, plain, newly rented rooftop studio (oktapbang) in Seoul, about 13 square metres, white wallpapered walls, light grey vinyl floor (jangpan), a low ceiling with one flat square white LED ceiling light switched ON giving even cool-white light, winter night outside. The room is tidy and neutral, recently moved into: no decorations, no posters, no clothing on display, no plants, no cosmetics, nothing personal; there is no wardrobe and no built-in closet. View: standing in the middle of the room at eye height facing the entrance wall. A grey painted steel front door hinged on the right, with a matte black digital door lock inner unit (a smooth panel with a tiny round status light, a battery cover and a thumb-turn knob, no buttons or digits visible) above a black lever handle, a small round peephole at eye level, a brushed-steel door closer at the top. A small blank sheet of white lined paper is taped to the door just below and to the left of the peephole with two strips of clear tape. In front of the door, a narrow sunken entry step with grey tiles and one pair of plain grey slip-on shoes neatly placed. To the left of the door, a low white shoe cabinet with an empty top. A blank light-switch plate on the wall beside it. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described."
+ },
+ {
+  "id": "G16",
+  "name": "g_r2_window_in",
+  "pass": 1,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Photorealistic photograph taken with a recent smartphone camera, natural lens, believable exposure, fine realistic sensor noise, everyday Korean setting, not cinematic, not stylised, no HDR halo, no lens dirt. Setting: a small, plain, newly rented rooftop studio (oktapbang) in Seoul, about 13 square metres, white wallpapered walls, light grey vinyl floor (jangpan), a low ceiling with one flat square white LED ceiling light switched ON giving even cool-white light, winter night outside. The room is tidy and neutral, recently moved into: no decorations, no posters, no clothing on display, no plants, no cosmetics, nothing personal; there is no wardrobe and no built-in closet. View: standing in the middle of the room at eye height facing the window wall. A white-framed aluminium double sliding window about 1.4 m wide and 1.1 m tall, its sill at waist height, centred in the frame; both glass panes are filled edge to edge with a perfectly flat, uniform chroma-key green colour (#00B140) with no reflections, gradients or texture, for later compositing. A thin plain light-grey curtain is pushed to the right side of the window. A narrow white inner window sill with nothing on it. A small plain white wall-mounted panel heater below the window, without any markings. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described."
+ },
+ {
+  "id": "G17",
+  "name": "g_r2_bed",
+  "pass": 1,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Photorealistic photograph taken with a recent smartphone camera, natural lens, believable exposure, fine realistic sensor noise, everyday Korean setting, not cinematic, not stylised, no HDR halo, no lens dirt. Setting: a small, plain, newly rented rooftop studio (oktapbang) in Seoul, about 13 square metres, white wallpapered walls, light grey vinyl floor (jangpan), a low ceiling with one flat square white LED ceiling light switched ON giving even cool-white light, winter night outside. The room is tidy and neutral, recently moved into: no decorations, no posters, no clothing on display, no plants, no cosmetics, nothing personal; there is no wardrobe and no built-in closet. View: standing in the middle of the room at eye height facing the wall opposite the entrance. A low single bed with a plain grey duvet and pillow, neatly made, along the wall; two closed brown cardboard moving boxes stacked at the foot of the bed; a low open metal shelf with a few folded towels in neutral grey and white; a power strip with a phone charger on the floor. On the wall above the bed, a plain round white wall clock whose face is completely blank: no hands, no numerals, no marks (the hands will be added later). Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described."
+ },
+ {
+  "id": "G18",
+  "name": "g_r2_desk",
+  "pass": 1,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Photorealistic photograph taken with a recent smartphone camera, natural lens, believable exposure, fine realistic sensor noise, everyday Korean setting, not cinematic, not stylised, no HDR halo, no lens dirt. Setting: a small, plain, newly rented rooftop studio (oktapbang) in Seoul, about 13 square metres, white wallpapered walls, light grey vinyl floor (jangpan), a low ceiling with one flat square white LED ceiling light switched ON giving even cool-white light, winter night outside. The room is tidy and neutral, recently moved into: no decorations, no posters, no clothing on display, no plants, no cosmetics, nothing personal; there is no wardrobe and no built-in closet. View: standing in the middle of the room at eye height facing the kitchenette wall. A compact counter with a single-bowl stainless-steel sink and a gooseneck tap, a small black two-burner induction cooktop with no markings, a plain white wall cabinet above; the counter continues into a narrow light wooden desk. On the desk: a black smartphone lying face up with its screen completely black and off, a white charging cable plugged into it running to a wall socket; a plain white ceramic mug; a small desk lamp switched off; a folding chair tucked under the desk. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described."
+ },
+ {
+  "id": "G20",
+  "name": "g_box_top",
+  "pass": 1,
+  "star": true,
+  "size": "1024x1536",
+  "quality": "high",
+  "prompt": "Photorealistic photograph taken with a recent smartphone camera, natural lens, believable exposure, fine realistic sensor noise, everyday Korean setting, not cinematic, not stylised, no HDR halo, no lens dirt. Close-up looking straight down into an open plain brown cardboard box resting on a snow-dusted concrete threshold at night, lit from above-left by a phone flashlight, cold and quiet. The near flap of the box is folded open toward the camera and shows a smooth, blank area of brown cardboard. Inside the box: a smartphone in a brand-new, perfectly clear transparent soft jelly case lies screen-up, its screen softly glowing but completely blank; it rests on a small white folded card; under one edge of the phone, the white border of an instant-film photo just peeks out. Snowflakes on the cardboard rim, crisp shadows inside the box. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described."
+ },
+ {
+  "id": "G22",
+  "name": "g_note_card",
+  "pass": 1,
+  "star": false,
+  "size": "1024x1024",
+  "quality": "low",
+  "prompt": "Photorealistic photograph taken with a recent smartphone camera, natural lens, believable exposure, fine realistic sensor noise, everyday Korean setting, not cinematic, not stylised, no HDR halo, no lens dirt. Macro photograph of a plain white laminated card, about the size of a business card, lying slightly askew on brown corrugated cardboard, lit by a phone flashlight at night, a soft glare on one laminated corner, completely blank on its visible side, thin even edges. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described."
+ },
+ {
+  "id": "G24",
+  "name": "g_peephole",
+  "pass": 1,
+  "star": false,
+  "size": "1024x1024",
+  "quality": "medium",
+  "prompt": "Photorealistic photograph taken with a recent smartphone camera, natural lens, believable exposure, fine realistic sensor noise, everyday Korean setting, not cinematic, not stylised, no HDR halo, no lens dirt. View through a door peephole at night: a strong fisheye circle in the centre with solid black outside it. Inside the circle, the empty rooftop concrete floor directly outside the door, a few snow flurries, cold white light falling from the right, part of a low parapet curving at the edge of the lens; nobody there. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described."
+ },
+ {
+  "id": "G27",
+  "name": "g_tankgap_601",
+  "pass": 1,
+  "star": true,
+  "size": "1536x1024",
+  "quality": "high",
+  "prompt": "Photorealistic photograph taken with a recent smartphone camera, natural lens, believable exposure, fine realistic sensor noise, everyday Korean setting, not cinematic, not stylised, no HDR halo, no lens dirt. Point of view from inside a pitch-black concrete water-tank room on a Seoul rooftop at night, looking out through a narrow vertical gap of a few centimetres between a rusted steel door and its frame: the door edge is a dark, out-of-focus vertical band of rust filling the left 12 percent of the frame. Beyond it, about six metres away across a flat concrete rooftop: a small white-painted cinder-block rooftop room seen almost head-on, its aluminium sliding window glowing warm behind a closed plain light-coloured curtain, with no silhouette; at the right side of the frame, the building's corner and its grey steel front door seen at a steep angle, with an empty doorstep and a black door lock; a caged lamp out of frame on the left lights the floor coldly. Dry concrete, a few flurries. Slight telephoto compression, low light, visible noise, a little motion softness as if hand-held. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described."
+ },
+ {
+  "id": "G29",
+  "name": "g_old_room",
+  "pass": 1,
+  "star": true,
+  "size": "1024x1536",
+  "quality": "high",
+  "prompt": "An old photograph taken in the early 2000s with a cheap compact digital camera and on-camera flash: the interior of a small, worn Korean budget inn room (yeogwan). Faded floral-pattern wallpaper in yellowed cream and dusty pink, peeling at one seam; a tall built-in wooden wardrobe with sliding doors along one wall; a glossy amber-brown vinyl floor (jangpan) worn pale along the edges; a single bare fluorescent tube light on the ceiling; a small old CRT television on a low wooden cabinet, its screen dark and blank; a folded thin floor mattress and blanket in the corner; a small window with frosted glass and a dusty net curtain. Flat flash look, slight green-magenta colour cast, soft focus, JPEG compression artefacts, low dynamic range. Nobody in the room. No date stamp. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described."
+ },
+ {
+  "id": "G30",
+  "name": "g_inn_key",
+  "pass": 1,
+  "star": false,
+  "size": "1024x1024",
+  "quality": "medium",
+  "prompt": "Photorealistic photograph taken with a recent smartphone camera, natural lens, believable exposure, fine realistic sensor noise, everyday Korean setting, not cinematic, not stylised, no HDR halo, no lens dirt. Close-up of an old brass room key from a Korean budget inn, attached by a metal ring to a worn, flat, oblong plastic key tag in faded maroon, lying on a dark varnished wooden surface, lit by a phone flash. The front of the tag has a smooth, slightly paler blank area in the centre; near the tag's edge, a scratched, rubbed-off rough patch where a printed business name has been scraped away, illegible. Fine scratches, tarnish. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described."
+ },
+ {
+  "id": "G31",
+  "name": "g_pol_case",
+  "pass": 1,
+  "star": false,
+  "size": "1536x1024",
+  "quality": "medium",
+  "prompt": "Police forensic evidence photograph on a grey evidence table under flat, slightly harsh camera flash: a clear plastic evidence bag containing a brand-new, empty, perfectly transparent soft smartphone jelly case; next to it, lying face-down, an instant-film photo showing its plain white back; an L-shaped black-and-white photographic scale ruler with tick marks only, and a small folded evidence number tent with a blank face. Clinical, sharp, neutral colours, slight vignette, shot from above at an angle. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described."
+ },
+ {
+  "id": "G33",
+  "name": "g_pol_tally",
+  "pass": 1,
+  "star": false,
+  "size": "1536x1024",
+  "quality": "medium",
+  "prompt": "Police forensic flash photograph of a rough grey concrete wall inside a cramped water-tank room: on the left half of the wall, a clean, empty area of bare concrete; on the right, three small printed photographs taped to the wall with clear tape, their image areas flat pale grey. A small L-shaped scale ruler with tick marks only is taped below. Hard flash, dust, cold. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described."
+ },
+ {
+  "id": "G34",
+  "name": "g_pol_sticker",
+  "pass": 1,
+  "star": false,
+  "size": "1024x1024",
+  "quality": "medium",
+  "prompt": "Police forensic flash macro photograph of a dusty concrete floor near a wall corner: a half-torn rectangular white vinyl sticker with a thin dark navy border, about 6 by 3 centimetres, its printed area blank, the left third torn away leaving white adhesive residue and fibres; a small L-shaped scale ruler with tick marks only beside it. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described."
+ },
+ {
+  "id": "G36",
+  "name": "g_n_post_sunset",
+  "pass": 1,
+  "star": false,
+  "size": "1024x1024",
+  "quality": "low",
+  "prompt": "Photorealistic photograph taken with a recent smartphone camera, natural lens, believable exposure, fine realistic sensor noise, everyday Korean setting, not cinematic, not stylised, no HDR halo, no lens dirt. A casual smartphone photo of a late-September sunset over low Seoul residential rooftops and distant hills, orange and pink sky, black power lines silhouetted across the top corner, slight lens flare, nobody. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described."
+ },
+ {
+  "id": "G37",
+  "name": "g_n_post_sky",
+  "pass": 1,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "low",
+  "prompt": "Photorealistic photograph taken with a recent smartphone camera, natural lens, believable exposure, fine realistic sensor noise, everyday Korean setting, not cinematic, not stylised, no HDR halo, no lens dirt. A casual smartphone photo looking up at a pale, overcast November sky with soft layered grey clouds and a faint bright patch where the sun hides, the top corner of a building and a bare tree branch at the lower edge, calm and empty, nobody. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described."
+ },
+ {
+  "id": "G38",
+  "name": "g_n_post_rain",
+  "pass": 1,
+  "star": false,
+  "size": "1024x1024",
+  "quality": "low",
+  "prompt": "Photorealistic photograph taken with a recent smartphone camera, natural lens, believable exposure, fine realistic sensor noise, everyday Korean setting, not cinematic, not stylised, no HDR halo, no lens dirt. A casual smartphone photo of raindrops on a window pane at dusk, a blurred grey street and warm city lights beyond the glass, condensation at the bottom edge, no reflection of any person, nobody. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described."
+ }
+]

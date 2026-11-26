@@ -1,0 +1,123 @@
+[
+ {
+  "id": "G02",
+  "name": "g_roof_plate_snow",
+  "pass": 2,
+  "star": false,
+  "size": "1536x1024",
+  "quality": "medium",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material and colour identical unless the instruction below changes it. Fresh snow has fallen: three to four centimetres of smooth, untouched snow now cover the whole rooftop floor, the top of the parapet and railing, the roof of the water-tank room, the stairwell head-house roof, the shed and the neighbouring lower roof, and a thin line of snow lies on the outer sill of the distant dark window. Snow is still falling gently. The bulkhead lamp is still on and its cold light glints on the snow. Absolutely no footprints or marks in the snow. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/g_roof_plate.png",
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G05",
+  "name": "g_roof_tank",
+  "pass": 2,
+  "star": true,
+  "size": "1024x1536",
+  "quality": "high",
+  "prompt": "Recreate this exact view as a sharp telephoto photograph taken from the same spot with a 3x zoom: the squat concrete water-tank room and its heavy rusted green-grey steel door fill most of the frame, seen squarely from the front. Show real detail: rivets, flaking paint, rust streaks running down from the hinges, a dented lower corner, the narrow dark vertical gap of about 2 cm along the latch side with total blackness inside, a hasp with an open padlock merely hanging on it, and at eye level a faded, repainted pale-grey rectangle on the door, completely blank. The stairwell lamp off to the left throws cold white light across the door at a slight angle; dry concrete floor in front, a few flurries in the air. Keep the composition, perspective and light direction faithful to the reference image. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/ref_tank.png",
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G10",
+  "name": "g_roof_rail",
+  "pass": 2,
+  "star": true,
+  "size": "1536x1024",
+  "quality": "high",
+  "prompt": "Recreate this exact view as a sharp telephoto photograph taken from the same spot with a 2.5x zoom: in the foreground the painted steel pipe railing on the concrete parapet runs across the frame; beyond it, the flat roof of the adjacent building one storey lower, with a small rusty sheet-metal storage shed and a few empty plastic flower pots; further beyond and below that roof's edge, across a narrow dark light-well, the rear wing of the neighbouring building with a single dark, curtainless window of an empty flat — bare interior, dusty glass, a deep inner sill; on that sill, almost invisible in the dark, a small dark cylindrical object. Cold light from the left fades across the railing; faint orange sky glow; fine flurries. Keep the perspective faithful to the reference image. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/ref_rail.png",
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G15",
+  "name": "g_r2_door_box",
+  "pass": 2,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "low",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material and colour identical unless the instruction below changes it. Add one plain brown corrugated cardboard box, about 30 x 22 x 15 cm, with its flaps loosely closed and a strip of clear tape, sitting on top of the low white shoe cabinet to the left of the door; a few melting snowflakes on its top. The flap surfaces are blank. Nothing else changes. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/g_r2_door.png",
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G19",
+  "name": "g_p2_door_open",
+  "pass": 2,
+  "star": true,
+  "size": "1024x1536",
+  "quality": "high",
+  "prompt": "Photorealistic photograph taken with a recent smartphone camera, natural lens, believable exposure, fine realistic sensor noise, everyday Korean setting, not cinematic, not stylised, no HDR halo, no lens dirt. Using the reference image only for the look of this room's grey steel door, its black door lock and grey entry tiles: a view from inside the same dark rooftop studio, standing just behind the entry step at eye height, the room lights off, looking at the front door which has been pushed open outward about 30 centimetres. Through the gap: the rooftop's concrete floor outside under cold white light coming from a lamp off to the right, fine snow flurries drifting through the light, and a plain brown cardboard box with closed flaps sitting right outside on the threshold, its top blank. A thin wedge of cold light falls across the dark grey entry tiles and the inner door edge. A quiet, freezing Christmas Eve night. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/g_r2_door.png",
+  "fidelity_doc": "low"
+ },
+ {
+  "id": "G21",
+  "name": "g_box_top_lifted",
+  "pass": 2,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material and colour identical unless the instruction below changes it. The phone has been lifted out of the box. Revealed underneath, an instant-film photo now lies face-up on the bottom of the box beside the small white folded card; the photo's image area is a flat, uniform dark grey. The lighting is identical. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/g_box_top.png",
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G23",
+  "name": "g_landlord_note",
+  "pass": 2,
+  "star": false,
+  "size": "1024x1024",
+  "quality": "low",
+  "prompt": "Recreate this as a close, sharp photograph of the small sheet of white lined memo paper taped with two strips of slightly yellowed clear tape to the grey painted steel door, lit by cool ceiling light; the paper is blank with faint blue ruled lines, its corners slightly curled. Just below its lower right corner, an older small square yellow sticky note, slightly faded and curling at one edge, also completely blank. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/ref_note.png",
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G25",
+  "name": "g_doorlock_in",
+  "pass": 2,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Recreate this as a sharp, straight-on close-up of the inner unit of the black digital door lock on the grey steel door, with the black lever handle below it: a smooth matte panel, a tiny round status light (unlit), a battery cover seam, a rotating thumb-turn knob, fine scratches on the grey paint; cool ceiling light. No visible digits, buttons, labels or logos. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/ref_lock.png",
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G26",
+  "name": "g_newphone",
+  "pass": 2,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Recreate this as a top-down close-up of the black smartphone lying face up on the light wooden desk: its glass screen completely black and off with a faint reflection of the ceiling light, a white charging cable plugged into its bottom edge, the rim of the white mug at one corner. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/ref_phone.png",
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G28",
+  "name": "g_move_day",
+  "pass": 2,
+  "star": false,
+  "size": "1536x1024",
+  "quality": "medium",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material and colour identical unless the instruction below changes it. Change the moment: the same rooftop on a clear, cold December afternoon around 3:20 pm, in bright low winter sunlight from the right with long shadows, under a pale blue sky; no snow, no flurries; the bulkhead lamp is off. A stack of brown moving boxes and a mattress wrapped in plastic film stand on the floor near the left edge of the frame. The water-tank room's rusted steel door stands ajar about 30 centimetres, its interior dark. The view is slightly tilted and hand-held, as if filmed on a phone. Nobody is visible. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/g_roof_plate.png",
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G35",
+  "name": "g_kongi_santa",
+  "pass": 2,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material and colour identical unless the instruction below changes it. The same apricot toy poodle with the greying muzzle now wears a small red-and-white Santa hat tilted on its head, lying on the same doormat in the same warm Korean apartment entrance; keep the dog's identity, fur, pose and the room exactly; warm evening lamp light. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/ref_kongi.png",
+  "fidelity_doc": "high"
+ }
+]

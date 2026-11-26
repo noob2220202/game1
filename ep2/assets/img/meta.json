@@ -1,0 +1,768 @@
+{
+ "_qa": {
+  "r2_door_lock_marks": "212 px of white marks on the lock body painted matte black (LED = DOM)",
+  "landlord_note": "1.89x re-frame; Gaegu 55px = Hangul 30px high (≈11.4 CSS px at 390 px), 12 lines + signature on every 3nd ruled line (pitch 19.0px)",
+  "landlord_sticky": "sticky 462px, Gaegu 67px: Hangul 60px / digits 35px high (≈22.9 / 13.3 CSS px at 390 px); rows ['옥탑 Wi-Fi', 'saemal_rooftop', '비밀번호', 'saemal0601', '12.10']",
+  "r2_door_note": "close-up layout mapped (x0.088): same line breaks, glyphs ≈2.6px; sticky toned x1.02",
+  "chroma_key": "2 panes keyed, glass px 178632",
+  "r2_bed": "mirrored left-right; the model-added side window (bronze frame, no curtain — unlike r2_window) painted out as plain side wall (G17 asked for none)",
+  "g27_601_door": "e_fix_601 pasted: 8366 px (hasp+padlock -> digital lock body + lever)",
+  "box_continuity": "box_top / box_top_lifted share every pixel outside the phone case; one landscape card (돌려줄게. —, note_card layout) + the polaroid_601 print at fixed quads",
+  "box_lifted_outside_phone_diff_px": "2016 px differ outside the case + 12 px (its soft shadow), 15 px outside + 24 px",
+  "note_card_back": "printed elements: title / rule / 관리자 비밀번호 only; blank below (no digits)",
+  "tank_padlock": "e_fix_lock pasted on G05 latch: 12656 px; carried to s0-s2d, js_*, plate (door map), G28 ref",
+  "tank_padlock_plate_shift": "-8.25,-0.5 px",
+  "reg_g02_to_g01": "|d| median 0.7px, p95 3.1px, conf tiles 506/2480",
+  "reg_g04_to_g01": "|d| median 1.0px, p95 3.2px, conf tiles 465/2480",
+  "snow_s1_cover": "12.5 % of the plate snowed at c=.45 (incl. .35 dusting)",
+  "snow_s2_mask": "32.1 % of the plate from G02 (up-facing only)",
+  "R_dark": "median 0.436, p5 0.239, p95 0.714; s2d = s2 x clip(R x 1.15)",
+  "stencil_tank_glyph_px": "76px target, fit to the blank rectangle (293px wide); bridges per jamo (0.045 em)",
+  "reg_g06_to_g05": "|d| median 0.4px, p95 1.0px, conf tiles 1633/2480",
+  "stencil_tank_contrast": "s0 1.87 (plain 2.07) · s1 1.87 (plain 2.07) · s2 1.87 (plain 2.07) · s2d 1.22 (plain 1.84) — WCAG (L+.05) ratio of letters vs the pale patch; s2d = s2 × R (letters and patch scaled alike, no letter boost)",
+  "js_tank": "drawn (not G08/G09): phone light σ .12 door-h at .50, 4 matte nitrile fingertips 10–12 px rim-lit; cap = brim crescent lit from below at .30 (face 0)",
+  "reg_ajar_lit_to_g05": "|d| median 0.8px, p95 1.9px, conf tiles 595/2480",
+  "p_tank_ajar": "leaf = s2 closed leaf warped to the open quad (edit used for geometry/shade/padlock only); patch area 51.9 %; swing 56°",
+  "reg_g11_to_g10": "|d| median 0.5px, p95 6.3px, conf tiles 1035/2480",
+  "reg_g12_to_g10": "|d| median 0.5px, p95 5.9px, conf tiles 940/2480",
+  "rail_window": "G13 re-run from the re-centred ref_railwin; speaker bottom right of the right pane (led {'x': 0.597, 'y': 0.838}); pipe snow mound .45 diam, sill band 6–14 px",
+  "p2_door_open": "sky through the gap = plate glow gradient (no baked flakes); 3120 px of flakes inpainted on the parapet",
+  "n_roof_snow": "e_roof_snow (high edit of the re-run G28 x .555–1.0: snow on every horizontal surface, overcast) — no mask blend",
+  "n_room_2_green_px": 0,
+  "inn_key": "only '404' composited; scraped patch left as generated (no letters)",
+  "rec_voicetalk": "ringing state only: 보이스톡 · 윤세아 · 보이스톡 수신 중… · 거절/수락 — no 거절함/통화 종료",
+  "contract_cap": "names/amounts/signatures as blur bars only; no service name or logo",
+  "pol_tank_in": "5 markers 1–5 (2 generated + 3 drawn, contact shadow + flash falloff); mirrored, outside-only rectangle + latch cloned away",
+  "pol_case": "generated polaroid showed its front (inset window, thick bottom margin) -> whole face repainted as one flat back (plane-fit flash falloff + grain) before writing 어서 와. —",
+  "pol_tally": "tally strokes = 14 (two 4+1 groups + 4 verticals), no 正",
+  "pol_sticker": "only '한결' printed (navy 28,40,90), starting at the torn edge; no logo/phone/trade"
+ },
+ "door_gap": [
+  [
+   0.517,
+   0.262
+  ],
+  [
+   0.836,
+   0.262
+  ],
+  [
+   0.836,
+   0.74
+  ],
+  [
+   0.517,
+   0.74
+  ],
+  [
+   0.517,
+   0.262
+  ]
+ ],
+ "led_lock": {
+  "x": 0.537,
+  "y": 0.462
+ },
+ "peep": {
+  "cx": 0.66,
+  "cy": 0.39,
+  "r": 0.0045
+ },
+ "door_note_q": [
+  [
+   0.537,
+   0.386
+  ],
+  [
+   0.605,
+   0.386
+  ],
+  [
+   0.605,
+   0.447
+  ],
+  [
+   0.537,
+   0.447
+  ]
+ ],
+ "door_sticky_q": [
+  [
+   0.5745,
+   0.41
+  ],
+  [
+   0.6138,
+   0.41
+  ],
+  [
+   0.6135,
+   0.436
+  ],
+  [
+   0.5745,
+   0.436
+  ]
+ ],
+ "glass_q": [
+  [
+   0.2852,
+   0.2956
+  ],
+  [
+   0.7764,
+   0.3021
+  ],
+  [
+   0.7734,
+   0.5352
+  ],
+  [
+   0.2832,
+   0.5378
+  ]
+ ],
+ "glass_panes": [
+  [
+   [
+    0.2852,
+    0.2956
+   ],
+   [
+    0.5332,
+    0.2995
+   ],
+   [
+    0.5332,
+    0.5358
+   ],
+   [
+    0.2832,
+    0.5378
+   ]
+  ],
+  [
+   [
+    0.5576,
+    0.2988
+   ],
+   [
+    0.7764,
+    0.3021
+   ],
+   [
+    0.7734,
+    0.5352
+   ],
+   [
+    0.5537,
+    0.5365
+   ]
+  ]
+ ],
+ "clock_bed": {
+  "cx": 0.528,
+  "cy": 0.297,
+  "r": 0.0445
+ },
+ "np_desk_q": [
+  [
+   0.7627,
+   0.5742
+  ],
+  [
+   0.7939,
+   0.5801
+  ],
+  [
+   0.8008,
+   0.5853
+  ],
+  [
+   0.7617,
+   0.5768
+  ]
+ ],
+ "box_phone_q": [
+  [
+   0.4453,
+   0.4154
+  ],
+  [
+   0.5986,
+   0.4206
+  ],
+  [
+   0.6172,
+   0.6289
+  ],
+  [
+   0.4385,
+   0.6302
+  ]
+ ],
+ "lid_name_q": [
+  [
+   0.5032,
+   0.6994
+  ],
+  [
+   0.6464,
+   0.7023
+  ],
+  [
+   0.6481,
+   0.7301
+  ],
+  [
+   0.5002,
+   0.7271
+  ]
+ ],
+ "_box_poly": [
+  [
+   0.268,
+   0.188
+  ],
+  [
+   0.778,
+   0.188
+  ],
+  [
+   0.78,
+   0.268
+  ],
+  [
+   0.868,
+   0.248
+  ],
+  [
+   0.9,
+   0.655
+  ],
+  [
+   0.79,
+   0.668
+  ],
+  [
+   0.818,
+   0.822
+  ],
+  [
+   0.2,
+   0.822
+  ],
+  [
+   0.252,
+   0.668
+  ],
+  [
+   0.135,
+   0.652
+  ],
+  [
+   0.178,
+   0.258
+  ],
+  [
+   0.27,
+   0.3
+  ]
+ ],
+ "note_card_q": [
+  [
+   0.1377,
+   0.4346
+  ],
+  [
+   0.7207,
+   0.2207
+  ],
+  [
+   0.9121,
+   0.543
+  ],
+  [
+   0.2646,
+   0.8262
+  ]
+ ],
+ "peephole_disc": {
+  "cx": 0.5134,
+  "cy": 0.532,
+  "r": 0.3967
+ },
+ "tank_rect": {
+  "x": 0.1431,
+  "y": 0.1794,
+  "w": 0.272,
+  "h": 0.5961
+ },
+ "rail_rect": {
+  "x": 0.5631,
+  "y": 0.2858,
+  "w": 0.4039,
+  "h": 0.4039
+ },
+ "railwin_rect": {
+  "x": 0.5098,
+  "y": 0.5801,
+  "w": 0.2799,
+  "h": 0.4199
+ },
+ "stencil_q": {
+  "plate": [
+   [
+    0.243,
+    0.331
+   ],
+   [
+    0.315,
+    0.333
+   ],
+   [
+    0.315,
+    0.415
+   ],
+   [
+    0.243,
+    0.414
+   ]
+  ],
+  "tank": [
+   [
+    0.36,
+    0.258
+   ],
+   [
+    0.646,
+    0.258
+   ],
+   [
+    0.646,
+    0.393
+   ],
+   [
+    0.36,
+    0.392
+   ]
+  ],
+  "tank_ajar": [
+   [
+    0.292,
+    0.2491
+   ],
+   [
+    0.4529,
+    0.2535
+   ],
+   [
+    0.454,
+    0.3933
+   ],
+   [
+    0.2934,
+    0.3792
+   ]
+  ]
+ },
+ "beam_origin": {
+  "x": 0.06,
+  "y": 0.58
+ },
+ "gap_tank": {
+  "plate": [
+   [
+    0.346,
+    0.255
+   ],
+   [
+    0.353,
+    0.255
+   ],
+   [
+    0.353,
+    0.733
+   ],
+   [
+    0.346,
+    0.733
+   ]
+  ],
+  "tank": [
+   [
+    0.768,
+    0.115
+   ],
+   [
+    0.791,
+    0.115
+   ],
+   [
+    0.791,
+    0.93
+   ],
+   [
+    0.768,
+    0.93
+   ]
+  ]
+ },
+ "door_tank": {
+  "tank": [
+   [
+    0.235,
+    0.11
+   ],
+   [
+    0.768,
+    0.11
+   ],
+   [
+    0.768,
+    0.932
+   ],
+   [
+    0.235,
+    0.932
+   ]
+  ],
+  "plate": [
+   [
+    0.207,
+    0.245
+   ],
+   [
+    0.352,
+    0.245
+   ],
+   [
+    0.352,
+    0.735
+   ],
+   [
+    0.207,
+    0.735
+   ]
+  ]
+ },
+ "tank_door_map": {
+  "plate": {
+   "x": 0.207,
+   "y": 0.245,
+   "w": 0.145,
+   "h": 0.49
+  },
+  "tank": {
+   "x": 0.235,
+   "y": 0.11,
+   "w": 0.533,
+   "h": 0.822
+  },
+  "note": "patches between plate and roof_tank are mapped door-rect to door-rect (the telephoto is a re-shoot, not a pixel crop); tank_rect = the same map applied to the telephoto frame"
+ },
+ "corridors": {
+  "left": [
+   [
+    0.215,
+    0.73
+   ],
+   [
+    0.36,
+    0.73
+   ],
+   [
+    0.36,
+    0.79
+   ],
+   [
+    0.3,
+    1.0
+   ],
+   [
+    0.0,
+    1.0
+   ],
+   [
+    0.0,
+    0.85
+   ]
+  ],
+  "right": [
+   [
+    0.36,
+    0.735
+   ],
+   [
+    0.7,
+    0.7
+   ],
+   [
+    0.78,
+    0.6
+   ],
+   [
+    0.86,
+    0.64
+   ],
+   [
+    0.77,
+    0.79
+   ],
+   [
+    0.36,
+    0.8
+   ]
+  ]
+ },
+ "led_rail": {
+  "x": 0.675,
+  "y": 0.94
+ },
+ "led_railwin": {
+  "x": 0.597,
+  "y": 0.838
+ },
+ "win_shot_crop": {
+  "x": 0.3,
+  "y": 0.16,
+  "w": 0.525,
+  "h": 0.59
+ },
+ "door_box_rect": {
+  "x": 0.1182,
+  "y": 0.5104,
+  "w": 0.2344,
+  "h": 0.0814
+ },
+ "led_lock_cu": {
+  "x": 0.428,
+  "y": 0.418
+ },
+ "handle_pivot": {
+  "x": 0.428,
+  "y": 0.78
+ },
+ "np_cu_q": [
+  [
+   0.3896,
+   0.1875
+  ],
+  [
+   0.7568,
+   0.2083
+  ],
+  [
+   0.6465,
+   0.7721
+  ],
+  [
+   0.2383,
+   0.735
+  ]
+ ],
+ "sticky_q": [
+  [
+   0.5342,
+   0.5742
+  ],
+  [
+   0.9854,
+   0.5742
+  ],
+  [
+   0.9854,
+   1.0
+  ],
+  [
+   0.5342,
+   1.0
+  ]
+ ],
+ "landlord_note_q": [
+  [
+   0.1068,
+   0.1621
+  ],
+  [
+   0.8821,
+   0.1621
+  ],
+  [
+   0.8877,
+   1
+  ],
+  [
+   0.0994,
+   1
+  ]
+ ],
+ "box_lifted_photo_q": [
+  [
+   0.3329,
+   0.5397
+  ],
+  [
+   0.4573,
+   0.544
+  ],
+  [
+   0.4508,
+   0.6269
+  ],
+  [
+   0.3264,
+   0.6226
+  ]
+ ],
+ "lid_name_q_lifted": [
+  [
+   0.5032,
+   0.6994
+  ],
+  [
+   0.6464,
+   0.7023
+  ],
+  [
+   0.6481,
+   0.7301
+  ],
+  [
+   0.5002,
+   0.7271
+  ]
+ ],
+ "_crop_rects": {
+  "n_room_1": {
+   "x": 0.01,
+   "y": 0.4111,
+   "w": 0.47,
+   "h": 0.4178,
+   "src": "r2_door"
+  },
+  "avoid_note": {
+   "src": "r2_door",
+   "x": 0.537,
+   "y": 0.386,
+   "w": 0.06799999999999995,
+   "h": 0.061
+  },
+  "avoid_sticky": {
+   "src": "r2_door",
+   "x": 0.5745,
+   "y": 0.41,
+   "w": 0.0393,
+   "h": 0.026000000000000023
+  },
+  "n_room_2": {
+   "x": 0.15,
+   "y": 0.1144,
+   "w": 0.8,
+   "h": 0.7111,
+   "src": "r2_window"
+  },
+  "n_room_3": {
+   "x": 0.455,
+   "y": 0.4211,
+   "w": 0.29,
+   "h": 0.2578,
+   "src": "r2_desk"
+  },
+  "avoid_newphone": {
+   "src": "r2_desk",
+   "x": 0.7617,
+   "y": 0.5742,
+   "w": 0.03909999999999991,
+   "h": 0.011099999999999999
+  },
+  "n_room_4": {
+   "x": 0.15,
+   "y": 0.2644,
+   "w": 0.8,
+   "h": 0.7111,
+   "src": "r2_bed"
+  },
+  "n_boxes": {
+   "x": 0.005,
+   "y": 0.5133,
+   "w": 0.33,
+   "h": 0.2933,
+   "src": "r2_bed"
+  }
+ },
+ "door_tank_ajar": {
+  "tank": [
+   [
+    0.2261,
+    0.1068
+   ],
+   [
+    0.5272,
+    0.0969
+   ],
+   [
+    0.533,
+    0.9665
+   ],
+   [
+    0.2356,
+    0.8784
+   ]
+  ]
+ },
+ "box_card_q": [
+  [
+   0.4689,
+   0.5422
+  ],
+  [
+   0.6997,
+   0.5261
+  ],
+  [
+   0.7151,
+   0.6238
+  ],
+  [
+   0.4843,
+   0.6399
+  ]
+ ],
+ "box_pol_q": [
+  [
+   0.3218,
+   0.5315
+  ],
+  [
+   0.4696,
+   0.5367
+  ],
+  [
+   0.4602,
+   0.6565
+  ],
+  [
+   0.3124,
+   0.6513
+  ]
+ ],
+ "_lid_flap": [
+  [
+   0.255,
+   0.668
+  ],
+  [
+   0.773,
+   0.668
+  ],
+  [
+   0.815,
+   0.815
+  ],
+  [
+   0.203,
+   0.815
+  ]
+ ]
+}

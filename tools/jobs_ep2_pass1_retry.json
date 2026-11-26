@@ -1,0 +1,24 @@
+[
+ {
+  "id": "G20",
+  "name": "g_box_top",
+  "pass": 1,
+  "star": true,
+  "size": "1024x1536",
+  "quality": "high",
+  "prompt": "Photorealistic photograph taken with a recent smartphone camera, natural lens, believable exposure, fine realistic sensor noise, everyday Korean setting, not cinematic, not stylised, no HDR halo, no lens dirt. Close-up looking straight down into an open plain brown cardboard box resting on a snow-dusted concrete threshold at night, lit from above-left by a phone flashlight, cold and quiet. It is the middle of the night: there is no daylight and no sun; the small phone flashlight is the only light, its beam falls off quickly, and the snow-dusted concrete around the box fades into dim blue-grey darkness toward the edges of the frame. The near flap of the box is folded open toward the camera and shows a smooth, blank area of brown cardboard. Inside the box: a smartphone in a brand-new, perfectly clear transparent soft jelly case lies screen-up, its screen softly glowing but completely blank; it rests on a small white folded card; under one edge of the phone, the white border of an instant-film photo just peeks out. Snowflakes on the cardboard rim, crisp shadows inside the box. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "force": true,
+  "retry": 1
+ },
+ {
+  "id": "G18",
+  "name": "g_r2_desk",
+  "pass": 1,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Photorealistic photograph taken with a recent smartphone camera, natural lens, believable exposure, fine realistic sensor noise, everyday Korean setting, not cinematic, not stylised, no HDR halo, no lens dirt. Setting: a small, plain, newly rented rooftop studio (oktapbang) in Seoul, about 13 square metres, white wallpapered walls, light grey vinyl floor (jangpan), a low ceiling with one flat square white LED ceiling light switched ON giving even cool-white light, winter night outside. The room is tidy and neutral, recently moved into: no decorations, no posters, no clothing on display, no plants, no cosmetics, nothing personal; there is no wardrobe and no built-in closet. View: standing in the middle of the room at eye height facing the kitchenette wall. A compact counter with a single-bowl stainless-steel sink and a gooseneck tap, a small black two-burner induction cooktop with no markings, a plain white wall cabinet above; the counter continues into a narrow light wooden desk. On the desk: a black smartphone lying face up with its screen completely black and off, a white charging cable plugged into it running to a wall socket; a plain white ceramic mug; a small desk lamp switched off; a folding chair tucked under the desk. The side walls on the left and right are plain white walls with no windows and no doors. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "force": true,
+  "retry": 1
+ }
+]

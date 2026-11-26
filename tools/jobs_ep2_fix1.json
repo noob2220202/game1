@@ -1,0 +1,32 @@
+[
+ {
+  "id": "G05-fix",
+  "name": "e_fix_lock",
+  "size": "1024x1024",
+  "quality": "high",
+  "note": "review fix tank_padlock_missing: 384 px crop of G05 latch at 2.67x; pasted back by post_ep2.py (feathered mask)",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material and colour identical unless the instruction below changes it. This is a close crop of the latch of a rusted green-grey steel door at night. Replace the S-shaped steel hook with a small, old steel padlock hanging open: its shackle is unlocked and swung open, hooked through the eye of the bolt's staple, so the lock body simply dangles there below the bolt; a little rust and wear on it; it catches the same cold light from the left and casts a matching soft shadow on the door frame. The barrel bolt, the door, the dark vertical gap, the concrete frame, the light, the noise and everything else stay exactly the same. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/ref_fix_lock.png",
+  "force": true
+ },
+ {
+  "id": "G27-fix",
+  "name": "e_fix_601",
+  "size": "1024x1536",
+  "quality": "high",
+  "note": "review fix g27_601_door_padlock: 300x450 crop of G27 around the 601 front door at 3.4x; pasted back by post_ep2.py",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material and colour identical unless the instruction below changes it. On the grey steel front door, remove the small metal hasp and the padlock completely, so that spot becomes plain grey painted door. In their place, at the same height near the door's left edge, add the exterior body of a black digital door lock: a slim vertical matte-black rounded rectangle about 7 cm wide and 25 cm tall, its keypad cover slid closed and completely blank, with no digits, no buttons and no logo; and directly below it a plain black lever handle pointing toward the door's far edge. Keep the dim cold light, the dark shadows, the sensor noise and everything else exactly the same. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/ref_fix_601.png",
+  "force": true
+ },
+ {
+  "id": "G13",
+  "name": "g_rail_window",
+  "size": "1024x1024",
+  "quality": "high",
+  "note": "review fix rail_subview_misregistered: regenerated from the re-centred ref_railwin (old result kept as g_rail_window.v1.png)",
+  "prompt": "Recreate this exact view as a close, sharp telephoto photograph at night: the single dark curtainless window of an empty flat stands in the middle of the frame, its whole height visible — an old aluminium frame, dusty glass with a hairline crack in one corner, a bare dark room behind it. On the deep inner window sill stand a small matte black cylindrical portable speaker and, beside it, a flat black power bank joined to it by a short cable. Nothing is lit; only the faint orange sky glow and a little cold light reflect off the glass. Keep the window's angle faithful to the reference image, and keep its layout: a tall two-pane window, the speaker and the power bank at the bottom right of the right-hand pane on the inner sill, and our own painted steel pipe railing crossing diagonally in front of the window in the foreground, softly out of focus. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/ref_railwin.png",
+  "force": true
+ }
+]

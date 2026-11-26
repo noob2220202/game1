@@ -1,0 +1,56 @@
+{
+ "note": "Episode 2 voice lines (DESIGN_EP2 §7.3 · §4.9.1 · §4.1.4). Generated with tools/tts.py run() (gpt-4o-mini-tts, wav) via `python tools/post_ep2.py --tts-gen`, post-processed with tools/ttspost.py helpers + the §7.3 chain via `--tts-post` into ep2/assets/audio/ (WAV 22.05 kHz mono). Korean lines are the canon text; the TTS that says a name says only '하루' (bible §11). Targets: active RMS -20 dBFS (§7.1.6 TTS), peak <= -1 dBFS.",
+ "sr": 22050,
+ "jobs": [
+  {
+   "name": "v2_jimin_vm",
+   "voice": "nova",
+   "text": "형사님이 세아 오르골 사진 보여 주셨어요. 하루 씨가 감았을 때 한 마디만 나왔다면서요. 세아가 9월에 고친 건데…",
+   "instructions": "A Korean woman in her mid-twenties leaving a voice message on her phone, holding it close to her mouth (about 20 cm) in a small studio flat, speaking almost to herself, unhurried. Warm, a little bright at the start. Pace it like this: the first sentence takes about 3.5 seconds; after a short breath, the second sentence takes about 5 seconds; after another breath, the last sentence is slow, about 4 seconds, her throat tightening slightly, close to tears, trailing off at the very end. Natural and intimate, not theatrical. Whole message about 14 seconds.",
+   "post": "vm",
+   "target_s": 14.0,
+   "lead_s": 0.6,
+   "windows": [
+    [
+     0.0,
+     4.2
+    ],
+    [
+     4.4,
+     9.6
+    ],
+    [
+     9.8,
+     14.0
+    ]
+   ],
+   "cuts": {
+    "_a": "up to the end of sentence 1 (…보여 주셨어요.)",
+    "_b": "from 감았을 때 (after 하루 씨가) to the end"
+   },
+   "take": "v2_jimin_vm_t2",
+   "take_note": "take 1 (same text) ran 10.3 s — too fast for the §4.1.4 subtitle windows; retake uses the spare slot with explicit pacing"
+  },
+  {
+   "name": "v2_kang_door",
+   "voice": "sage",
+   "text": "서강경찰서 강수진입니다. 밖은 확인했어요. 천천히 여셔도 돼요.",
+   "instructions": "A Korean woman police detective in her late thirties speaking to someone behind a closed apartment door, about one metre away. Low, calm and unhurried, quietly reassuring, one even take; small natural pauses between the three sentences. Dry, close recording with no room echo.",
+   "post": "kang",
+   "target_s": 4.5
+  },
+  {
+   "name": "v2_him_breath",
+   "voice": "onyx",
+   "text": "하아…",
+   "instructions": "a single tired exhale, no voicing, no words. A man in his forties lets out one long, slow, weary breath through his nose and slightly open mouth, his face close to a steel door. Pure airflow noise: no vowel, no hum, no speech, no pitch.",
+   "post": "breath",
+   "target_s": 1.6
+  },
+  {
+   "name": "spare_1",
+   "generate": false,
+   "note": "예비 1 — §7.3/§4.9.1: no 4th in-game line. Its generation slot was spent on the v2_jimin_vm pacing retake (take 'v2_jimin_vm_t2')."
+  }
+ ]
+}

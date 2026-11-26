@@ -1,0 +1,15 @@
+[
+ {
+  "id": "G12",
+  "name": "g_roof_rail_steps",
+  "pass": 4,
+  "star": false,
+  "size": "1536x1024",
+  "quality": "low",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material and colour identical unless the instruction below changes it. A single trail of large adult winter-boot footprints (long oval lug-sole prints about 29 cm long, a long stride apart, clearly human, not animal tracks) now comes in from the left across the snowy floor and ends at the railing in the foreground; there, over a width of about 60 cm, the snow on top of the pipe railing and on the parapet top has been wiped clean off, exposing the dark painted steel and the bare concrete, as if someone climbed over, and a few scuffed marks continue on the lower roof beyond. Slightly softened by new snow. No person is visible. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/g_roof_rail_snow.png",
+  "fidelity_doc": "high",
+  "force": true,
+  "retry": 1
+ }
+]

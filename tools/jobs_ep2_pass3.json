@@ -1,0 +1,68 @@
+[
+ {
+  "id": "G03",
+  "name": "g_roof_plate_dark",
+  "pass": 3,
+  "star": true,
+  "size": "1536x1024",
+  "quality": "high",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material and colour identical unless the instruction below changes it. The caged bulkhead lamp above the stairwell door is now switched off. The rooftop is lit only by the dim orange-grey glow of the overcast city sky reflected by the fresh snow: deep blue-black shadows, the water-tank room's door reads as a dark slab with a blacker vertical gap, the railing is a faint silhouette, the lower roof and shed are barely visible, and the distant hillside apartment windows still glow. Very dark but with the whole scene recoverable when brightened; no new light sources; the snow is still undisturbed; light snowfall continues. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/g_roof_plate_snow.png",
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G04",
+  "name": "g_roof_plate_steps",
+  "pass": 3,
+  "star": false,
+  "size": "1536x1024",
+  "quality": "medium",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material and colour identical unless the instruction below changes it. In the fresh snow add the footprints of one adult in plain winter boots: one single trail goes from the threshold of the water-tank room's door toward the far left edge of the frame and a second trail comes back along it, the two trails side by side and partly overlapping; and one more single trail leads from the water-tank room's door to the railing on the right, where the snow on top of the railing and parapet has been scraped off over a width of about 60 cm as if someone climbed over. The footprints are slightly softened by new snowfall. Nothing else changes; no person is visible. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/g_roof_plate_snow.png",
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G06",
+  "name": "g_roof_tank_snow",
+  "pass": 3,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material and colour identical unless the instruction below changes it. Three to four centimetres of smooth fresh snow now cover the concrete floor in front of the door, the door's bottom ledge and the top of the water-tank room; snow is still falling gently; the lamp is still on. No footprints, no marks; the door and its narrow gap are unchanged. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/g_roof_tank.png",
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G11",
+  "name": "g_roof_rail_snow",
+  "pass": 3,
+  "star": false,
+  "size": "1536x1024",
+  "quality": "medium",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material and colour identical unless the instruction below changes it. Three to four centimetres of smooth fresh snow now lie on top of the railing and parapet, on the lower roof and the shed, and as a thin line on the outer ledge of the distant dark window; snow is still falling gently; no footprints, no marks. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/g_roof_rail.png",
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G13",
+  "name": "g_rail_window",
+  "pass": 3,
+  "star": false,
+  "size": "1024x1024",
+  "quality": "medium",
+  "prompt": "Recreate this exact view as a close, sharp telephoto photograph at night: the single dark curtainless window of an empty flat fills most of the frame — an old aluminium frame, dusty glass with a hairline crack in one corner, a bare dark room behind it. On the deep inner window sill stand a small matte black cylindrical portable speaker and, beside it, a flat black power bank joined to it by a short cable. Nothing is lit; only the faint orange sky glow and a little cold light reflect off the glass. Keep the window's angle faithful to the reference image. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/ref_railwin.png",
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G32",
+  "name": "g_pol_tank_in",
+  "pass": 3,
+  "star": false,
+  "size": "1536x1024",
+  "quality": "medium",
+  "prompt": "Using the reference image only for the look of the rusted green-grey steel door: a police forensic photograph inside the cramped concrete water-tank room of that rooftop at night, under harsh camera flash. A large grey water tank fills the back; on the floor, a dark green sleeping bag, a steel thermos, an opened box of black nitrile gloves, and a folding camp chair placed right in front of the steel door, facing its narrow gap; through the gap, far away, the small warm lit window of a rooftop room. Small yellow evidence markers with blank faces. Cold, clinical, cramped, dust in the flash. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, screen interfaces or watermarks anywhere in the image; every tag, label area, screen and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep2/g_roof_tank.png",
+  "fidelity_doc": "low"
+ }
+]
