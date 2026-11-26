@@ -767,6 +767,7 @@
   def('sting.soft2', (o) => { if (o.less || A.less()) return; sting(o); });
   def('handle.jerk', (o) => {
     const less = o.less != null ? !!o.less : A.less(), spk = A.speakerMode();
+    if (spk) arc(0, 600);                            // the one ▲ for B14 (climax draws none while the cue runs)
     const src = A.at(0, { dist: 0.4, el: -5, via: 'doorDirect', ir: 'irSteel', wet: 0.25, bus: 'jump', life: 3 }); if (!src) return;
     const g = 0.85 * db((less ? -12 : 0) + (spk ? 3 : 0) + (o.gainDb || 0)), t = now() + 0.005;   // with sting: peak ≈ −1 dBFS after the compressor
     A.noise(t, 0.002, g, src, { filters: [{ type: 'highpass', freq: 2000 }] });
@@ -777,7 +778,6 @@
     A.osc('sine', 80, t + 0.02, 0.27, g * 1.1, src, { a: 0.002, decay: true, to: 55, glide: 0.25 });
     A.noise(t + 0.02, 0.08, g * 0.5, src, { filters: [{ type: 'lowpass', freq: 200 }] });
     if (!less && o.sting !== false) sting({});
-    if (spk) arc(0, 600);
   });
   function breathOut(o) {
     o = o || {};
@@ -865,9 +865,35 @@
    * The drill at the door (§7.2 C, §6.2 climax table) — 0°, −10°, 1.2 m ↔ 0.6 m, doorDirect, irSteel .3
    * ========================================================= */
   let D = null;
+  /* §7.1.6 drill peak −6 dBFS (after the master compressor, whose makeup adds ≈ +3 dB): the 0.6 m spin sat on its RMS target
+     (−13) but its crest (sawtooth + Gibbs, the 310 Hz door resonance, bite thumps) put the peaks at −4.5…−2 dBFS. The crest is
+     rebuilt by the door / HRTF / irSteel filtering, so the limiter sits AFTER the spatial chain: the drill's own output bus
+     'drillOut' (dry + wet) → soft limiter (linear to KNEE, tanh knee to CEIL — dBFS at the bus, i.e. before world / master) →
+     world. Mostly the near spin's peaks reach the knee; measured A/B: peaks −4.2 → −6.5 dBFS, RMS within 0.2 dB. */
+  const DLIM = { knee: db(-12.8), ceil: db(-10), makeup: 1, range: 0.5 };   // bus RMS at 0.6 m ≈ −15.1 dBFS; comp makeup ≈ +3.4 dB
+  let dCurve = null;
+  function drillCurve() {
+    if (dCurve) return dCurve;
+    const N = 8192, cv = new Float32Array(N), k = DLIM.knee, r = DLIM.ceil - DLIM.knee, R = DLIM.range;
+    for (let i = 0; i < N; i++) {
+      const x = ((i / (N - 1)) * 2 - 1) * R, a = Math.abs(x);       // the shaper's ±1 input = ±RANGE (input gain 1 / RANGE)
+      const y = a <= k ? a : k + r * Math.tanh((a - k) / r);
+      cv[i] = Math.sign(x) * y * DLIM.makeup;
+    }
+    return (dCurve = cv);
+  }
+  function drillBus() {
+    const c = A.ctx, cur = A.buses.drillOut;
+    if (cur && cur.context === c) return 'drillOut';
+    const inp = c.createGain(); inp.gain.value = 1 / DLIM.range;
+    const ws = c.createWaveShaper(); ws.curve = drillCurve(); ws.oversample = '4x';
+    inp.connect(ws); ws.connect(A.buses.world);
+    A.buses.drillOut = inp;                          // not in A.BUSES: silenceDrop / hush act on 'world' after it
+    return 'drillOut';
+  }
   function dBuild() {
     const c = A.ctx;
-    const out = A.at(0, { dist: 1.2, el: -10, via: 'doorDirect', ir: 'irSteel', wet: 0.3, bus: 'world', life: Infinity });
+    const out = A.at(0, { dist: 1.2, el: -10, via: 'doorDirect', ir: 'irSteel', wet: 0.3, bus: drillBus(), life: Infinity });
     const master = c.createGain(); master.gain.value = 0; master.connect(out || A.bus('world'));
     const motorG = c.createGain(); motorG.gain.value = 0.0001;
     const mlp = A.filter('lowpass', 2500, 0.7); mlp.connect(motorG); motorG.connect(master);
@@ -911,7 +937,7 @@
     for (let tj = ts + 0.4; tj < ts + len; tj += rnd(0.15, 0.4)) n.jit.frequency.setValueAtTime(rnd(20, 40), tj);   // 20–40 Hz random chatter AM
     // bites every 1.5–3 s: door thump 80 → 55 Hz + motor −10 % for 0.2 s
     for (let tb = ts + rnd(0.9, 1.6); tb < ts + len - 0.4; tb += rnd(1.5, 3)) {
-      dShot(A.osc('sine', 80, tb, 0.2, 0.9, n.master, { a: 0.003, decay: true, to: 55, glide: 0.18 }), tb);
+      dShot(A.osc('sine', 80, tb, 0.2, 0.55, n.master, { a: 0.003, decay: true, to: 55, glide: 0.18 }), tb);   // .9 → .55: the thump no longer drives the limiter hard
       dSetF(tb, 150, 0, 'set'); dSetF(tb, 135, 0.05, 'exp'); dSetF(tb + 0.2, 135, 0, 'set'); dSetF(tb + 0.2, 150, 0.08, 'exp');
       const dl = (tb - now()) * 1000;
       setTimeout(() => { if (D && D.state === 'run' && performance.now() - D.lastVib >= 2000) { D.lastVib = performance.now(); A.vibrate('drill'); } }, Math.max(0, dl));
@@ -1287,7 +1313,7 @@
    * Voices (§7.3, §0.2 T12, §9.7 TTS)
    * ========================================================= */
   const META = (id) => (G.AUDIO_META && G.AUDIO_META[id]) || {};
-  const VOICE_DUR = { v2_kang_door: 6.65, v2_him_breath: 1.7, v2_jimin_vm: 14, v2_jimin_vm_a: 3.88, v2_jimin_vm_b: 9.06 };
+  const VOICE_DUR = { v2_kang_door: 4.97, v2_him_breath: 1.7, v2_jimin_vm: 14, v2_jimin_vm_a: 3.82, v2_jimin_vm_b: 9.06 };
   const playerName = () => { try { return String(G.NAME || (window.CONFIG && window.CONFIG.PLAYER_NAME) || '하루').trim() || '하루'; } catch (e) { return '하루'; } };
   /* formant fallback for '{N} 씨가' — 1편 포먼트 표 (js/data/recordings.js FORM), voiced, female ~240 Hz */
   const JUNG = 'ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ', CHO = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
@@ -1330,9 +1356,14 @@
     return out;
   }
   const vmCache = {};
+  /* The v2_jimin_vm* TTS files sit ≈ 10 dB under the dialogue target once they pass the phone chain at media volume 60
+     (−27.6 LUFS measured vs §10 H −16 / Kang through the door −17.2). G.media applies this trim on the phone route only
+     (never on 2층_스피커 — C2 calibration), so the voicemail lands ≈ −17.5 LUFS; the hook voice (hook.seahY, ≈ −18.4) carries none. */
+  const VM_PHONE_TRIM_DB = 10;
+  const tagVM = (b) => { if (b && typeof b === 'object') { try { b.mediaTrimDb = VM_PHONE_TRIM_DB; } catch (e) {} } return b; };
   A.jiminVM = function () {
     const name = playerName();
-    if (name === '하루') return A.voice('v2_jimin_vm');
+    if (name === '하루') return Promise.resolve(A.voice('v2_jimin_vm')).then(tagVM);
     if (vmCache[name]) return vmCache[name];
     if (!A.ctx) return Promise.resolve(null);       // TTS decode needs the context (after the start tap) — don't cache a miss
     vmCache[name] = Promise.all([A.voice('v2_jimin_vm_a'), A.voice('v2_jimin_vm_b')]).then(([a, b]) => {
@@ -1350,7 +1381,7 @@
       for (let i = 0; i < nm.length && ni + i < len; i++) { const e = Math.min(1, i / (0.01 * sr), (nm.length - i) / fade); d[ni + i] += nm[i] * gN * e; }
       const bi = Math.floor(bAt * sr);
       for (let i = 0; i < bd.length && bi + i < len; i++) d[bi + i] += bd[i] * Math.min(1, i / fade);
-      return buf;
+      return tagVM(buf);
     }).catch(() => null);
     return vmCache[name];
   };
@@ -1504,6 +1535,7 @@
       stats: () => Object.assign({ live: live.size, yaw, openness, gsm: GSM.base, drill: drill.playing(), ambient: Object.keys(A.ambient) }, A.stats),
       buffer: (id) => A.buffer(id), play: (id, o) => A.buffer(id).then((b) => A.playBuffer(b, Object.assign({ bus: 'music' }, o || {}))),
       amb: (id, on) => A.amb(id, on), gsm: A.gsmTank, drill, box15: () => A.box15.start(), cal: CAL,
+      drillNodes: () => (D ? D.n : null),          // level probes (QA: §7.1.6 drill peak check)
     };
   }
 })();

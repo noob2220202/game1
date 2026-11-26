@@ -79,7 +79,7 @@
 .fl2-prow { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; min-height: 52px; padding: 4px 0; border-bottom: 1px solid #1f1f23; }
 .fl2-plabel { font-size: calc(14px * var(--ts, 1)); color: #b6b6bb; white-space: nowrap; }
 .fl2-seg { display: flex; border: 1px solid #333338; border-radius: 10px; overflow: hidden; margin-left: auto; }
-.fl2-seg button { min-height: 44px; padding: 0 11px; font-size: calc(12.5px * var(--ts, 1)); color: #8a8a90; border-left: 1px solid #2a2a2f; white-space: nowrap; }
+.fl2-seg button { min-height: 44px; min-width: 44px; padding: 0 11px; font-size: calc(12.5px * var(--ts, 1)); color: #8a8a90; border-left: 1px solid #2a2a2f; white-space: nowrap; }
 .fl2-seg button:first-child { border-left: 0; }
 .fl2-seg button.on { background: #7f1d1d; color: #fff; }
 .fl2-togs { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; justify-content: flex-end; }

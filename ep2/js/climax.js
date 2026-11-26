@@ -181,11 +181,20 @@
   }
 
   /* ======================= M6 — the drill ======================= */
-  function heartbeatOn() {
+  /** §6.1.5 heartbeat bed = a state, not a one-shot: T ≥ .8 ∧ M6 ∧ ¬M7 while the drill runs (B14 t = 3.0 — the drill's hard
+   *  stop — and the siren end it). Earphones → the bed; speaker mode → vignette pulse (A.heartbeat routes it per beat);
+   *  덜 무섭게 → nothing (§6.1.8). Re-judged on every climax tick: T is still at the M5 level (.70) when the drill starts and
+   *  crosses .8 ≈ 4.6 s later (director τ 6.7 s), and 덜 무섭게 can be switched on or off mid-drill. */
+  let hbWant = false;
+  function heartbeatSync() {
     let T = 0.9; try { if (G.director && G.director.T) T = G.director.T(); } catch (e) {}
-    const ear = !(G.settings && G.settings.audioMode === 'speaker');
-    if (T >= 0.8 && ear && !less()) call(A(), 'heartbeat', true, { bpm: 72 });
+    let drilling = false; try { drilling = !!(A().drill && A().drill.playing && A().drill.playing()); } catch (e) {}
+    const want = (phase === 'drill' || phase === 'b14') && drilling && flag('M6') && !flag('M7') && T >= 0.8 && !less();
+    if (want) call(A(), 'heartbeat', true, { bpm: 72 });           // idempotent while the bed runs; retries until audio is up
+    else if (hbWant) call(A(), 'heartbeat', false);
+    hbWant = want;
   }
+  function heartbeatOn() { heartbeatSync(); }
   function drillSubLoop() {
     later(20000, () => {
       if (phase !== 'drill') return;
@@ -320,9 +329,10 @@
     later(3000, () => {
       call(A().drill, 'stopC2');
       jump('drillStop');
-      // input focus delays the handle by 0.8 s (below) → the silence lasts until the hit (§6.4-①)
+      // input focus delays the handle by 0.8 s (below) → the silence lasts until the hit (§6.4-①);
+      // 덜 무섭게 or the notebook open (S2 → the less version, same test as the hit) → '무음은 0.3초만'
       let foc = false; try { foc = !!(G.ui && G.ui.inputActive && G.ui.inputActive()); } catch (e) {}
-      call(A(), 'silenceDrop', less() ? 300 : foc ? 2600 : 1800, { keep: ['mediaOut'] });
+      call(A(), 'silenceDrop', b14Less() ? 300 : foc ? 2600 : 1800, { keep: ['mediaOut'] });
       call(A(), 'heartbeat', false);
       sub('S10', { ms: 1700 });
       emit('climax:drill', { on: false });
@@ -349,7 +359,9 @@
       call(A(), 'vibrate', 'b14');
       if (!doorSeen && !(G.settings && G.settings.reduceShake)) call(G.fx, 'edgeShake', 3, 300);
     }
-    if (G.audio && G.settings && G.settings.audioMode === 'speaker') call(G.fx, 'dirArc', 0, 600);
+    // speaker mode: the handle.jerk cue draws the ▲ arc itself (spatial.js) — draw it here only when the cue could not run
+    let audioUp = false; try { audioUp = !!(A().ok && A().ok() && !A().paused); } catch (e) {}
+    if (!audioUp && G.settings && G.settings.audioMode === 'speaker') call(G.fx, 'dirArc', 0, 600);
   }
   function b14Breath() {
     if (flag('M7')) return;
@@ -423,13 +435,24 @@
     try { G.room && G.room.tankAjar && G.room.tankAjar(); } catch (e) {}
     // hinge.none — no sound, no subtitle (★S2-8)
   }
+  /** B18 00:41 (§6.2 · §4.9.2 S16 = B18): the whole beat lands inside 00:41–00:43 so `[멀리서 — 덜컥]` precedes B16's
+   *  `[무전 잡음]` even on the whereTank path (00:44 ≈ M7 + 34.5 s at m7rate 1.5) — §4.10.1 order 사이렌 → 덜컥 → 무전 잡음 */
+  let s16Pending = false, afterS16 = [];
+  function s16Shown() { s16Pending = false; const q = afterS16; afterS16 = []; q.forEach((f) => later(600, f, 'm7')); }
   function b18() {
     if (fired('B18') || !flag('M7')) return;
     mark('B18');
     try { const g = A().gsmTank; g && g.fadeTo && g.fadeTo(0, 4000); } catch (e) {}
-    steps(70, 115, 6, 4000, -10, 6, 9);
-    later(4200, () => cue('rail.creak', { az: 115, dist: 6 }), 'm7');
-    later(6500, () => { cue('door.far', { az: 115, dist: 14 }); sub('S16', { ms: 2000 }); }, 'm7');
+    steps(70, 115, 6, 3400, -10, 6, 9);              // gap 3.4 / 6 = 0.57 s (gait 0.55–0.70) · last step ≈ +2.8 s
+    s16Pending = true;
+    later(3300, () => cue('rail.creak', { az: 115, dist: 6 }), 'm7');
+    later(4000, () => { cue('door.far', { az: 115, dist: 14 }); sub('S16', { ms: 2000 }); s16Shown(); }, 'm7');
+  }
+  /** run fn now, or 0.6 s after S16 if B18's far door is still to come (in-session only — a reload drops the wait) */
+  function afterFarDoor(fn) {
+    if (!s16Pending) { fn(); return; }
+    afterS16.push(fn);
+    later(4600, () => { const i = afterS16.indexOf(fn); if (i >= 0) { afterS16.splice(i, 1); fn(); } }, 'm7');   // never wait longer than B18 itself
   }
   /** B16 — the patrol reaches the roof: torches straight to the tank door (whereTank, 00:44) or round the roof first (00:47) */
   function b16() {
@@ -439,7 +462,7 @@
     c.b16 = mode; save();
     mark('B16');
     cue('boots.snow', { n: 8, people: 2, from: { az: 55, dist: 7 }, to: { az: 70, dist: 6 } });   // ×2명 (audio staggers the two)
-    later(900, () => { cue('radio.squelch', { az: 70 }); sub('S17', { ms: 2000 }); }, 'm7');
+    later(900, () => afterFarDoor(() => { cue('radio.squelch', { az: 70 }); sub('S17', { ms: 2000 }); }), 'm7');
     const reached = () => { const k = cl(); if (k.b16Done) return; k.b16Done = true; k.b16DonePm = playMs(); save(); later(2000, () => { cl().beamsDone = true; save(); }, 'm7'); try { G.room && G.room.refresh && G.room.refresh(); } catch (e) {} };
     try { if (G.room && G.room.beams) G.room.beams(mode, reached); else later(mode === 'direct' ? 1500 : 6000, reached, 'm7'); } catch (e) { later(1500, reached, 'm7'); }
     squelchLoop(true);
@@ -483,6 +506,7 @@
       tlNow += dt;
       runTL();
       try { watch(dt); } catch (e) { console.error('[climax] watch', e); }
+      try { heartbeatSync(); } catch (e) { console.error('[climax] heartbeat', e); }
       S.local();
     }
     setTimeout(loop, running() ? 100 : 250);

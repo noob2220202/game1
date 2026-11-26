@@ -33,11 +33,10 @@
 .md2-kv > b { flex: 1; font-weight: 500; word-break: keep-all; overflow-wrap: anywhere; }
 .md2-band { margin: 10px 14px 4px; padding: 10px 14px; border-radius: 12px; background: var(--md-bg2); color: var(--md-mut); font-size: calc(13px * var(--ts, 1)); line-height: 1.45; }
 .md2-hr { border: 0; border-top: .5px solid var(--md-line); margin: 14px 20px 4px; }
-.md2-chips { display: flex; gap: 8px; padding: 12px 14px 6px; overflow-x: auto; scrollbar-width: none; }
+.md2-chips { display: flex; gap: 8px; padding: 8px 14px 2px; overflow-x: auto; scrollbar-width: none; }
 .md2-chips::-webkit-scrollbar { display: none; }
-.md2-chip { flex: none; min-height: 36px; padding: 0 15px; border-radius: 18px; background: var(--md-bg2) !important; color: var(--md-ink); font-size: calc(14px * var(--ts, 1)); font-weight: 500; cursor: pointer; position: relative; }
-.md2-chip::after { content: ''; position: absolute; inset: -4px 0; }
-.md2-chip.on { background: var(--md-ink) !important; color: var(--md-bg) !important; }
+.md2-chip { flex: none; min-height: 44px; padding: 0 15px; border: solid transparent; border-width: 4px 0; border-radius: 18px / 22px; background: var(--md-bg2) padding-box !important; color: var(--md-ink); font-size: calc(14px * var(--ts, 1)); font-weight: 500; cursor: pointer; position: relative; }
+.md2-chip.on { background: var(--md-ink) padding-box !important; color: var(--md-bg) !important; }
 .md2-dot { display: block; width: 5px; height: 5px; border-radius: 50%; background: var(--md-acc); margin: 2px auto 0; }
 .md2-tg { width: 51px; height: 31px; min-width: 51px; border-radius: 16px; background: #c9c9ce !important; position: relative; flex: none; transition: background .22s; cursor: pointer; }
 [data-theme="dark"] .md2-tg { background: #3a3a3f !important; }
@@ -45,8 +44,8 @@
 .md2-tg::after { content: ''; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; transition: transform .26s cubic-bezier(.3,1.4,.5,1); box-shadow: 0 2px 5px rgba(0,0,0,.28); }
 .md2-tg.on { background: #3b82f6 !important; }
 .md2-tg.on::after { transform: translateX(20px); }
-.md2-tabs { flex: none; display: flex; justify-content: space-around; border-top: .5px solid var(--md-line); background: var(--md-bg); padding: 4px 4px calc(var(--safe-bot, 0px) + 18px); }
-.md2-tab { flex: 1; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--md-mut) !important; font-size: calc(11.5px * var(--ts, 1)); cursor: pointer; }
+.md2-tabs { flex: none; display: flex; justify-content: space-around; border-top: .5px solid var(--md-line); background: var(--md-bg); padding: 2px 4px calc(var(--safe-bot, 0px) + 28px); }
+.md2-tab { flex: 1; min-height: 48px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--md-mut) !important; font-size: calc(11.5px * var(--ts, 1)); cursor: pointer; }
 .md2-tab svg { width: 24px; height: 24px; }
 .md2-tab.on { color: var(--md-ink) !important; font-weight: 600; }
 
@@ -71,22 +70,31 @@
 /* =========================================================
  * 전화
  * ========================================================= */
+.md2-ph > .sv-body { padding-bottom: 0; }   /* the tab bar below already carries the home-indicator inset */
 .md2-ph-body { display: flex; flex-direction: column; min-height: 100%; }
-.md2-kp { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px 0 8px; }
+/* keypad sized from the height it really has (360×640 · 130 % · desktop frame): every size derives from --k (key diameter).
+   column budget = kp padding 18 + SIM pill ≈ 32 + slack 4 + number (.16k + .8k + .1k) + 4 keys + 3 gaps (.16k) + call row (.2k + .95k + .06k)
+   = 54 px + 6.75k → k = (height − 54) / 6.75, 52–76 px. The 긴급 통화 overlay also subtracts its 54 px head and its 26 px + safe bottom pad. */
+.md2-kp { --k: clamp(52px, calc((100vh - 210px) / 6.75), 76px); flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px 0 8px; }
+@supports (container-type: size) {
+  .md2-ph > .sv-body, .md2-em { container-type: size; }
+  .md2-ph .md2-kp { --k: clamp(52px, calc((100cqh - 54px) / 6.75), 76px); }
+  .md2-em .md2-kp { --k: clamp(52px, calc((100cqh - 54px - 68px - var(--safe-bot, 0px)) / 6.75), 76px); }
+}
 .md2-kp-sim { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 14px; background: var(--md-bg2); color: var(--md-mut); font-size: calc(12.5px * var(--ts, 1)); }
 .md2-kp-sim svg { width: 16px; height: 16px; }
-.md2-dial-num { min-height: 64px; margin: 16px 18px 10px; display: flex; align-items: center; justify-content: center; font-size: calc(34px * var(--ts, 1)); font-weight: 300; letter-spacing: 1px; color: var(--md-ink); word-break: break-all; text-align: center; }
+.md2-dial-num { min-height: calc(var(--k) * .8); margin: calc(var(--k) * .16) 18px calc(var(--k) * .1); display: flex; align-items: center; justify-content: center; font-size: calc(34px * var(--ts, 1)); font-weight: 300; letter-spacing: 1px; color: var(--md-ink); word-break: break-all; text-align: center; }
 .md2-dial-num.long { font-size: calc(26px * var(--ts, 1)); }
-.md2-dial-pad { display: grid; grid-template-columns: repeat(3, 76px); gap: 12px 26px; justify-content: center; margin-top: auto; }
-.md2-dial-key { width: 76px; height: 76px; border-radius: 50%; background: var(--md-bg2) !important; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: background .12s; }
+.md2-dial-pad { display: grid; grid-template-columns: repeat(3, var(--k)); gap: calc(var(--k) * .16) calc(var(--k) * .34); justify-content: center; margin-top: auto; }
+.md2-dial-key { width: var(--k); height: var(--k); border-radius: 50%; background: var(--md-bg2) !important; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: background .12s; }
 .md2-dial-key:active { background: #d8d8dc !important; }
-.md2-dial-key b { font-size: calc(30px * var(--ts, 1)); font-weight: 400; line-height: 1; }
+.md2-dial-key b { font-size: min(calc(30px * var(--ts, 1)), calc(var(--k) * .45)); font-weight: 400; line-height: 1; }
 .md2-dial-key small { font-size: calc(9.5px * var(--ts, 1)); letter-spacing: 1.5px; color: var(--md-mut); min-height: 11px; margin-top: 2px; }
-.md2-dial-call { display: grid; grid-template-columns: 76px 76px 76px; gap: 26px; justify-content: center; align-items: center; margin: 18px 0 6px; }
-.md2-dial-go { width: 72px; height: 72px; border-radius: 50%; background: #2fbf55 !important; color: #fff !important; display: flex; align-items: center; justify-content: center; justify-self: center; box-shadow: 0 6px 18px rgba(47,191,85,.3); cursor: pointer; }
+.md2-dial-call { display: grid; grid-template-columns: repeat(3, var(--k)); gap: calc(var(--k) * .34); justify-content: center; align-items: center; margin: calc(var(--k) * .2) 0 calc(var(--k) * .06); }
+.md2-dial-go { width: calc(var(--k) * .95); height: calc(var(--k) * .95); border-radius: 50%; background: #2fbf55 !important; color: #fff !important; display: flex; align-items: center; justify-content: center; justify-self: center; box-shadow: 0 6px 18px rgba(47,191,85,.3); cursor: pointer; }
 .md2-dial-go svg { width: 30px; height: 30px; }
 .md2-dial-go:active { filter: brightness(.9); transform: scale(.97); }
-.md2-dial-del { width: 56px; height: 56px; justify-self: center; display: flex; align-items: center; justify-content: center; color: var(--md-mut) !important; cursor: pointer; }
+.md2-dial-del { width: max(44px, calc(var(--k) * .74)); height: max(44px, calc(var(--k) * .74)); justify-self: center; display: flex; align-items: center; justify-content: center; color: var(--md-mut) !important; cursor: pointer; }
 .md2-dial-del svg { width: 28px; height: 28px; }
 .md2-em { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; background: #fff; color: #111; padding-top: var(--sb-h, 30px); opacity: 0; transition: opacity .22s; --md-bg2: #f1f1f4; --md-mut: #8a8a90; --md-ink: #111; }
 .md2-em.in { opacity: 1; }
@@ -94,13 +102,6 @@
 .md2-em-head b { font-size: calc(18px * var(--ts, 1)); font-weight: 700; color: #e5484d; }
 .md2-em .md2-kp { padding-bottom: calc(var(--safe-bot, 0px) + 26px); }
 .md2-em .md2-dial-go { background: #e5484d !important; box-shadow: 0 6px 18px rgba(229,72,77,.3); }
-@media (max-height: 700px) {
-  .md2-dial-pad { grid-template-columns: repeat(3, 66px); gap: 9px 24px; }
-  .md2-dial-key { width: 66px; height: 66px; }
-  .md2-dial-key b { font-size: calc(26px * var(--ts, 1)); }
-  .md2-dial-call { grid-template-columns: 66px 66px 66px; margin-top: 12px; }
-  .md2-dial-go { width: 64px; height: 64px; }
-}
 
 /* =========================================================
  * 갤러리 + viewer + video
@@ -333,7 +334,7 @@
 .md2-br-row:active { background: rgba(0,0,0,.05); }
 .md2-br-fav, .md2-br-hfav { width: 28px; height: 28px; flex: none; border-radius: 8px; background: #e6edfd; color: #2563eb; display: flex; align-items: center; justify-content: center; }
 .md2-br-fav svg, .md2-br-hfav svg { width: 17px; height: 17px; }
-.md2-br-rt { flex: 1; min-width: 0; font-size: calc(15px * var(--ts, 1)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.md2-br-rt { flex: 1; min-width: 0; font-size: calc(15px * var(--ts, 1)); line-height: 1.4; white-space: normal; word-break: keep-all; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 .md2-br-when { flex: none; font-size: calc(12.5px * var(--ts, 1)); color: var(--md-mut); }
 .md2-br-tabs { align-self: center; margin-top: 28px; padding: 6px 14px; border-radius: 14px; border: 1px solid var(--md-line); font-size: calc(12.5px * var(--ts, 1)); color: var(--md-mut); }
 .md2-br-sbody { padding: 12px 14px; }

@@ -232,6 +232,14 @@
   const row = (o) => U().row(o), group = (t, r, f) => U().group(t, r, f), hero = (a, b, c) => U().hero(a, b, c);
   const toggle = (on, fn, o) => U().toggle(on, fn, o), btnRow = (l, fn, o) => U().btnRow(l, fn, o);
   const isDash = () => user() === 'dash';
+  /* 등록된 지문 확인 glow (§3.4 — the moment the player sees 지문 2 never light): long enough to compare the two rows */
+  const GLOW_MS = 3000;
+  function unGlow(api) {
+    clearTimeout(api._glowT); api._glowT = 0; api._glow = null; api._glowUntil = 0;
+    const s = api.scr; if (s) s.querySelectorAll('.sh2-row.fp.glow').forEach((n) => n.classList.remove('glow'));
+  }
+  /** a row whose value is a date/time — keep '오후 2:31' on one line (§10 H 360 px · 130 %) */
+  function oneLine(r) { const m = r && r.querySelector('.sh2-meta'); if (m) { m.style.whiteSpace = 'nowrap'; m.style.maxWidth = 'none'; } return r; }
   function reg(key, def) { if (G.settingsApp && G.settingsApp.register) G.settingsApp.register(key, def); }
   SEC.open = function (key, params) { G.bus && G.bus.emit('security:screen', { key }); return G.settingsApp && G.settingsApp.open ? G.settingsApp.open(key, params) : false; };
 
@@ -327,26 +335,31 @@
         const X = FT();
         if (isDash()) return el('div.sh2-empty', null, T((G.STORY.settings && G.STORY.settings.dash && G.STORY.settings.dash.bio) || X.none));
         const list = SEC.fingers();
-        const rows = list.map((f) => row({ title: fpLabel(f), qa: 'bio.finger:' + f.id, key: 'bio.fingerDetail', params: { id: f.id, verified: true }, cls: 'fp' + (api._glow === f.id ? ' glow' : '') }));
+        const lit = (id) => api._glow === id && Date.now() < (api._glowUntil || 0);
+        const rows = list.map((f) => row({ title: fpLabel(f), qa: 'bio.finger:' + f.id, key: 'bio.fingerDetail', params: { id: f.id, verified: true }, cls: 'fp' + (lit(f.id) ? ' glow' : '') }));
         const check = el('div.sh2-fpcheck' + (api._check ? '.open' : ''));
         if (api._check) {
           check.append(el('div.fc-text', null, STR('fpTouch')),
             el('div.fc-btn', null, (G.lock && G.lock.fingerButton ? G.lock.fingerButton('bio.check', () => {
               const own = SEC.fingers().find((f) => f.id === 'f1') || SEC.fingers().find((f) => f.own);
-              api._glow = own ? own.id : null; api._check = false;
+              api._glow = own ? own.id : null; api._glowUntil = Date.now() + GLOW_MS; api._check = false;
               cue('fp.ok'); setFlag('factFinger');
               G.bus && G.bus.emit('security:finger', { ok: true, where: 'check' });
               api.refresh();
-              setTimeout(() => { api._glow = null; api.refresh(); }, 1200);
+              clearTimeout(api._glowT);
+              api._glowT = setTimeout(() => unGlow(api), GLOW_MS);
             }) : el('span'))));
         }
-        return el('div', null,
+        const wrap = el('div', null,
           group(X.registered, rows),
           group(null, [
             row({ key: 'bio.fingerAdd', params: { verified: true }, title: X.add, qa: 'bio.add', chev: false, cls: 'add' }),
             row({ title: X.check, qa: 'bio.checkOpen', onClick: () => { api._check = !api._check; api.refresh(); }, chev: false }),
           ]),
           check);
+        // the next tap on this screen ends the glow — class only (no re-render under the finger, so that tap still lands)
+        wrap.addEventListener('pointerdown', () => { if (api._glow) unGlow(api); }, true);
+        return wrap;
       },
     });
     reg('bio.fingerDetail', {
@@ -359,8 +372,8 @@
         if (!f) return el('div');
         const ren = sess.get('fpRename:' + f.id);
         const rows = [row({ title: X.name, meta: ren || T(f.name) })];
-        if (f.added) rows.push(row({ title: X.added, meta: f.added }));
-        if (f.lastUsed) rows.push(row({ title: X.lastUsed, meta: f.lastUsed }));
+        if (f.added) rows.push(oneLine(row({ title: X.added, meta: f.added })));
+        if (f.lastUsed) rows.push(oneLine(row({ title: X.lastUsed, meta: f.lastUsed })));
         return el('div', null, hero(fpLabel(f), '', el('span.sh2-fpic', { html: (G.lock && G.lock.ICON && G.lock.ICON.finger) || '' })), group(null, rows),
           el('div.sh2-actions.two', null,
             btnRow(X.rename || '이름 변경', () => { G.settingsApp.renameSheet && G.settingsApp.renameSheet({ title: X.rename, value: ren || T(f.name), ctx: 'fpRename', key: 'fpRename:' + f.id, after: api.refresh }); }, { qa: 'bio.rename' }),

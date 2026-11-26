@@ -72,8 +72,11 @@
   function dateOf(hm) { const [h, m] = String(hm).split(':').map(Number); return new Date(2026, 11, h < 12 ? 25 : 24, h, m); }
   const now = () => (C.now ? C.now() : new Date());
   const nowMs = () => +now();
+  function fmtStamp(t) { try { if (C.fmtK) return C.fmtK(t); } catch (e) {} const d = new Date(t), h = d.getHours(); return `${h < 12 ? '오전' : '오후'} ${h % 12 === 0 ? 12 : h % 12}:${String(d.getMinutes()).padStart(2, '0')}`; }
   function passed(hm) { try { if (G.clock && G.clock.passed) return G.clock.passed(hm); } catch (e) {} return nowMs() >= +dateOf(hm); }
   const stamp = (at) => (at ? Math.max(nowMs(), +dateOf(at)) : nowMs());
+  /** a new line never sorts before the thread's last one — K carries 01:12 while the clock is held at 01:10 (§4.10.1) */
+  function notBefore(thread, t) { const a = live(thread), l = a.length ? +a[a.length - 1].t || 0 : 0; return Math.max(t, l); }
 
   /* ---------------- answers (core's E2 with §9.5-5 verbatim fallback) ---------------- */
   function norm(s) { try { if (G.e2 && G.e2.norm) return G.e2.norm(s); } catch (e) {} return String(s || '').normalize('NFC').trim().replace(/[\s\p{P}\p{S}\p{Extended_Pictographic}]/gu, '').toLowerCase(); }
@@ -262,6 +265,7 @@
         id: opts.nid, app: 'moment', chat: thread, user: 'n',
         title: THREAD_TITLE[thread] || '', body: body || '',     // raw tokens — expanded by shell at render (§10 F)
         route: { app: 'moment', params: { thread } }, coalesce: opts.coalesce !== false,
+        when: opts.when || undefined,                            // a line stamped ahead of a held clock keeps its own time
       });
     } catch (e) { console.error('[social] notify', e); }
   }
@@ -271,7 +275,7 @@
     opts = opts || {};
     const incoming = entry.from !== 'me';
     if (incoming && opts.network !== false && !online()) {   // offline → queue, original timestamp kept (§5.6 · ARCH G29)
-      so().queue.push({ thread, entry, opts: { nid: opts.nid || null, notify: opts.notify !== false, coalesce: opts.coalesce !== false } });
+      so().queue.push({ thread, entry, opts: { nid: opts.nid || null, notify: opts.notify !== false, coalesce: opts.coalesce !== false, when: opts.when || null } });
       save();
       return entry;
     }
@@ -296,13 +300,13 @@
     q.forEach((x) => pushEntry(x.thread, x.entry, Object.assign({}, x.opts, { network: false })));
   }
   function deliver(thread, it) {
-    const entry = { id: it.id, t: stamp(it.at) };
+    const entry = { id: it.id, t: it.t != null ? it.t : notBefore(thread, stamp(it.at)) };   // it.t = an exact story time (K · 01:12)
     let nid = it.nid || null, notify = it.notify;
     if (notify == null) {
       if (thread === 'real') { nid = nid || ((it.n11 ? 'N11:' : 'N10:') + it.id); notify = true; }
       else notify = !!nid;
     }
-    return pushEntry(thread, entry, { nid, notify });
+    return pushEntry(thread, entry, { nid, notify, when: it.when || null });
   }
 
   /* ---------------- script queue (typing dots → line), persisted in vars.so.q ---------------- */
@@ -396,7 +400,16 @@
       s.done.A = 1; mark('B19');
       enqueue('real', [{ id: 'cA1', ms: 1000, n11: true }, { id: 'cA2', ms: 1600, n11: true }, { id: 'cA3', ms: 1400, n11: true, act: ['arrived'] }]);
     }
-    if (flag('C1') && passed(at.K) && !s.done.K) { s.done.K = 1; enqueue('real', [{ id: 'cK1', ms: 1200, n11: true }, { id: 'cK2', ms: 1400, n11: true }]); }
+    // K (§3.13 · §4.1.6 K · §4.10.1 — 01:12): from M8 (01:10) the clock is held for the door scene and jumps to 01:20 on the next
+    // card, so K cannot wait for passed('01:12'). It goes out with Kang's voice at the door (M8 ∨ doorOpened — M8 always comes
+    // first; doorOpened covers a resume) or when the clock passes 01:12, whichever is first — ~1.2 s / 2.6 s later, while the
+    // phone UI is still up (the eye view at the door hides banners) and always before the 01:20 card. Both lines carry the
+    // story stamp 오전 1:12 (thread time + banner time), never the held or jumped clock.
+    if (flag('C1') && !s.done.K && (passed(at.K) || flag('M8') || flag('doorOpened'))) {
+      s.done.K = 1;
+      const t = +dateOf(at.K), when = fmtStamp(t);
+      enqueue('real', [{ id: 'cK1', ms: 1200, n11: true, t, when }, { id: 'cK2', ms: 1400, n11: true, t, when }]);
+    }
     save();
   }
   function cancelTonight() { const s = so(); (TH().tonight || []).forEach((it) => { if (!s.tonight[it.id]) s.tonight[it.id] = 'x'; }); save(); }
@@ -422,7 +435,7 @@
   /* ---------------- sending ---------------- */
   function myEntry(thread, text, chipKey) {
     const s = so();
-    const e = { id: 'me' + (++s.seq), from: 'me', t: nowMs() };
+    const e = { id: 'me' + (++s.seq), from: 'me', t: notBefore(thread, nowMs()) };
     if (chipKey) { e.chip = chipKey; e.edited = text !== T(chipText(chipKey)); }
     else e.edited = true;
     if (e.edited) sess.set(e.id, text);
@@ -768,8 +781,16 @@
       }
       const chips = chipsFor(id);
       if (id === 'jimin_0412' && s2.script.j0200 === 'answer') chips.push({ kind: 'button', qa: 'chat.noAnswer', text: T(UI('noAnswer') || '대답하지 않는다'), onClick: () => noAnswer() });
+      const box = api.scr.querySelector('.so2-chips');
+      const sig = chips.map((c) => c.key || c.qa || c.text).join('|');
+      const sc = api.scr.body, nb = !!sc && sc.scrollHeight - sc.scrollTop - sc.clientHeight < 160;
       api.setChips(chips, (c) => { if (!field) return; field.set(c.text); pending = c.key; sendBtn.classList.add('on'); field.node.classList.remove('so2-flash'); void field.node.offsetWidth; field.node.classList.add('so2-flash'); },
         () => { so().fakeChipGone = 1; save(); composer(); });
+      if (box) {
+        const n = box.childElementCount;
+        box.classList.toggle('so2-wrap', n > 0 && n <= 3);   // every real chip set (max: c4 + D + S) stays fully visible
+        if (sig !== box.dataset.sig) { box.dataset.sig = sig; if (nb) setTimeout(() => { if (api.scr.isConnected) api.scrollEnd(true); }, 280); }
+      }
     }
     function doSend() {
       if (!field) return;
@@ -1362,7 +1383,8 @@
       G.bus.on('flag:' + fl('C2'), () => { if (flag('C1') && !so().done.P1) SCH.at((pmOf('C2') || pm()) + (((TH().c1 || {}).timing || {}).p1AfterC2 || 28000) - 1200, 'social:P1'); });
       G.bus.on('flag:' + fl('M7'), () => { if (flag('C1') && !flag('C2') && !so().done.P2) SCH.at((pmOf('M7') || pm()) + (((TH().c1 || {}).timing || {}).p2AfterM7 || 5000) - 1200, 'social:P2'); });
       G.bus.on('flag:' + fl('M6'), () => refreshView('real'));
-      G.bus.on('flag:' + fl('M8'), () => refreshView('real'));
+      G.bus.on('flag:' + fl('M8'), () => { clockTick(); refreshView('real'); });   // K (01:12) — see clockTick
+      G.bus.on('flag:' + fl('doorOpened'), clockTick);
       G.bus.on('clock:min', clockTick);
       G.bus.on('clock:jump', clockTick);
       G.bus.on('wifi:change', () => { flushQueue(); clockTick(); rootRefresh(); Object.keys(views).forEach((k) => refreshView(k)); });

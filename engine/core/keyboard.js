@@ -13,6 +13,10 @@
  * A word drawn ≥ 250 ms continuously → bus 'kbd:shown' {user, ctx, words:[{w,his,seed}]} (once per word per focus).
  * Tap a cell (or desktop Ctrl+1/2/3) → token replaced by the word + ' '. Esc is NOT handled here (main.js owns it).
  * Bus: 'keyboard' (true|false) · 'kbd:shown'. Back: registers G.phone.pushBack(close) while open.
+ * Outside tap closes it (like a real phone): a tap (≤ 10 px travel) on #screen outside the keyboard, outside every field and
+ *   outside the focused field's own row / editor box (its parent: composer + send, search box, memo paper, code box + 확인) —
+ *   and, when the field sits in a sheet/dialog, outside that sheet — hides the keyboard. Chips row (.so2-chips) and any
+ *   [data-kb-keep] element keep it. A drag (scrolling the conversation) keeps it.
  * data-qa: kb · kb.key:<char> · kb.lang · kb.space · kb.back · kb.submit · kb.shift · kb.sym · kb.predict:<0|1|2>
  * ========================================================= */
 (function () {
@@ -107,6 +111,39 @@
     kb.addEventListener('pointerdown', (e) => e.preventDefault());
     kb.addEventListener('contextmenu', (e) => e.preventDefault());
     document.addEventListener('keydown', onPhysicalKey);
+    bindOutsideTap(screen);
+  }
+
+  /* ---------------- outside tap → close ---------------- */
+  const KEEP_SEL = '.kb, .fld, [role="textbox"], .so2-chips, [data-kb-keep]';
+  function keepsKeyboard(t) {
+    const f = active;
+    if (!f || !t || !t.closest) return true;
+    if (t.closest(KEEP_SEL)) return true;                                     // keyboard, any field (its own click re-targets), chips
+    const box = f.node.parentElement;                                         // the field's own row / editor box
+    if (box && box !== document.body && box.id !== 'screen' && box.contains(t)) return true;
+    const modal = f.node.closest('.sheet, .dialog');                          // a sheet/dialog holding the field: its buttons submit
+    if (modal && modal.contains(t)) return true;
+    return false;
+  }
+  function bindOutsideTap(screen) {
+    let down = null;
+    screen.addEventListener('pointerdown', (e) => {
+      down = null;
+      if (!UI.keyboardOpen() || (e.button != null && e.button > 0)) return;
+      if (keepsKeyboard(e.target)) return;
+      down = { id: e.pointerId, x: e.clientX, y: e.clientY, f: active };
+    }, true);
+    screen.addEventListener('pointermove', (e) => {
+      if (down && e.pointerId === down.id && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 10) down = null;   // a drag / scroll
+    }, true);
+    screen.addEventListener('pointerup', (e) => {
+      const d = down; down = null;
+      if (!d || e.pointerId !== d.id || active !== d.f || !UI.keyboardOpen()) return;
+      if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 10) return;
+      UI.hideKeyboard();   // after the hit-test of this tap: the tapped control still gets its click
+    }, true);
+    screen.addEventListener('pointercancel', () => { down = null; }, true);
   }
   function key(label, cls, fn, opts) {
     opts = opts || {};

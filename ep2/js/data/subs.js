@@ -37,7 +37,7 @@
     S15: { text: '[사이렌]', kind: 'info', ms: 3000, az: null },
     S16: { text: '[멀리서 — 덜컥]', kind: 'info', ms: 2000, az: 115 },
     S17: { text: '[무전 잡음]', kind: 'info', ms: 2000, az: 70 },
-    S18: { text: '(문 너머) {police} 강수진입니다. 밖은 확인했어요. 천천히 여셔도 돼요.', kind: 'voice', ms: 6650, az: 0 },
+    S18: { text: '(문 너머) {police} 강수진입니다. 밖은 확인했어요. 천천히 여셔도 돼요.', kind: 'voice', ms: 5300, az: 0 },   // v2_kang_door 4.97 s + 0.3 s (§7.4 — as long as the playback)
     S19: { kind: 'voice', player: true, text: '형사님이 세아 오르골 사진 보여 주셨어요.',
       lines: [
         { t0: 0.0, t1: 4.2, text: '형사님이 세아 오르골 사진 보여 주셨어요.' },

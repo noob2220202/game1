@@ -219,7 +219,7 @@
 .rv-caption.in { opacity: 1; transform: translate(-50%, 0); }
 .rm2-cam .rv-caption { bottom: calc(var(--safe-bot, 0px) + 206px); }
 .rm2-dirsubs { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
-.rm2-dirsub { position: absolute; width: max-content; max-width: 70%; transform: translate(-50%, -50%) translateY(6px); padding: 5px 10px; border-radius: 8px; background: rgba(0,0,0,.55);
+.rm2-dirsub { position: absolute; width: max-content; max-width: min(70%, calc(100% - 20px)); transform: translate(-50%, -50%) translateY(6px); padding: 5px 10px; border-radius: 8px; background: rgba(0,0,0,.55);
   font-size: calc(14px * var(--ts, 1)); line-height: 1.45; color: #f2f2f2; text-align: center; word-break: keep-all; white-space: pre-line; opacity: 0; transition: opacity .3s, transform .3s; }
 .rm2-dirsub.in { opacity: 1; transform: translate(-50%, -50%); }
 .rm2-shotfx { position: absolute; inset: 0; z-index: 5; background: #fff; opacity: 0; pointer-events: none; }
@@ -350,14 +350,27 @@
 .rm2-ringtrack { margin-top: 50px; width: 260px; height: 60px; border-radius: 30px; background: rgba(255,255,255,.12); padding: 6px; }
 .rm2-ringknob { height: 48px; padding: 0 22px; border-radius: 24px; background: #fff !important; color: #111 !important; font-size: 16px; touch-action: none; }
 
-/* ---------------- motion / low-end variants ---------------- */
-.rm2-room.rm2-calm .rm2-police i, .rm2-room.rm2-calm .rm2-wash i, .rm2-room.rm2-lowend .rm2-police i, .rm2-room.rm2-lowend .rm2-wash i { animation-duration: 4s; }
-.rm2-room.rm2-calm .rm2-gap.police line { animation-duration: 4s; }
+/* ---------------- flash / motion / low-end variants ---------------- */
+/* reduced flashing (§10 H: blinking ≤ 3 Hz, ≤ 0.5 Hz when reduced). .rm2-noflash = room.js reduceFlash() = 깜빡임 줄이기 ·
+   흔들림 줄이기 · OS reduced motion; body.reduce-flash (ep2 main.js) and the media query cover the moment before live() runs.
+   The states stay readable — the LED still goes on/off and the lights still alternate, only slower. */
+.rm2-room.rm2-noflash .rm2-police i.r, .rm2-room.rm2-noflash .rm2-police i.b, .rm2-room.rm2-noflash .rm2-wash i.r, .rm2-room.rm2-noflash .rm2-wash i.b,
+.rm2-room.rm2-noflash .rm2-gap.police line, .rm2-room.rm2-noflash.police-on .rm2-slot.steps,
+body.reduce-flash .rm2-room .rm2-police i.r, body.reduce-flash .rm2-room .rm2-police i.b, body.reduce-flash .rm2-room .rm2-wash i.r, body.reduce-flash .rm2-room .rm2-wash i.b,
+body.reduce-flash .rm2-room .rm2-gap.police line, body.reduce-flash .rm2-room.police-on .rm2-slot.steps { animation-duration: 4s; }
+.rm2-room.rm2-noflash .rm2-led.lock.red, .rm2-room.rm2-noflash .rm2-led.lockcu.red,
+body.reduce-flash .rm2-room .rm2-led.lock.red, body.reduce-flash .rm2-room .rm2-led.lockcu.red { animation-duration: 2s; }
+.rm2-room.rm2-noflash .rm2-npscr.blink .np-bat, .rm2-room.rm2-noflash .rm2-npscr.blink .np-pct,
+body.reduce-flash .rm2-room .rm2-npscr.blink .np-bat, body.reduce-flash .rm2-room .rm2-npscr.blink .np-pct { animation-duration: 2s; animation-iteration-count: 2; }
+.rm2-room.rm2-noflash .rm2-sl.rm2-flicker, body.reduce-flash .rm2-room .rm2-sl.rm2-flicker { animation: none; }
+.rm2-room.rm2-lowend .rm2-police i.r, .rm2-room.rm2-lowend .rm2-police i.b, .rm2-room.rm2-lowend .rm2-wash i.r, .rm2-room.rm2-lowend .rm2-wash i.b { animation-duration: 4s; }
 .rm2-room.rm2-calm .rv-turn.turn-r, .rm2-room.rm2-calm .rv-turn.turn-l { animation: none; }
 .rm2-room.rm2-calm .rv-frame.rm2-jerk { animation: none; }
 .rm2-room.rm2-calm .rm2-torchwash, .rm2-room.rm2-calm .rm2-gap.torch { animation: none; }
 .rm2-room.rm2-lowend .rm2-snow { display: none; }
 @media (prefers-reduced-motion: reduce) {
-  .rm2-police i, .rm2-wash i, .rm2-gap.police line { animation-duration: 4s; }
-  .rv-turn.turn-r, .rv-turn.turn-l, .rv-frame.rm2-jerk, .rm2-torchwash, .rm2-gap.torch { animation: none; }
+  .rm2-police i.r, .rm2-police i.b, .rm2-wash i.r, .rm2-wash i.b, .rm2-gap.police line, .rm2-room.police-on .rm2-slot.steps { animation-duration: 4s; }
+  .rm2-led.lock.red, .rm2-led.lockcu.red, .rm2-npscr.blink .np-bat, .rm2-npscr.blink .np-pct { animation-duration: 2s; }
+  .rm2-npscr.blink .np-bat, .rm2-npscr.blink .np-pct { animation-iteration-count: 2; }
+  .rm2-sl.rm2-flicker, .rv-turn.turn-r, .rv-turn.turn-l, .rv-frame.rm2-jerk, .rm2-torchwash, .rm2-gap.torch { animation: none; }
 }

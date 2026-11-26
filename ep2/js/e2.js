@@ -18,7 +18,7 @@
  * Flags set here: M2 M4 M5 factDash mono1–mono4 (M6 only as the stub when G.climax is absent).
  * Vars set here: factCount snow m5HoldPm sched e2 replay committed commitTries patched (+ climax.m6DuePm).
  * Bus emitted: 'm6:due' {prelude} · 'mono:show' {id} · 'mono:hide' {id}.
- * Bus listened: flag · users:switched · lock:unlock · home:show · mono:hide · clock:min · clock:jump · screen:push · state:load.
+ * Bus listened: flag · users:switched · lock:unlock · home:show · clock:min · clock:jump · screen:push · state:load.
  * This is the only ep2 file that talks to the series engine (DESIGN §10 G grep rule).
  * ========================================================= */
 (function () {
@@ -241,7 +241,7 @@
 
   /* ---------------- monologue channel (§2.4 · §4.9.3 · §6.1.3 'wait') ---------------- */
   const monoWait = {};
-  let monoBusy = false;
+  let monoBusy = false, monoCur = null, m4AfterLine = false;
   function monoSafe() {
     try {
       if (G.director && G.director.safe) return !!G.director.safe('mono');
@@ -263,6 +263,15 @@
     return new Promise((res) => { (monoWait[id] = monoWait[id] || []).push(res); pumpMono(); });
   };
   function monoQueued(id) { const q = ES().monoQ; return Array.isArray(q) && q.indexOf(id) >= 0; }
+  /** M4 must wait while mono2 is queued (not yet shown), on screen, or in its +0.8 s tail ('e2:M4m' pending). Derived from live
+   *  state only: after a reload monoBusy is false, a shown mono2 is flagged (its stale queue entry is dropped), and the persisted
+   *  'e2:M4m' still fires at its playMs — so the hold never outlives the line. */
+  function mono2Hold() {
+    if (monoBusy && monoCur === 'mono2') return true;
+    if (!flag('mono2') && monoQueued('mono2')) return true;
+    return E2.sched.has('e2:M4m');
+  }
+  const MONO_MS = 3200, M4_AFTER_MONO2 = 800;                       // §2.1 · §3.7: 'mono2(3.2초)가 먼저, 끝난 뒤 0.8초에 M4'
   async function pumpMono() {
     if (monoBusy) return;
     const st = ES(), q = Array.isArray(st.monoQ) ? st.monoQ : (st.monoQ = []);
@@ -271,13 +280,17 @@
     if (!(G.clock && G.clock.running && G.clock.running())) return;   // paused / hidden / not started
     if (!monoSafe()) return;
     const id = q[0];
-    monoBusy = true;
+    monoBusy = true; monoCur = id;                                  // set before the flag: its 'flag' listener runs evaluate()
+    // M4 = the line's 3.2 s on screen + 0.8 s, counted from the moment it shows (persisted playMs event — survives a reload;
+    // the fx fade-out after the 3.2 s is not part of the line's time). Queued before the flag so no evaluate() slips in.
+    if (id === 'mono2' && !flag('M4')) E2.sched.at(pmNow() + MONO_MS + M4_AFTER_MONO2, 'e2:M4m');
     G.flag(id, true);                                               // the flag means "the line was displayed"
     bus.emit('mono:show', { id });
-    try { await (G.fx && G.fx.mono ? G.fx.mono(E2.MONO[id], 3200) : sleep(3200)); } catch (e) { console.error('[e2 mono]', e); }
+    try { await (G.fx && G.fx.mono ? G.fx.mono(E2.MONO[id], MONO_MS) : sleep(MONO_MS)); } catch (e) { console.error('[e2 mono]', e); }
     const i = q.indexOf(id); if (i >= 0) q.splice(i, 1);
+    if (id === 'mono2' && m4AfterLine) { m4AfterLine = false; if (!flag('M4')) E2.sched.after(M4_AFTER_MONO2, 'e2:M4m'); }
     if (G.save) G.save();
-    monoBusy = false;
+    monoBusy = false; monoCur = null;
     bus.emit('mono:hide', { id });
     (monoWait[id] || []).forEach((r) => r(true)); delete monoWait[id];
   }
@@ -305,18 +318,6 @@
     return false;                                                // '잠깐만요' · '조금 이상했어요'처럼 소리 동사가 없으면 통과 0
   };
   E2.whereOk = (s) => /물탱크|탱크|저수조/.test(E2.norm(s));
-  /** §10 D — the 38-sentence QA table (true = must be accepted) */
-  E2.ANSWER_TABLE = [
-    ['한 마디만 나왔어요', true], ['한마디 나오고 멈췄어요', true], ['짧게 나오다 멈췄어요', true], ['끝까지 안 나왔어요', true],
-    ['끝까지 안 나오고 금방 멈췄어요', true], ['끝까지 나오진 않았어요', true], ['끝까지는 못 갔어요', true], ['금방 멎었어요', true],
-    ['멎었어요', true], ['멈춰 버렸어요', true], ['멈추었어요', true], ['끊어졌어요', true], ['조금만 나오다 말았어요', true],
-    ['한두 마디 나오다 끊겼어요', true], ['1소절', true], ['한 소절만요', true], ['중간에 끊겼어요', true], ['금방 끝났어요', true],
-    ['짧았어요', true], ['거의 안 나왔어요', true], ['조금 나오고 끝', true], ['멈추고 안 나왔어요', true], ['한마디!!', true],
-    ['그냥 끝까지 나오던데요 ㅎ', false], ['끝까지 다 나왔어요', false], ['안 멈췄어요', false], ['끊김 없이 잘 나왔어요', false],
-    ['한마디도 안 나왔어요', false], ['잠깐만요', false], ['예뻤어요', false], ['기억 안 나요', false], ['계속 나왔어요', false],
-    ['끝까지 나왔는데 안 좋았어요', false], ['멈추지 않고 계속 나왔어요', false], ['안 짧았어요', false], ['모르겠어요', false],
-    ['조금 이상했어요', false], ['끝까지 울렸어요', false],
-  ];
 
   /* ---------------- formatting ---------------- */
   const pad = (n) => String(n).padStart(2, '0');
@@ -409,7 +410,10 @@
     if (!v || !flag('END') || v.committed || (v.commitTries | 0) >= 5) return;
     E2.commit();
   }
-  E2.hookPatch = function () {                        // ⑤ hook end (idempotent — monotone keys only)
+  /** ⑤ hook end (idempotent — monotone keys only). opts.soft = pagehide / hidden while the hook is up: the series patch is
+   *  written, but `hookDone` only once the voice-message overlay was opened — an unopened 03:33 lock stays resumable
+   *  (§9.2 'HOOK ∧ ¬hookDone → 03:33 잠금화면'). Explicit exits ([처음 화면으로] · back · home · pause menu) always end it. */
+  E2.hookPatch = function (opts) {
     const F = (k) => flag(k), plays = G.state.vars.hookPlays | 0;
     try {
       if (!G.series) throw new Error('series engine missing');
@@ -422,7 +426,8 @@
       });
       G.state.vars.patched = true;
     } catch (e) {}
-    G.flag('hookDone', true); if (G.save) G.save(true);
+    if (!(opts && opts.soft) || F('hookOpened')) { if (!F('hookDone')) G.flag('hookDone', true); }
+    if (G.save) G.save(true);
   };
   const STAGE_KEYS = ['e2_finger', 'e2_dash', 'e2_fakeReply', 'e2_jimin', 'e2_phone'];
   E2.stage = function (key, value) {
@@ -471,7 +476,10 @@
     if (flag('M5') || st.m5 === 'buzz' || st.m5 === 'done') return;
     st.m5 = 'buzz';
     E2.sched.cancel('e2:M5hold');
-    try { if (G.audio && G.audio.gsmTank && G.audio.gsmTank.pulse) G.audio.gsmTank.pulse({ peak: 0.22, upMs: 300, holdMs: 1200, downMs: 600, arc: true }); } catch (e) { console.error(e); }
+    // §6.2 B10 덜 무섭게 'GSM −6 dB' — a gentler swell (.15 ≈ −36 dBFS) that still rises above the .08 base; a literal −6 dB
+    // under the .22 peak would sit below the base on the gsmLin law and read as a dip (same choice as B09's less variant)
+    const gsmPeak = E2.less() ? 0.15 : 0.22;
+    try { if (G.audio && G.audio.gsmTank && G.audio.gsmTank.pulse) G.audio.gsmTank.pulse({ peak: gsmPeak, upMs: 300, holdMs: 1200, downMs: 600, arc: true }); } catch (e) { console.error(e); }
     try { if (G.audio && G.audio.sub) G.audio.sub('S04', { az: 70 }); } catch (e) { console.error(e); }
     try { if (G.director && G.director.mark) G.director.mark('B10'); } catch (e) {}
     E2.sched.after(2500, 'e2:M5set');
@@ -484,11 +492,11 @@
     const vis = trackVis();
     // M2 ⓐ fact ≥ 2 (ⓑ is the 'e2:M2' event, ⓒ is requestM2)
     if (flag('M1') && !flag('M2') && E2.factCount() >= 2) G.flag('M2', true);
-    // M4 (with mono2 sequencing)
+    // M4 (with mono2 sequencing — §2.1: mono2 first, M4 0.8 s after it ends via 'e2:M4m')
     if (flag('M3') && !flag('M4')) {
       const mono2Pending = flag('factDash') && !flag('mono2');
       if (mono2Pending) { if (vis && !monoQueued('mono2')) E2.mono('mono2'); }
-      else if (E2.m4Ready() && vis && nHeld(1500)) G.flag('M4', true);
+      else if (!mono2Hold() && E2.m4Ready() && vis && nHeld(1500)) G.flag('M4', true);
     }
     // M5 '—' hold (≤ 90 s)
     if (st.m5 === 'hold' && !flag('M5') && vis && nHeld(1500)) fireM5();
@@ -527,7 +535,11 @@
     });
     E2.sched.on('e2:M5hold', () => fireM5());
     E2.sched.on('e2:M5set', () => { const st = ES(); st.m5 = 'done'; if (!flag('M5')) G.flag('M5', true); });
-    E2.sched.on('e2:M4m', () => { if (!flag('M4') && E2.m4Ready()) G.flag('M4', true); });
+    E2.sched.on('e2:M4m', () => {
+      if (flag('M4')) return;
+      if (monoBusy && monoCur === 'mono2') { m4AfterLine = true; return; }   // the line showed late (fx chain) → 0.8 s after it ends
+      if (E2.m4Ready()) G.flag('M4', true);
+    });
 
     bus.on('flag', (name) => {
       recomputeFacts();
@@ -545,7 +557,6 @@
       if (u === 'n' && flag('factSmart') && flag('factFinger') && !flag('mono1')) E2.mono('mono1');
       evaluate();
     });
-    bus.on('mono:hide', (e) => { if (e && e.id === 'mono2' && !flag('M4')) E2.sched.after(800, 'e2:M4m'); });
     bus.on('clock:min', snowFromClock);
     bus.on('clock:jump', snowFromClock);
     bus.on('screen:push', () => retryCommit());
@@ -661,6 +672,7 @@
       Object.keys(o).forEach((k) => { if (k !== 'his') walk(o[k], depth + 1); });
     };
     try { walk(G.STORY || {}, 0); } catch (e) {}
+    try { walk(G.ROOM || {}, 0); } catch (e) {}       // the box note front '돌려줄게. —' (ledger #1) lives in G.ROOM.closeups
     return n;
   }
   E2.budget = function () {
@@ -768,6 +780,18 @@
     H.clearSeries = () => { if (G.series && G.series.clearAll) G.series.clearAll(); };
     H.series = (p) => { if (!applyFixture(p)) { console.warn('[haru.series] profiles', Object.keys(FIXTURES)); return null; } E2.seriesBoot(); return Object.assign({}, E2.cbPreview); };
     H.type = (text) => { const f = G.ui && G.ui.focusedField && G.ui.focusedField(); if (!f) { console.warn('[haru.type] no focused field'); return false; } f.insert(String(text)); return true; };
+    /** §10 D — the 38-sentence QA table (true = must be accepted) — DEBUG builds only (QA data, no runtime user) */
+    E2.ANSWER_TABLE = [
+      ['한 마디만 나왔어요', true], ['한마디 나오고 멈췄어요', true], ['짧게 나오다 멈췄어요', true], ['끝까지 안 나왔어요', true],
+      ['끝까지 안 나오고 금방 멈췄어요', true], ['끝까지 나오진 않았어요', true], ['끝까지는 못 갔어요', true], ['금방 멎었어요', true],
+      ['멎었어요', true], ['멈춰 버렸어요', true], ['멈추었어요', true], ['끊어졌어요', true], ['조금만 나오다 말았어요', true],
+      ['한두 마디 나오다 끊겼어요', true], ['1소절', true], ['한 소절만요', true], ['중간에 끊겼어요', true], ['금방 끝났어요', true],
+      ['짧았어요', true], ['거의 안 나왔어요', true], ['조금 나오고 끝', true], ['멈추고 안 나왔어요', true], ['한마디!!', true],
+      ['그냥 끝까지 나오던데요 ㅎ', false], ['끝까지 다 나왔어요', false], ['안 멈췄어요', false], ['끊김 없이 잘 나왔어요', false],
+      ['한마디도 안 나왔어요', false], ['잠깐만요', false], ['예뻤어요', false], ['기억 안 나요', false], ['계속 나왔어요', false],
+      ['끝까지 나왔는데 안 좋았어요', false], ['멈추지 않고 계속 나왔어요', false], ['안 짧았어요', false], ['모르겠어요', false],
+      ['조금 이상했어요', false], ['끝까지 울렸어요', false],
+    ];
     H.answer = (s) => E2.answerOk(s);
     H.answerTable = () => E2.ANSWER_TABLE.filter(([s, exp]) => E2.answerOk(s) !== exp).map(([s, exp]) => ({ s, expected: exp }));
     H.budget = () => E2.budget();

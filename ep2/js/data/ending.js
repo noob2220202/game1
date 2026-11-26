@@ -76,9 +76,10 @@
         else out.push('옆 건물 2층 창가에 스피커가 있었어요.');
         out.push('그 스피커, 04시 44분 알람에 묶여 있었어요. 작게 틀어서 {N} 님을 난간 쪽으로 나오게 하려던 거예요.');
         out.push('새 폰을 지우면 {N} 님한테 남는 건 이 폰 하나니까요.');
-        if (f('C1b')) out.push('{MAKER_CONTACT} 님이 드릴 소리 얘기로 다시 신고하셔서 순찰차가 바로 붙었어요.');
-        else if (f('C1')) out.push('{MAKER_CONTACT} 님 신고가 먼저 들어와 있었어요.');
-        else out.push('{MAKER_CONTACT} 님이 오시는 길에 먼저 신고하셨어요. 지민 씨 전화도 받았고요. 늦어서 죄송해요.');
+        // {MAKER_HON} = '{MAKER_CONTACT} 님', or '친구분' with the default config (base.js — never '친구 님')
+        if (f('C1b')) out.push('{MAKER_HON}이 드릴 소리 얘기로 다시 신고하셔서 순찰차가 바로 붙었어요.');
+        else if (f('C1')) out.push('{MAKER_HON} 신고가 먼저 들어와 있었어요.');
+        else out.push('{MAKER_HON}이 오시는 길에 먼저 신고하셨어요. 지민 씨 전화도 받았고요. 늦어서 죄송해요.');
         out.push(f('whereTank') ? '물탱크실이라고 말씀해 주셔서 순찰팀이 바로 옥상으로 올라갔어요.' : '옥상 물탱크실에 있었어요. 14일이요.');
         out.push('그 사람은 난간 넘어 옆 건물로 나갔어요. 지금 찾고 있어요.');
         if (f('makerStayDown')) out.push('올라오지 말라고 하셨다면서요. 끝까지 1층에서 기다리셨어요.');

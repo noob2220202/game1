@@ -11,13 +11,18 @@
 .sh2-lock.leaving { transform: translateY(-100%); opacity: 0; }
 .sh2-lock::before { content: ''; position: absolute; inset: 0; background: linear-gradient(rgba(0,0,0,.34), rgba(0,0,0,.08) 38%, rgba(0,0,0,.58)); pointer-events: none; }
 .sh2-lock > * { position: relative; }
-.sh2-lock .lk-top { margin-top: calc(var(--sb-h) + 30px); text-align: center; text-shadow: 0 1px 14px rgba(0,0,0,.45); display: flex; flex-direction: column; align-items: center; transition: transform .2s; opacity: var(--lk-fade, 1); padding: 0 16px; }
-.lk-time { font-size: calc(84px * var(--ts)); font-weight: 500; letter-spacing: -3px; line-height: 1.02; font-variant-numeric: tabular-nums; }
+/* column layout (§10 H — 90–130 % text must reflow): clock block (natural height) · notification list (takes what is left,
+   never grows under the bottom row) · reserved strip for .lk-bottom (64 px row at safe + 40, + 16 px air). lock.js drops the
+   oldest whole cards that do not fit (.lk-clip), so no card ever sits under 긴급 통화 · ◉ · 카메라. */
+.sh2-lock.n { padding-bottom: calc(var(--safe-bot) + 120px); }
+.sh2-lock .lk-top { flex: none; margin-top: calc(var(--sb-h) + 30px); text-align: center; text-shadow: 0 1px 14px rgba(0,0,0,.45); display: flex; flex-direction: column; align-items: center; transition: transform .2s; opacity: var(--lk-fade, 1); padding: 0 16px; }
+.lk-time { font-size: calc(84px * min(var(--ts), 1.1)); font-weight: 500; letter-spacing: -3px; line-height: 1.02; font-variant-numeric: tabular-nums; }   /* display digits: capped at 110 % */
 .lk-date { font-size: calc(17px * var(--ts)); font-weight: 500; opacity: .95; margin-top: 2px; }
 .lk-trust { margin-top: 14px; font-size: calc(13.5px * var(--ts)); padding: 7px 14px; border-radius: 16px; background: rgba(0,0,0,.28); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); line-height: 1.35; word-break: keep-all; }
 .lk-widget { margin-top: 10px; font-size: calc(13.5px * var(--ts)); padding: 7px 16px; border-radius: 18px; background: rgba(255,255,255,.17); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
-.lk-notifs { width: calc(100% - 24px); max-width: 420px; margin-top: 18px; display: flex; flex-direction: column; gap: 8px; max-height: calc(100% - var(--sb-h) - 330px); overflow: hidden; }
-.lk-n { display: flex; gap: 10px; align-items: flex-start; width: 100%; padding: 11px 13px; border-radius: 20px; background: rgba(34,34,38,.56); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); text-align: left; color: #fff; min-height: 56px; animation: lkIn .45s cubic-bezier(.2,1.1,.3,1); }
+.lk-notifs { width: calc(100% - 24px); max-width: 420px; margin-top: 18px; display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.lk-n.lk-clip { display: none; }
+.lk-n { flex: none; display: flex; gap: 10px; align-items: flex-start; width: 100%; padding: 11px 13px; border-radius: 20px; background: rgba(34,34,38,.56); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); text-align: left; color: #fff; min-height: 56px; animation: lkIn .45s cubic-bezier(.2,1.1,.3,1); }
 .lk-n:active { background: rgba(60,60,66,.7); }
 @keyframes lkIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .lk-n .ln-icon { width: 34px; height: 34px; border-radius: 10px; flex: none; display: flex; align-items: center; justify-content: center; overflow: hidden; }
@@ -63,12 +68,14 @@
 .sh2-lock .pin-key.del svg { width: 28px; height: 28px; }
 .sh2-lock .pinpad-wrap.wrong .pin-dots, .sh2-lock .pinpad-wrap.wrong .pin-msg { animation: sh2Shake .45s; }
 @keyframes sh2Shake { 0%,100%{transform:none} 20%{transform:translateX(-11px)} 40%{transform:translateX(9px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(3px)} }
-@media (max-height: 700px) { .sh2-lock .pin-pad { grid-template-columns: repeat(3, 64px); gap: 10px 22px; } .sh2-lock .pin-key { width: 64px; height: 64px; } .sh2-lock .pin-key b { font-size: 26px; } .lk-pin { padding-bottom: 130px; } }
+@media (max-height: 700px) { .sh2-lock .pin-pad { grid-template-columns: repeat(3, 64px); gap: 10px 22px; } .sh2-lock .pin-key { width: 64px; height: 64px; } .sh2-lock .pin-key b { font-size: 26px; } .lk-pin { padding-bottom: 130px; }
+  /* short phones: tighter clock block so the three first-lock cards still fit at larger text sizes */
+  .sh2-lock .lk-top { margin-top: calc(var(--sb-h) + 16px); } .lk-trust { margin-top: 10px; } .lk-widget { margin-top: 8px; } .lk-notifs { margin-top: 12px; } }
 /* '—' lock: someone else's lock screen — thin left-set clock, colder film tone, nothing else (§5.2 · §5.3) */
 .sh2-lock.dash { filter: saturate(.86); }
 .sh2-lock.dash::before { background: linear-gradient(rgba(10,8,6,.30), rgba(0,0,0,.12) 45%, rgba(0,0,0,.62)), radial-gradient(ellipse at 50% 40%, transparent 40%, rgba(0,0,0,.45) 100%); }
 .sh2-lock.dash .lk-top { align-self: flex-start; align-items: flex-start; text-align: left; margin: calc(var(--sb-h) + 44px) 0 0 26px; padding: 0; }
-.sh2-lock.dash .lk-time { font-weight: 200; font-size: calc(92px * var(--ts)); letter-spacing: -2px; }
+.sh2-lock.dash .lk-time { font-weight: 200; font-size: calc(92px * min(var(--ts), 1.1)); letter-spacing: -2px; }
 .sh2-lock.dash .lk-date { font-size: calc(15px * var(--ts)); font-weight: 400; letter-spacing: .5px; opacity: .85; margin: 4px 0 0 4px; }
 /* widget preview (§4.6.4) */
 .sh2-widget-prev { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 10px 0 4px; }
@@ -134,11 +141,12 @@ button.sh2-row:active { background: #f3f3f6; }
 .sh2-action.danger { color: #e5483a; }
 .sh2-action.primary { background: #3478f6; color: #fff; }
 .sh2-action:active { filter: brightness(.95); }
-.sh2-link { min-height: 36px; padding: 0 12px; border-radius: 18px; background: #eef3ff; color: #3478f6; font-size: calc(13px * var(--ts)); font-weight: 600; }
+/* 36 px pill drawn inside a 44 px tap box (transparent 4 px border, background clipped to the padding box) */
+.sh2-link { min-height: 44px; padding: 0 12px; border: 4px solid transparent; background-clip: padding-box; border-radius: 22px; background-color: #eef3ff; color: #3478f6; font-size: calc(13px * var(--ts)); font-weight: 600; }
 .sh2-empty { padding: 60px 24px; text-align: center; color: #8a8a90; font-size: calc(15px * var(--ts)); line-height: 1.6; }
 .sh2-scan { padding: 16px 18px; font-size: calc(14px * var(--ts)); color: #8a8a90; min-height: 56px; display: flex; align-items: center; }
 .sh2-seg { display: flex; border-radius: 14px; background: #ececf0; padding: 3px; gap: 2px; }
-.sh2-seg button { min-height: 40px; padding: 0 12px; border-radius: 11px; font-size: calc(13.5px * var(--ts)); color: #555; }
+.sh2-seg button { min-height: 44px; padding: 0 12px; border-radius: 11px; font-size: calc(13.5px * var(--ts)); color: #555; }
 .sh2-seg button.on { background: #fff; color: #111; font-weight: 700; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
 .sh2-segrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px 10px 18px; min-height: 60px; font-size: calc(16px * var(--ts)); flex-wrap: wrap; }
 .sh2-slrow { display: flex; align-items: center; gap: 14px; padding: 12px 18px; min-height: 60px; font-size: calc(16px * var(--ts)); }
@@ -258,6 +266,15 @@ button.sh2-row:active { background: #f3f3f6; }
 .sh2-lock .pin-key.ok b, .sh2-verify .pin-key.ok b { font-size: calc(17px * var(--ts)); font-weight: 600; letter-spacing: 0; }
 .sh2-lock .pin-entry { min-height: 26px; font-size: 22px; letter-spacing: 8px; color: #fff; text-align: center; }
 .sh2-verify .pin-entry { min-height: 24px; font-size: 20px; letter-spacing: 7px; color: #333; text-align: center; }
-.lk-pin.dash .pin-entry { visibility: hidden; }     /* '—' pad: no digit dots at all (§3.9 · §9.5-2) */
+/* '—' pad: 자릿수 점 없음 (§3.9 · §9.5-2) = no placeholder row telling the PIN's length; the digits typed so far still show
+   as bullets (core pinPad free mode), so a stale or mistyped digit is visible before [확인]. */
 .lk-pin.dash .pin-title { font-size: calc(30px * var(--ts)); font-weight: 300; margin-bottom: 4px; }
 .lk-pin.dash .pin-msg { min-height: 30px; margin-top: 0; }
+
+/* wrong PIN / password shake (sh2Shake): none with reduced motion or ⏸ `흔들림 줄이기` — the error text and sound stay */
+@media (prefers-reduced-motion: reduce) {
+  .sh2-lock .pinpad-wrap.wrong .pin-dots, .sh2-lock .pinpad-wrap.wrong .pin-msg, .sh2-lock .pinpad-wrap.wrong .pin-entry,
+  .sh2-verify .pinpad-wrap.wrong .pin-dots, .sh2-verify .pinpad-wrap.wrong .pin-entry, .sh2-pw.shake { animation: none; }
+}
+body.reduce-shake .sh2-lock .pinpad-wrap.wrong .pin-dots, body.reduce-shake .sh2-lock .pinpad-wrap.wrong .pin-msg, body.reduce-shake .sh2-lock .pinpad-wrap.wrong .pin-entry,
+body.reduce-shake .sh2-verify .pinpad-wrap.wrong .pin-dots, body.reduce-shake .sh2-verify .pinpad-wrap.wrong .pin-entry, body.reduce-shake .sh2-pw.shake { animation: none; }

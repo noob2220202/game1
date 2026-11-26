@@ -6,7 +6,10 @@
  * G.fx.mono(text, ms=3200) → Promise             monologue channel (separate layer, no sound, no toast) — G.e2.mono, recap
  * G.fx.dirArc(az, ms=1200)                       speaker-mode edge arc ◀ ▶ ▲ ▼ relative to G.audio.getYaw()
  * G.fx.edgeShake(px=3, ms=300)                   no-op with G.settings.reduceShake or G.e2.less()
- * G.fx.setVignette(v)                            sets --vig on #screen (+ #phone so #fx-layer inherits)
+ * G.fx.setVignette(v)                            sets --vig on #screen (+ #phone so #fx-layer inherits). The value law is the
+ *                                                director's (§6.1: .30 + .40·T); the look depends on the visible surface:
+ *                                                #phone.c2-room (room / eye / camera view on top) = radial falloff, else an
+ *                                                edge shade that follows the screen rectangle (core.css)
  * G.fx.black(ms) → Promise                       full black cover (resolves after ms, then fades out 0.6 s)
  * ep1 names: shake(ms, px) → edgeShake · vignette(s) → setVignette · setTitle blinkTitle stopTitle setFavicon glitch
  *   jumpscare static cinema flash pulse → no-ops (forbidden ep1 tricks; DEBUG warns). Every text goes through G.T.
@@ -37,6 +40,8 @@
     subsBox.setAttribute('aria-live', 'polite');
     monoBox.setAttribute('aria-live', 'polite');
     layer.append(vigEl, arcBox, subsBox, monoBox);
+    wireRoom();
+    syncRoom();
   };
   const ready = () => { if (!layer || !layer.isConnected) FX.init(); };
 
@@ -106,7 +111,34 @@
     const val = Math.max(0, Math.min(1, Number(v) || 0));
     ['screen', 'phone'].forEach((id) => { const n = document.getElementById(id); if (n) n.style.setProperty('--vig', String(val)); });
     if (vigEl) vigEl.classList.toggle('on', val > 0.001);
+    if (!roomWired) wireRoom();   // FX.init may have run before G.bus existed
+    syncRoom();   // the director calls this every second — a cheap backstop for the bus-driven sync below
   };
+  /* Is the room the visible surface? An eye / camlock layer (.rm2-eye, z 45 over the phone UI) or the camera screen on top of
+     the app stack. Read-only use of room.js / phone.js state (both owned elsewhere). */
+  function roomVisible() {
+    try {
+      if (!(G.room && G.room.isOpen && G.room.isOpen())) return false;
+      const scr = document.getElementById('screen');
+      if (scr && scr.querySelector(':scope > .rm2-eye')) return true;
+      const top = G.phone && G.phone.top ? G.phone.top() : null;
+      const n = top && top.node;
+      return !!(n && n.classList && n.classList.contains('rm2-room') && n.isConnected);
+    } catch (e) { return false; }
+  }
+  function syncRoom() {
+    const ph = document.getElementById('phone');
+    if (ph) ph.classList.toggle('c2-room', roomVisible());
+  }
+  let roomWired = false;
+  function wireRoom() {
+    if (roomWired || !G.bus || !G.bus.on) return;
+    roomWired = true;
+    const later = () => requestAnimationFrame(syncRoom);
+    ['room:open', 'room:close', 'room:view', 'screen:push', 'screen:pop', 'home', 'app:open', 'lock:show', 'lock:unlock', 'users:switched']
+      .forEach((ev) => { try { G.bus.on(ev, () => { syncRoom(); later(); }); } catch (e) {} });
+  }
+  FX.roomLook = roomVisible;   // QA / debug: which vignette look is in force
 
   /* ---------- black cover ---------- */
   FX.black = async function (ms) {

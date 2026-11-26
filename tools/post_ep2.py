@@ -388,6 +388,10 @@ STENCIL_CUTS = {
 BRIDGE_EM = 0.045
 STENCIL_PAINT = (232, 232, 224)      # spray paint albedo (was 214,214,204 — raised for ≥ 1.6:1 on the pale patch)
 STENCIL_ALPHA = 0.86                 # base coverage (was .62): faded by (0.78 + 0.22·noise) patches
+# dark states (s2d, dark ajar): the pale spray paint keeps more of the little light than the rusty patch around it.
+# Scaling letters and patch alike by R (~.28 at the door) kept the linear ratio but crushed the (L+.05) contrast to
+# 1.22–1.33:1 (§8.3-4 floor 1.6:1) -> letters darken to max(R, .40): WCAG 1.71 in code, 1.90 by the QA p95/p40 measure
+STENCIL_DARK_FLOOR = 0.40
 
 
 def stencil_alpha(card_wh, glyph_h, seed=3):
@@ -1911,7 +1915,7 @@ def plate():
     # same paint as the telephoto, a little more faded at the plate's distance (§8.2 G01: '판에선 거의 안 읽힌다 —
     # 읽히는 경로는 줌'): at 1x the glyphs are ~8 CSS px; the zoom path (roof_tank) carries the full contrast
     s0src, aw0, pt0 = stencil(g01, sq, dh, alpha_k=0.6)
-    jpg(grade_roof(s0src, seed=11), 'roof_plate_s0', limit=360)
+    jpg(grade_roof(plain_sign(s0src, M('sign_plate')), seed=11), 'roof_plate_s0', limit=360)
     META['stencil_q'] = {'plate': M('stencil_plate'), 'tank': M('stencil_tank'), 'tank_ajar': M('stencil_ajar')}
     META['beam_origin'] = {'x': 0.06, 'y': 0.58}   # stair head-house door on G01 (doc target .06/.55; door middle measured at y .58)
     META['gap_tank'] = {'plate': M('gap_plate'), 'tank': M('gap_tank')}
@@ -1933,11 +1937,12 @@ def plate():
     M2 = snow_mask_s2(up)
     s2src = I(A(s0src) * (1 - M2[..., None]) + A(g02r) * M2[..., None])
     s1src, m = snow_blend(s0src, s2src, up, n, 0.45, edge=edge_bias(up, 10))
-    jpg(grade_roof(s1src, seed=11), 'roof_plate_s1', limit=360)
+    jpg(grade_roof(plain_sign(s1src, M('sign_plate')), seed=11), 'roof_plate_s1', limit=360)
     # title / og sources without the stencil (§8.3-8: no spoiler on the title — the stencil is a 'where' clue)
     aw3 = aw0[..., None]
     grade_roof(I(A(s1src) * (1 - aw3) + A(g01) * aw3), seed=11).save(os.path.join(GEN, '_title_src.png'))
-    jpg(grade_roof(s2src, seed=11), 'roof_plate_s2', limit=360)
+    s2v = plain_sign(s2src, M('sign_plate'))                          # the shipped s2 / s2d ([NOTEXT] far sign)
+    jpg(grade_roof(s2v, seed=11), 'roof_plate_s2', limit=360)
     CACHE['plate_s2src'] = s2src
     QA['snow_s1_cover'] = f'{m.mean() * 100:.1f} % of the plate snowed at c=.45 (incl. .35 dusting)'
     QA['snow_s2_mask'] = f'{(M2 > 0.5).mean() * 100:.1f} % of the plate from G02 (up-facing only)'
@@ -1948,7 +1953,7 @@ def plate():
     CACHE['R'] = R
     np.save(os.path.join(GEN, '_R_dark.npy'), R.astype(np.float32))
     Rp = np.clip(R * K_DARK, 0.03, 1)
-    jpg(dark_grade(A(s2src) * Rp[..., None], None, seed=11), 'roof_plate_s2d', q=86, limit=360)
+    jpg(dark_grade(A(s2v) * Rp[..., None], None, seed=11), 'roof_plate_s2d', q=86, limit=360)
     dark_grade((A(s2src) * (1 - aw3) + A(g01) * aw3) * Rp[..., None], None, seed=11).save(os.path.join(GEN, '_og_src.png'))
     QA['R_dark'] = f'median {np.median(R):.3f}, p5 {np.percentile(R, 5):.3f}, p95 {np.percentile(R, 95):.3f}; s2d = s2 x clip(R x {K_DARK})'
     # footprints (G04): registered onto G01, diff vs registered G02, inside the two corridors
@@ -2048,11 +2053,12 @@ def tank():
     R = CACHE.get('R')
     Rt = np.clip(remap_arr(R, M('plate_door'), (1536, 1024), M('tank_door'), (W, H)) * K_DARK, 0.03, 1) if R is not None else np.full((H, W), 0.2)
     CACHE['R_tank'] = Rt
-    t2d = dark_grade(A(t2src) * Rt[..., None], None, seed=22)
+    Rl = stencil_dark_gain(Rt, aw)
+    t2d = dark_grade(A(t2src) * Rl[..., None], None, seed=22)
     jpg(t2d, 'roof_tank_s2d')
-    con['s2d'] = stencil_contrast(dark_grade(A(t2src) * Rt[..., None], None, seed=22, noise=0), aw, patch)
+    con['s2d'] = stencil_contrast(dark_grade(A(t2src) * Rl[..., None], None, seed=22, noise=0), aw, patch)
     QA['stencil_tank_contrast'] = ' · '.join(f'{k} {w:.2f} (plain {p:.2f})' for k, (w, p) in con.items()) + \
-        ' — WCAG (L+.05) ratio of letters vs the pale patch; s2d = s2 × R (letters and patch scaled alike, no letter boost)'
+        f' — WCAG (L+.05) ratio of letters vs the pale patch; s2d = s2 × R, letters × max(R, {STENCIL_DARK_FLOOR}) (pale paint)'
     CACHE['tank'] = {'t2src': t2src, 'Rt': Rt, 'fmatch': fmatch, 'W': W, 'H': H}
     # ---- B09: the phone light in the gap (falloff centred on the phone) + the content (hand / cap), drawn
     fall, y0d, hd = tank_fall(H)
@@ -2064,7 +2070,13 @@ def tank():
         png(remap(p, M('tank_door'), M('plate_door'), (1536, 1024)), 'js_tank_' + kind + '_plate')
     QA['js_tank'] = 'drawn (not G08/G09): phone light σ .12 door-h at .50, 4 matte nitrile fingertips 10–12 px rim-lit; cap = brim crescent lit from below at .30 (face 0)'
     # ---- B17 / B16 / ≥00:50: the door 40 cm open
-    ajar(t2src, Rt, W, H)
+    ajar(t2src, Rt, W, H, aw)
+
+
+def stencil_dark_gain(R, aw, full=0.5):
+    """dark-state gain map: R everywhere, max(R, STENCIL_DARK_FLOOR) on the stencil letters (coverage ≥ `full`)."""
+    lg = np.clip(aw / full, 0, 1)
+    return R + (np.maximum(R, STENCIL_DARK_FLOOR) - R) * lg
 
 
 def glow_plate():
@@ -2154,8 +2166,18 @@ def js_patch(base, kind):
     spill = col[None, None, :] * (w_ * fall[:, None] * 0.38)[..., None]
     out = 255 - (255 - out) * (1 - np.clip(spill / 255, 0, 1))
     al = ndi.binary_dilation(gm > 0.5, iterations=6).astype(np.float32)
-    al[int(0.925 * H):] = 0; al[:int(gy0) - 2] = 0
+    al[:int(gy0) - 2] = 0
     al = ndi.gaussian_filter(al, 1.0)
+    # the slit ends on the threshold: B09 is S1/S2 only, so snow lies there — fade the patch out over the 20 px above
+    # the snow line of each column (≤ the sill line; the drift curves up on the leaf side), so no patch pixel lands on
+    # snow (a hard cut at .925 left a 15–20 px black tab standing on the snow, visible at 6x)
+    l_ = lum(b); ya, yb = int(0.86 * H), int(0.95 * H)
+    sill = np.full(W, M('gap_tank_sill_y') * H, np.float32)
+    for x in range(max(0, int(gx0) - 12), min(W, int(gx1) + 13)):
+        col = ndi.gaussian_filter1d(l_[ya:yb, x], 1.5)
+        hit = np.nonzero(col > 0.5 * (np.median(l_[yb:, x]) + col[:int(0.02 * H)].mean()))[0]
+        if len(hit): sill[x] = min(sill[x], ya + hit[0])
+    al = al * np.clip((sill[None, :] - np.arange(H, dtype=np.float32)[:, None]) / 20.0, 0, 1)
     return rgba_patch(grade_roof(I(out), seed=21), al)
 
 
@@ -2164,10 +2186,15 @@ MEAS.update({
     # the padlock box (hanging past the free edge, over the black interior)
     'leaf_ajar_edit': [[0.226, 0.107], [0.527, 0.097], [0.533, 0.966], [0.236, 0.878]],
     'leaf_edge_edit': [[0.527, 0.097], [0.545, 0.098], [0.552, 0.962], [0.533, 0.966]],
+    # the edit drew its own padlock hanging on the open leaf's free edge (shackle + body, below the bolt at y .5735);
+    # the real one stays on the frame staple (s2's own) -> this box is cloned away in the edit before use
+    'lock_ajar_edit': [[0.5205, 0.5735], [0.586, 0.5735], [0.586, 0.655], [0.5205, 0.655]],
+    # roof_tank s1/s2: the snow surface meets the door gap at y 1401–1407 px (x 784–812) — the slit's visible end
+    'gap_tank_sill_y': 0.913,
 })
 
 
-def ajar(t2src, Rt, W, H):
+def ajar(t2src, Rt, W, H, aw=None):
     """§8.2 G07 (B17 00:39 · B16 · ≥00:50): the door 40 cm open, built on roof_tank_s2 itself — the closed leaf of
     s2 (stencil + padlock) perspective-warped onto the open leaf measured on e_tank_ajar_lit (lamp-on edit of G07),
     the frame opening black, the quarter-circle the leaf swept through the snow drawn; the edit gives only the leaf
@@ -2183,6 +2210,13 @@ def ajar(t2src, Rt, W, H):
         return (x - fl[1][iy, ix], y - fl[0][iy, ix])
     leaf = [reg(p) for p in M('leaf_ajar_edit')]
     edge = [reg(p) for p in M('leaf_edge_edit')]
+    # the edit's own padlock on the free edge: clone the steel edge / leaf from below over it (the frame-staple
+    # padlock of s2 is the only one; with it the open door showed two)
+    lkm = poly_mask((W, H), [reg(p) for p in M('lock_ajar_edit')], 2.0)
+    lys = np.nonzero(lkm.max(1) > 0.02)[0]
+    dyl = int(lys.max() - lys.min()) + 12
+    below = np.concatenate([litr[dyl:], np.repeat(litr[-1:], dyl, 0)], 0)
+    litr = litr * (1 - lkm[..., None]) + below * lkm[..., None]
     t2 = A(t2src)
     out = t2.copy()
     yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
@@ -2192,7 +2226,10 @@ def ajar(t2src, Rt, W, H):
     rng = np.random.default_rng(71)
     interior = np.full((H, W, 3), [7.0, 7.0, 9.0]) + rng.normal(0, 1.5, (H, W))[..., None]
     out = out * (1 - om[..., None]) + interior * om[..., None]
-    # 2. the quarter circle swept through the snow (sector between the closed corner and the open corner)
+    # 2. the quarter circle swept through the snow (sector between the closed corner and the open corner): the base
+    # snow itself (its own texture, sampled below the drift line where s2 still shows the closed door's foot),
+    # scraped a little lower, in the doorway's inner shadow (darkest at the threshold and along the leaf, opening
+    # toward the arc) with a soft pushed-snow berm on the arc — not a flat disc with a hard rim
     hx, hy = leaf[3][0], 0.900 * H
     cxo, cyo = leaf[2]
     rx = 0.768 * W - hx
@@ -2201,21 +2238,46 @@ def ajar(t2src, Rt, W, H):
     ex, ey = (xx - hx) / rx, (yy - hy) / ry
     rr = np.sqrt(ex ** 2 + ey ** 2); ang = np.arctan2(ey, ex)
     sector = ((rr <= 1.0) & (ey >= 0) & (ang <= th)).astype(np.float32)
-    sector = ndi.gaussian_filter(sector, 1.2)
-    scr = gblur(t2, 2.2) * 0.80 + np.array([2, 3, 6.0])                # scraped: lower, greyer, smoother
+    sector = ndi.gaussian_filter(sector, 2.0)
+    ys_ = M('gap_tank_sill_y') * H + 4                                  # first clean snow row below the door foot
+    src_y = np.where(yy < ys_, 2 * ys_ - yy, yy)                       # mirror the snow up over the old door foot
+    floor = np.dstack([ndi.map_coordinates(t2[..., c], [src_y, xx], order=1, mode='nearest') for c in range(3)])
+    inner = np.clip((yy - hy) / max(cyo - hy, 8.0), 0, 1)              # 0 at the threshold .. 1 at the open corner
+    along = np.clip(ang / max(th, 1e-3), 0, 1)                         # 0 on the closed line .. 1 along the leaf
+    shadow = 0.62 + 0.30 * inner ** 0.7 - 0.10 * along ** 2            # inner shadow: threshold + leaf side darkest
+    scr = floor * np.clip(shadow, 0.45, 0.95)[..., None] + np.array([1, 2, 4.0])
     out = out * (1 - sector[..., None]) + scr * sector[..., None]
-    ridge = np.clip(1 - np.abs(rr - 1.04) / 0.05, 0, 1) * (ey >= -0.02) * (ang <= th + 0.05)
-    shade = np.clip(1 - np.abs(rr - 0.95) / 0.04, 0, 1) * (ey >= 0) * (ang <= th)
-    out = out * (1 + 0.14 * ndi.gaussian_filter(ridge, 1.0))[..., None] * (1 - 0.28 * ndi.gaussian_filter(shade, 1.0))[..., None]
-    # 3. the leaf: s2's own closed leaf (stencil, rust, bolt) warped onto the open-leaf quad, shaded like the edit
+    ridge = np.clip(1 - np.abs(rr - 1.05) / 0.07, 0, 1) * (ey >= -0.02) * (ang <= th + 0.05)
+    shade = np.clip(1 - np.abs(rr - 0.96) / 0.06, 0, 1) * (ey >= 0) * (ang <= th)
+    out = out * (1 + 0.07 * ndi.gaussian_filter(ridge, 2.5))[..., None] * (1 - 0.10 * ndi.gaussian_filter(shade, 3.0))[..., None]
+    # 3. the leaf: s2's own closed leaf (stencil, rust, bolt) warped onto the open-leaf quad, shaded like the edit.
+    # The quad's foot (to .932) lies under the drift in s2: rows from the snow line down are the door continued
+    # (mirrored up per column), so the open leaf carries no wedge of the closed state's snow
     src_q = q_px([[0.235, 0.110], [0.768, 0.110], [0.768, 0.932], [0.235, 0.932]], W, H)
+    leaf_src = t2.copy()
+    lx0, lx1 = int(0.235 * W), int(0.768 * W) + 1
+    l2 = lum(t2)
+    for x in range(lx0, lx1):
+        col = l2[int(0.86 * H):int(0.95 * H), x]
+        hit = np.nonzero(col > 0.5 * (np.median(l2[int(0.95 * H):, x]) + np.median(l2[int(0.80 * H):int(0.86 * H), x])))[0]
+        e_ = int(0.86 * H) + (int(hit[0]) if len(hit) else int(0.913 * H - 0.86 * H)) - 3
+        n_ = int(0.94 * H) - e_
+        if n_ > 0: leaf_src[e_:e_ + n_, x] = t2[e_ - 1:e_ - 1 - n_:-1, x] if e_ - 1 - n_ >= 0 else t2[e_ - n_:e_, x][::-1]
     coeffs = find_coeffs(leaf, src_q)          # (dst = open leaf, src = closed leaf)
-    lw = Image.fromarray(np.clip(t2, 0, 255).astype(np.uint8)).transform((W, H), Image.PERSPECTIVE, coeffs, Image.BICUBIC)
+    lw = Image.fromarray(np.clip(leaf_src, 0, 255).astype(np.uint8)).transform((W, H), Image.PERSPECTIVE, coeffs, Image.BICUBIC)
     lm = poly_mask((W, H), leaf, 0.6)
     lwa = A(lw)
     shade_r = gblur(litr * lm[..., None], 22) / np.maximum(gblur(lwa * lm[..., None], 22), 1)
     shade_r = np.clip(shade_r.mean(-1, keepdims=True), 0.55, 1.5)
     lwa = lwa * shade_r
+    # contact shadow of the leaf's foot on the snow in front of it (soft, ~8 px), then the leaf over it
+    (bx0, by0), (bx1, by1) = leaf[3], leaf[2]
+    nx_, ny_ = -(by1 - by0), (bx1 - bx0); nl = math.hypot(nx_, ny_); nx_, ny_ = nx_ / nl, ny_ / nl
+    if ny_ < 0: nx_, ny_ = -nx_, -ny_                                   # normal pointing down (toward the camera)
+    dpx = (xx - bx0) * nx_ + (yy - by0) * ny_
+    tpx = ((xx - bx0) * (bx1 - bx0) + (yy - by0) * (by1 - by0)) / nl ** 2
+    csh = np.exp(-np.maximum(dpx, 0) / 7.0) * (dpx > -2) * np.clip(np.minimum(tpx, 1 - tpx) / 0.05, 0, 1) * (1 - om)
+    out = out * (1 - 0.30 * csh)[..., None]
     out = out * (1 - lm[..., None]) + lwa * lm[..., None]
     # the leaf's free edge (steel edge seen side-on) from the edit, denoised
     em = poly_mask((W, H), edge, 0.6)
@@ -2228,11 +2290,16 @@ def ajar(t2src, Rt, W, H):
     META.setdefault('stencil_q', {})['tank_ajar'] = MEAS['stencil_ajar']
     META['door_tank_ajar'] = {'tank': [[round(float(x) / W, 4), round(float(y) / H, 4)] for x, y in leaf]}
     # alpha: door frame ∪ leaf ∪ sector, dilated 20 px — outside these, out == s2 exactly (seamless)
-    reg_m = (om > 0.02) | (lm > 0.02) | (sector > 0.02) | (em > 0.02) | (pla > 0.02)
+    reg_m = (om > 0.02) | (lm > 0.02) | (sector > 0.02) | (em > 0.02) | (pla > 0.02) | (csh > 0.02)
     al = ndi.gaussian_filter(ndi.binary_dilation(reg_m, iterations=20).astype(np.float32), 6)
     al = np.maximum(al, reg_m.astype(np.float32))
     lit_im = grade_roof(I(out), seed=21)                               # = roof_tank_s2's grade (same grain field)
-    dark_im = dark_grade(out * Rt[..., None], None, seed=22)           # = roof_tank_s2d's grade
+    # dark: = roof_tank_s2d's grade; the stencil on the open leaf keeps s2d's pale-paint floor (coverage warped along)
+    Rd = Rt
+    if aw is not None:
+        awl = A(Image.fromarray(np.clip(aw * 255, 0, 255).astype(np.uint8)).transform((W, H), Image.PERSPECTIVE, coeffs, Image.BILINEAR)) / 255.0
+        Rd = stencil_dark_gain(Rt, awl * lm)            # (the closed-position letters are now the black opening)
+    dark_im = dark_grade(out * Rd[..., None], None, seed=22)
     # telephoto copies: outside reg_m the patch IS s2 / s2d pixel for pixel (same grade, same grain seed), so a hard
     # alpha 4 px outside the change is seamless. Half the canvas of grainy photo does not fit a ≤200 KB PNG without
     # octree posterisation (the review's 'black blotches'): PNG8 median-cut = 490–630 KB, truecolour 1.2–1.5 MB ->
@@ -2252,7 +2319,7 @@ def ajar(t2src, Rt, W, H):
                     mp, mb = pa[..., c][ring].mean(), base[..., c][ring].mean()
                     pa[..., c] = pa[..., c] * float(np.clip(mb / max(mp, 1), 0.7, 1.3))
         png(I(pa, 'RGBA'), key)
-    QA['p_tank_ajar'] = f'leaf = s2 closed leaf warped to the open quad (edit used for geometry/shade/padlock only); patch area {al.mean() * 100:.1f} %; swing {math.degrees(th):.0f}°'
+    QA['p_tank_ajar'] = f'leaf = s2 closed leaf (snow line mirrored out of its foot) warped to the open quad; edit used for geometry/shade only (its free-edge padlock cloned out: one padlock, on the frame staple); swept floor = base snow in an inner shadow; patch area {al.mean() * 100:.1f} %; swing {math.degrees(th):.0f}°'
 
 
 # ---------------------------------------------------------------- dense registration of an edit back onto its source
@@ -2467,6 +2534,42 @@ def glow(key, size, gap_px, line, bloom, rx, sig, fall=None, spill=0.18):
 
 
 # ================================================================ RAIL telephoto (G10 G11 G12) + window (G13)
+MEAS.update({
+    # [NOTEXT]: the one distant lit signboard of the background city, which the model filled with pseudo-glyphs
+    # (search boxes; the panel itself ≈ 25×9 px in roof_rail at .195–.211/.193–.202, ≈ 16×5 px in the plate at
+    # .630–.640/.343–.348). roof_rail allows pinch to 6× (~240 CSS px), where the glyph texture read as lettering.
+    'sign_rail': [0.16, 0.17, 0.24, 0.22],
+    'sign_plate': [0.61, 0.32, 0.66, 0.36],
+})
+
+
+def plain_sign(im, box, k=0.55, sig=1.6):
+    """[NOTEXT] a far lit signboard -> a plain soft glow: inside the panel's rectangle (bounding box of the largest
+    lit blob in `box`, lit = L ≥ k·p99.5) every pixel is replaced by the normalised Gaussian of the panel's own lit
+    pixels (so the darker pseudo-glyph strokes fill with the panel colour), blended in with a 0.8 px feather. Applied
+    to the base derivative of each state before its grade (grain / bloom / dark map then act on it as on the rest);
+    pixels outside the rectangle (+ feather) are untouched."""
+    a = A(im).copy(); H, W = a.shape[:2]
+    x0, y0, x1, y1 = int(box[0] * W), int(box[1] * H), int(math.ceil(box[2] * W)), int(math.ceil(box[3] * H))
+    sub = a[y0:y1, x0:x1]
+    l = lum(sub)
+    lab, n = ndi.label(l >= k * np.percentile(l, 99.5))
+    if n == 0:
+        return I(a)
+    big = lab == 1 + int(np.argmax(ndi.sum(np.ones_like(l), lab, range(1, n + 1))))
+    ys, xs = np.nonzero(big)
+    rect = np.zeros(l.shape, np.float32); rect[ys.min():ys.max() + 1, xs.min():xs.max() + 1] = 1
+    src = big.astype(np.float32) * rect
+    den = ndi.gaussian_filter(src, sig)
+    fill = np.dstack([ndi.gaussian_filter(sub[..., c] * src, sig) for c in range(3)]) / np.maximum(den, 1e-3)[..., None]
+    fill = np.dstack([ndi.gaussian_filter(fill[..., c], 0.7) for c in range(3)])
+    m = ndi.gaussian_filter(rect, 0.8)[..., None]
+    a[y0:y1, x0:x1] = sub * (1 - m) + fill * m
+    QA['sign_' + ('plate' if box[0] > 0.5 else 'rail')] = \
+        f'panel {xs.max() - xs.min() + 1}x{ys.max() - ys.min() + 1} px at ({x0 + xs.min()},{y0 + ys.min()}) -> plain glow [NOTEXT]'
+    return I(a)
+
+
 def unlight_window(im, poly_frac):
     W, H = im.size
     m = poly_mask(im.size, q_px(poly_frac, W, H), 3)
@@ -2485,7 +2588,20 @@ MEAS.update({
     # (ref-crop 1536 px), vs ~100–130 px for the ref crop itself. G10 re-run as a detail-only edit of the plate crop
     # (g_roof_rail.v3_faithful.png) was rejected: in the plate's own geometry the window sill and the speaker are
     # hidden behind our parapet, so L4 would have nothing to sit on.
-    'rail_rect_fit': {'x': 0.5631, 'y': 0.2858, 'w': 0.4039, 'h': 0.4039},
+    #
+    # That 7-point fit (kept as rail_rect_grade: the crop roof_rail's colour match / R_dark / snow noise are taken
+    # from — smooth fields, so the shipped telephoto states stay as built) put the whole building ~30 px (of 1536) low
+    # and ~3 % small under the telephoto: shed, wall, window and brick panel all doubled in the 0.25 s crossfade
+    # (QA F65). rail_rect_fit = brute-force NCC of σ1.5 edge features over x, y, w (pixel aspect fixed, no rotation),
+    # one fit per state s0 / s1 / s2 against roof_plate_<s>, averaged: (.5622 .2909 .419) (.5676 .2935 .414)
+    # (.5641 .2902 .418). Shed corners, wall, window and brick panel now land within a few px; the railing cannot
+    # (G10's pipe runs at slope .55 vs the plate's .68 — parallax of the re-shoot): it meets the plate's at its far
+    # (left) end and parts toward the lower right, as it did before.
+    'rail_rect_grade': {'x': 0.5631, 'y': 0.2858, 'w': 0.4039, 'h': 0.4039},
+    'rail_rect_fit': {'x': 0.5646, 'y': 0.2915, 'w': 0.417, 'h': 0.417},
+    # rail_window (G13) in roof_rail, same NCC fit per state (s0 .5089 .5854 .276 · s1 .507 .5733 .284 · s2 .5066
+    # .5689 .286), averaged; the ref_railwin crop G13 came from (.5098 .5801 .2799) was already within ~1 %
+    'railwin_rect_fit': {'x': 0.5075, 'y': 0.5759, 'w': 0.282, 'h': 0.423},
     # G13 (fix pass 1, from the re-centred ref_railwin): speaker top front edge; outer sill top line under the
     # window's bottom rail (snow band); the foreground pipe's top edge is detected (expected line below)
     'led_railwin': {'x': 0.597, 'y': 0.838},
@@ -2566,24 +2682,26 @@ def rail():
     ensure_plate_cache()
     g10 = unlight_window(S('g_roof_rail'), M('rail_win')); W, H = g10.size
     g01 = S('g_roof_plate')
-    ref = crop_frac(g01, rr).resize((W, H), Image.BICUBIC)
+    rg = M('rail_rect_grade')                  # colour / R_dark / snow-noise crop (smooth fields; see MEAS)
+    ref = crop_frac(g01, rg).resize((W, H), Image.BICUBIC)
     fmatch = chan_affine(g10, ref, 0.5)
     r0 = fmatch(g10)
-    jpg(grade_roof(r0, seed=31), 'roof_rail_s0')
+    jpg(grade_roof(plain_sign(r0, M('sign_rail')), seed=31), 'roof_rail_s0')
     META['led_rail'] = M('led_rail')
     if not has('g_roof_rail_snow'):
         MISSING.append('g_roof_rail_snow -> roof_rail_s1/_s2/_s2d'); return
     fl11 = register(S('g_roof_rail_snow'), S('g_roof_rail'), key='g11_to_g10')
     g11 = fmatch(unlight_window(I(warp(S('g_roof_rail_snow'), fl11)), M('rail_win')))
     up = ndi.gaussian_filter(np.clip((lum(A(g11)) - lum(A(r0))) * 4, 0, 255) / 255, 2)
-    nlow = resize_arr(crop_arr(CACHE['n_low_plate'], rr), (W, H))
+    nlow = resize_arr(crop_arr(CACHE['n_low_plate'], rg), (W, H))
     nr = snow_noise((H, W), 19, nlow)
     r1, _ = snow_blend(r0, g11, up, nr, 0.45, edge=edge_bias(up, 18))
-    jpg(grade_roof(r1, seed=31), 'roof_rail_s1')
-    jpg(grade_roof(g11, seed=31), 'roof_rail_s2')
+    jpg(grade_roof(plain_sign(r1, M('sign_rail')), seed=31), 'roof_rail_s1')
+    g11s = plain_sign(g11, M('sign_rail'))
+    jpg(grade_roof(g11s, seed=31), 'roof_rail_s2')
     R = CACHE.get('R')
-    Rr = np.clip(resize_arr(crop_arr(R, rr), (W, H)) * K_DARK, 0.03, 1) if R is not None else np.full((H, W), 0.2)
-    jpg(dark_grade(A(g11) * Rr[..., None], None, seed=32), 'roof_rail_s2d')
+    Rr = np.clip(resize_arr(crop_arr(R, rg), (W, H)) * K_DARK, 0.03, 1) if R is not None else np.full((H, W), 0.2)
+    jpg(dark_grade(A(g11s) * Rr[..., None], None, seed=32), 'roof_rail_s2d')
     if has('g_roof_rail_steps'):
         fl12 = register(S('g_roof_rail_steps'), S('g_roof_rail'), key='g12_to_g10')
         g12 = fmatch(unlight_window(I(warp(S('g_roof_rail_steps'), fl12)), M('rail_win')))
@@ -2858,7 +2976,8 @@ def meta_art():
 # ================================================================ TTS (§7.3 · §4.9.1) — generate + post
 TTS_JSON = os.path.join(REPO, 'tools', 'tts_ep2.json')
 TTS_WORK = os.path.join(REPO, 'work', 'tts_ep2')
-AUD_OUT = os.path.join(REPO, 'ep2', 'assets', 'audio')
+AUD_OUT_SHIPPED = os.path.join(REPO, 'ep2', 'assets', 'audio')
+AUD_OUT = os.environ.get('HARU_AUD_OUT', AUD_OUT_SHIPPED)      # trial posts go to a scratch folder (+ its own _report.json)
 
 
 def ep1_funcs(path, names):
@@ -3001,7 +3120,42 @@ def wsola(x, rate, sr, win=0.032, tol=0.012):
     return y[:k * Hs + Hs]
 
 
-def tts_post():
+def close_hiatus(x, sr, t, a_mode='db', b_mode='db', drop_db=6.0, xf=0.03, search=0.05):
+    """close the glottal break a TTS take puts inside a vowel hiatus (세|아 -> '새하'): around t (s) find the energy dip,
+    cut from the last pre-dip frame within drop_db of the vowel before ('db') — or the last voiced one ('v', voicing
+    ≥ .75 within 9 dB) — to the first such frame of the vowel after, and join the two vowels with an xf-second
+    equal-gain crossfade aligned on the waveform (±5 ms). The two vowels then glide into each other, as in 세아."""
+    hop, n = int(0.005 * sr), int(0.025 * sr)
+    c = np.arange(n // 2, len(x) - n // 2, hop)
+    r, v = np.empty(len(c)), np.empty(len(c))
+    for i, ci in enumerate(c):
+        w = x[ci - n // 2:ci + n // 2]; r[i] = 20 * np.log10(np.sqrt(np.mean(w ** 2)) + 1e-9)
+        w = w - w.mean(); ac = np.correlate(w, w, 'full')[n - 1:]; ac = ac / (ac[0] + 1e-12)
+        v[i] = min(1.0, ac[int(sr / 400):int(sr / 110)].max())
+    k = lambda s: int(np.argmin(np.abs(c - s * sr)))
+    m = k(t - search) + int(np.argmin(r[k(t - search):k(t + search)]))
+    L = r[k(c[m] / sr - 0.10):m + 1].max(); R = r[m:k(c[m] / sr + 0.10)].max()
+    ok_a = (lambda i: r[i] >= L - drop_db) if a_mode == 'db' else (lambda i: v[i] >= 0.75 and r[i] >= L - 9)
+    ok_b = (lambda i: r[i] >= R - drop_db) if b_mode == 'db' else (lambda i: v[i] >= 0.75 and r[i] >= R - 9)
+    a = m
+    while a > 0 and not ok_a(a): a -= 1
+    b = m
+    while b < len(r) - 1 and not ok_b(b): b += 1
+    A, B = int(c[a]), int(c[b])
+    F, tol, P = int(xf * sr), int(0.005 * sr), int(0.012 * sr)
+    ref = x[A:A + P]; best, bb = -9.0, B
+    for d in range(-tol, tol + 1):
+        s_ = x[B + d:B + d + P]
+        cc = float(np.dot(ref, s_) / (np.linalg.norm(ref) * np.linalg.norm(s_) + 1e-12))
+        if cc > best: best, bb = cc, B + d
+    fo = 0.5 + 0.5 * np.cos(np.linspace(0, np.pi, F))
+    y = np.concatenate([x[:A], x[A:A + F] * fo + x[bb:bb + F] * (1 - fo), x[bb + F:]])
+    return y, {'at_s': round(t, 3), 'dip_s': round(float(c[m]) / sr, 3), 'dip_db': round(float(min(L, R) - r[m]), 1),
+               'cut_s': [round(A / sr, 3), round(bb / sr, 3)], 'removed_ms': round((bb - A) / sr * 1000)}
+
+
+def tts_post(names=None):
+    """§7.3 chain for every generated job (or only `names`); the report is merged, so a one-line retake keeps the others."""
     from scipy import signal
     cfg = json.load(open(TTS_JSON, encoding='utf-8'))
     tp = ep1_funcs(os.path.join(REPO, 'tools', 'ttspost.py'), {'read', 'write', 'trim', 'filt', 'norm', 'SR'})
@@ -3009,7 +3163,12 @@ def tts_post():
     SR = tp['SR']
     os.makedirs(AUD_OUT, exist_ok=True)
     raw = os.path.join(TTS_WORK, 'raw')
-    report = {}
+    shipped = os.path.normcase(os.path.abspath(AUD_OUT)) == os.path.normcase(AUD_OUT_SHIPPED)
+    rep_p = os.path.join(TTS_WORK, '_report.json') if shipped else os.path.join(AUD_OUT, '_report.json')
+    try:
+        report = json.load(open(rep_p, encoding='utf-8')) if names and os.path.exists(rep_p) else {}
+    except ValueError:
+        report = {}
     def level(x, target_db=-20.0, peak_db=-1.0):
         g = 10 ** ((target_db - active_rms_db(x, SR)) / 20)
         pk = np.max(np.abs(x * g)) + 1e-12
@@ -3021,6 +3180,7 @@ def tts_post():
         report[name] = d; print(name, d, flush=True); return d
     for j in cfg['jobs']:
         if not j.get('generate', True): continue
+        if names and j['name'] not in names: continue
         name = j['name']; src = os.path.join(raw, j.get('take', name) + '.raw.wav')
         if not os.path.exists(src):
             print(name, 'MISSING raw'); report[name] = 'missing'; continue
@@ -3030,26 +3190,58 @@ def tts_post():
         x = np.asarray(x, np.float64)
         kind = j.get('post')
         if kind == 'vm':
-            x = filt(x, SR, 100, 8000)
-            x = compress(x, SR, -26, 2.2)
-            wet = signal.fftconvolve(x, make_ir(SR, 0.25))[:len(x)]
-            wet *= np.sqrt(np.mean(x ** 2) / (np.mean(wet ** 2) + 1e-12))
-            x = x * 0.75 + wet * 0.25
-            segs = segments(x, SR)
-            # merge into 3 sentences by the two longest gaps
-            gaps = sorted(range(len(segs) - 1), key=lambda k: segs[k + 1][0] - segs[k][1], reverse=True)[:2]
-            cuts = sorted(gaps)
-            sent = []
-            b0 = 0
-            for k in cuts:
-                sent.append((segs[b0][0], segs[k][1])); b0 = k + 1
-            sent.append((segs[b0][0], segs[-1][1]))
+            def vm_take(tk, x):
+                """one take through the phone chain, split into its 3 sentences. `hiatus` repairs are cut in the chained
+                signal (take time: the chain does not move it) — cut before the room, the 0.25 s tail of 세 smeared
+                back over the joint and still read as a breathy 'h'."""
+                x = filt(x, SR, 100, 8000)
+                x = compress(x, SR, -26, 2.2)
+                wet = signal.fftconvolve(x, make_ir(SR, 0.25))[:len(x)]
+                wet *= np.sqrt(np.mean(x ** 2) / (np.mean(wet ** 2) + 1e-12))
+                x = x * 0.75 + wet * 0.25
+                hi = []
+                for h in sorted(j.get('hiatus', []), key=lambda h_: -h_['at_s']):     # latest first: no time shift
+                    if h['take'] != tk: continue
+                    x, info = close_hiatus(x, SR, h['at_s'], h.get('a', 'db'), h.get('b', 'db'), h.get('drop_db', 6.0), h.get('xf_s', 0.03))
+                    hi.append(info)
+                segs = segments(x, SR)
+                # merge into 3 sentences by the two longest gaps
+                gaps = sorted(range(len(segs) - 1), key=lambda k: segs[k + 1][0] - segs[k][1], reverse=True)[:2]
+                sent, b0 = [], 0
+                for k in sorted(gaps):
+                    sent.append((segs[b0][0], segs[k][1])); b0 = k + 1
+                sent.append((segs[b0][0], segs[-1][1]))
+                return [x[a0:a1] for a0, a1 in sent], hi
+            # comp = the take each sentence comes from (a retake can replace one sentence and keep a validated one)
+            comp = j.get('comp') or [j.get('take', name)] * 3
+            takes, hiatus_log = {}, []
+            for tk in dict.fromkeys(comp):
+                if tk == j.get('take', name): xt = x
+                else:
+                    p_ = os.path.join(raw, tk + '.raw.wav')
+                    if not os.path.exists(p_): raise SystemExit(f'{name}: comp take {tk} missing')
+                    xt, sr_ = read(p_); xt = trim(xt, sr_, 0.008)
+                    xt = np.asarray(signal.resample_poly(xt, SR, sr_) if sr_ != SR else xt, np.float64)
+                takes[tk], hl = vm_take(tk, xt)
+                hiatus_log += [dict(take=tk, **h) for h in hl]
+            sent_x = [takes[tk][i] for i, tk in enumerate(comp)]
             lead = j['lead_s']; T = j['target_s']; wins = j['windows']
             out = np.zeros(int(T * SR))
             starts = [lead, wins[1][0], wins[2][0]]
             place = []
-            for (a0, a1), st, wn in zip(sent, starts, wins):
-                seg = x[a0:a1]
+            # retake fit: each sentence is time-scaled (WSOLA, pitch kept, ≤ ±15 %) to the span it had in the shipped
+            # take, so the subtitle windows and the _a/_b name cut keep their timing (fit_spans_s in tts_ep2.json)
+            fit = j.get('fit_spans_s'); fit_tol = j.get('fit_tol_s', 0.12); rates = []
+            for idx, (seg, st, wn) in enumerate(zip(sent_x, starts, wins)):
+                n0 = len(seg)
+                if fit:
+                    tgt = fit[idx][1] - fit[idx][0]
+                    rate = 1.0
+                    if abs(len(seg) / SR - tgt) > fit_tol:
+                        rate = float(np.clip((len(seg) / SR) / tgt, 0.85, 1.15))
+                        pad = np.zeros(int(0.08 * SR))            # WSOLA drops its last window: pad, then cut back
+                        seg = wsola(np.concatenate([seg, pad]), rate, SR)[:int(round(n0 / rate))]
+                    rates.append(round(rate, 3))
                 room = int((wn[1] - st) * SR)
                 if len(seg) > room:                     # window too short: start earlier, never overlap the previous one
                     st = max(place[-1][1] / SR + 0.12 if place else 0.3, wn[1] - len(seg) / SR)
@@ -3060,10 +3252,21 @@ def tts_post():
             rng = np.random.default_rng(11)
             hiss = filt(rng.normal(0, 1, len(out)), SR, 200, 6000)
             hiss *= 10 ** (-50 / 20) / (np.sqrt(np.mean(hiss ** 2)) + 1e-12)
-            out = level(out + 0) + hiss
+            if j.get('target_lufs') is not None:
+                # a retake lands on the shipped file's integrated loudness (the in-game phone-route trim is set on it)
+                sp = level(out + 0)
+                for _ in range(3):
+                    g = 10 ** ((j['target_lufs'] - lufs(sp + hiss, SR)) / 20)
+                    sp = sp * min(g, 10 ** (-1 / 20) / (np.max(np.abs(sp)) + 1e-12))
+                out = sp + hiss
+            else:
+                out = level(out + 0) + hiss
             write(os.path.join(AUD_OUT, name + '.wav'), out, SR)
             d = stats(name, out)
             d['sentences_s'] = [[round(a / SR, 2), round(b / SR, 2)] for a, b in place]
+            if fit: d['fit_rates'] = rates
+            d['comp'] = comp
+            if hiatus_log: d['hiatus'] = hiatus_log
             d['windows'] = wins
             # _a / _b cuts (same file, no new TTS): _a = lead + sentence 1; _b = from 감았을 때 (after '하루 씨가')
             a_end = place[0][1] + int(0.08 * SR)
@@ -3143,7 +3346,7 @@ def tts_post():
             y = level(y, -22.0)
             write(os.path.join(AUD_OUT, name + '.wav'), y, SR)
             d = stats(name, y); d['voicing_take'] = round(v0, 2); d['voicing_out'] = round(voicing(y, SR), 2)
-    json.dump(report, open(os.path.join(TTS_WORK, '_report.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+    json.dump(report, open(rep_p, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
 
 
 MEAS.update({
@@ -3286,7 +3489,7 @@ if __name__ == '__main__':
     elif args and args[0] == '--tts-gen':
         tts_gen()
     elif args and args[0] == '--tts-post':
-        tts_post()
+        tts_post(args[1:] or None)                  # --tts-post [job names]: only those, merged into the report
     elif args and args[0] == '--assets-js':
         write_assets_js()
     elif args and args[0] == '--fixrefs':

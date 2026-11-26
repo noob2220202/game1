@@ -19,6 +19,7 @@
  *      'media:vol' {target, v, source} · 'media:out' {target} · 'bt:change' {state} · 'bt:cut'
  * DSP chains come from audio: G.audio.mediaChain(kind) → { input, setVolume(v, tauSec), dispose() } (fallback built here).
  * Disconnect / cut while playing on the speaker pauses playback (Android "becoming noisy"), so nothing blares from the phone.
+ * from:'voice' clips may carry AudioBuffer.mediaTrimDb (G.audio.jiminVM: +10 dB) — applied on the phone route only.
  * ========================================================= */
 (function () {
   'use strict';
@@ -94,6 +95,13 @@
   };
 
   /* ---------------- playback handle ---------------- */
+  /** voice-message trim on the phone route only (§10 H 대사 −16 LUFS 근처): a clip may carry `mediaTrimDb` on its AudioBuffer
+   *  (G.audio.jiminVM tags the TTS voicemail, mastered ≈ 10 dB under the dialogue target for this chain — the rendered hook voice
+   *  is already at target and carries none). The Bluetooth path never gets it, so the C2 / 2층_스피커 calibration is untouched. */
+  function phoneTrim(h) {
+    const d = h.from === 'voice' && h._buf ? Number(h._buf.mediaTrimDb) : 0;
+    return Number.isFinite(d) && d !== 0 ? Math.pow(10, clamp(d, -24, 18) / 20) : 1;
+  }
   function makeHandle(src, o) {
     const h = {
       id: o.id || 'media' + Date.now().toString(36), from: o.from || 'recorder', loop: !!o.loop,
@@ -123,7 +131,8 @@
         const s = c.createBufferSource(); s.buffer = h._buf; s.loop = h.loop;
         const gP = c.createGain(), gB = c.createGain(), dly = c.createDelay(1);
         dly.delayTime.value = 0.2;
-        gP.gain.value = h.target === 'phone' ? 1 : 0; gB.gain.value = h.target === 'bt' ? 1 : 0;
+        h._vt = phoneTrim(h);
+        gP.gain.value = h.target === 'phone' ? h._vt : 0; gB.gain.value = h.target === 'bt' ? 1 : 0;
         s.connect(gP); s.connect(dly); dly.connect(gB);
         if (pc) gP.connect(pc.input); if (bc) gB.connect(bc.input);
         s.onended = () => { if (h._nodes && h._nodes.src === s && !h.loop) ended(); };
@@ -171,7 +180,7 @@
       const n = h._nodes, c = actx();
       if (n && c) {
         const t = c.currentTime, tau = (ms || 80) / 1000 / 3;
-        try { n.gP.gain.setTargetAtTime(to === 'phone' ? 1 : 0, t, tau); n.gB.gain.setTargetAtTime(to === 'bt' ? 1 : 0, t, tau); } catch (e) {}
+        try { n.gP.gain.setTargetAtTime(to === 'phone' ? (h._vt || 1) : 0, t, tau); n.gB.gain.setTargetAtTime(to === 'bt' ? 1 : 0, t, tau); } catch (e) {}
       }
       return old !== to;
     };

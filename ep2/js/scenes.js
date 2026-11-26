@@ -368,9 +368,16 @@
     safe(() => G.clock && G.clock.pause && G.clock.pause());
     safe(() => G.bus && G.bus.emit('pause', { open: true }));
     const s = G.settings || {};
-    const seg = (key, opts) => {
+    const seg = (key, opts, o) => {
+      o = o || {};
       const box = el('div.fl2-seg');
-      const draw = () => { box.querySelectorAll('button').forEach((b) => b.classList.toggle('on', String(s[key]) === b.dataset.v)); };
+      // o.nearest: numeric option — highlight the closest one (설정 › 디스플레이 also offers 130 % → shown as 크게, §4.0 keeps 3 labels)
+      const pick = () => {
+        if (!o.nearest) return String(s[key]);
+        const cur = Number(s[key]) || o.dflt || 0;
+        return String(opts.reduce((a, [v]) => (Math.abs(v - cur) < Math.abs(a - cur) ? v : a), opts[0][0]));
+      };
+      const draw = () => { const v = pick(); box.querySelectorAll('button').forEach((b) => b.classList.toggle('on', v === b.dataset.v)); };
       opts.forEach(([v, label]) => {
         const b = el('button', { 'data-qa': `pause.opt:${key}:${v}`, dataset: { v: String(v) } }, label);
         b.addEventListener('click', () => { sfxTap(); s[key] = v; saveSettings(); draw(); });
@@ -404,7 +411,7 @@
       resume,
       el('div.fl2-prows', null,
         row('공포 연출', seg('scares', [['full', '보통'], ['light', '덜 무섭게']])),
-        row('글자 크기', seg('textSize', [[0.9, '작게'], [1, '보통'], [1.15, '크게']])),
+        row('글자 크기', seg('textSize', [[0.9, '작게'], [1, '보통'], [1.15, '크게']], { nearest: true, dflt: 1 })),
         row('소리', seg('audioMode', [['ear', '이어폰'], ['speaker', '스피커(방향 표시)']])),
         row('소리 자막', seg('subs', [['info', '정보만'], ['all', '모두']])),
         row('진동', seg('vibration', [[true, '켬'], [false, '끔']])),

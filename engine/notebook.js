@@ -107,7 +107,8 @@
       G.bus.on('flag', soft);
       G.bus.on('flag:off', soft);
       G.bus.on('var:kbdHisSeen', soft);
-      G.bus.on('keyboard', (on) => { if (sheet) sheet.classList.toggle('kb', !!on); });
+      // own state class (never plain 'kb' — core.css .kb is the keyboard itself: z 450, translateY(100%), hidden when not .in)
+      G.bus.on('keyboard', (on) => { if (sheet) sheet.classList.toggle('nbk-kbopen', !!on); });
     }
     const nb = nbv();
     if (nb.tab === 'todo' || nb.tab === 'hint' || nb.tab === 'memo') tab = nb.tab;
@@ -125,14 +126,27 @@
       raf = 0;
       if (!fab) return;
       let bottom = 0;
+      // only a banner that actually lies over the tab's docked band (sb + 4 … sb + 48) moves it — on the lock screen the
+      // banners drop in below the clock (main.css), the tab stays docked there
+      const sb = document.getElementById('statusbar');
+      const dockTop = (sb && sb.offsetHeight ? sb.offsetHeight : 30) + 4, dockBot = dockTop + (fab.offsetHeight || 44);
       if (getComputedStyle(bn).display !== 'none') {
-        bn.querySelectorAll(':scope > .banner.in').forEach((b) => { bottom = Math.max(bottom, bn.offsetTop + b.offsetTop + b.offsetHeight); });
+        let over = false, low = 0;
+        bn.querySelectorAll(':scope > .banner.in').forEach((b) => {
+          const t = bn.offsetTop + b.offsetTop, btm = t + b.offsetHeight;
+          if (t < dockBot + 2 && btm > dockTop - 2) over = true;
+          low = Math.max(low, btm);
+        });
+        if (over) bottom = low;   // below the whole stack, not just the banner over the band
       }
       if (bottom > 0) fab.style.setProperty('--nb-top', Math.round(bottom + 6) + 'px');
       else fab.style.removeProperty('--nb-top');
     };
-    new MutationObserver(() => { if (!raf) raf = requestAnimationFrame(update); })
-      .observe(bn, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    const kick = () => { if (!raf) raf = requestAnimationFrame(update); };
+    new MutationObserver(kick).observe(bn, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    // the banners' top changes with the lock and its PIN pad (main.css) without any mutation inside #banners
+    const lockEl = document.getElementById('lock');
+    if (lockEl) new MutationObserver(kick).observe(lockEl, { attributes: true, attributeFilter: ['class'], subtree: true });
     update();
   }
   NB.show = function (on) {
@@ -382,8 +396,8 @@
   NB.autoHint = warnNoop('autoHint');
   NB.ping = warnNoop('ping');
 
-  /* ---------- DEBUG ---------- */
-  if (G.DEBUG || /[?&]debug=1\b/.test(location.search)) {
+  /* ---------- DEBUG (G.DEBUG only — config.ep2.js already folds ?debug=1 in and ignores it on the release host) ---------- */
+  if (G.DEBUG) {
     window.haru = window.haru || {};
     window.haru.notebook = function (id, tier) {
       const o = (G.OBJECTIVES || []).find((x) => x.id === id);

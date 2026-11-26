@@ -853,9 +853,17 @@
       n.style.left = x + '%'; n.style.top = y + '%';
       subsEl.appendChild(n);
       Array.prototype.slice.call(subsEl.children, 0, -2).forEach((c) => c.remove());
-      requestAnimationFrame(() => n.classList.add('in'));
+      placeSub(n, x);
+      requestAnimationFrame(() => { placeSub(n, x); n.classList.add('in'); });
       setTimeout(() => { n.classList.remove('in'); setTimeout(() => n.remove(), 400); }, ms || 2600);
     };
+    /** keep the whole line on screen: the side anchors (24 % / 76 %) shift inward by what a long line needs (10 px margin) —
+     *  it still sits toward its side; the width itself is capped by CSS (.rm2-dirsub max-width ≤ 70 %, long lines wrap) */
+    function placeSub(n, x) {
+      const W = subsEl.clientWidth, w = n.offsetWidth, m = 10;
+      if (!W || !w) return;                                   // room hidden / not laid out yet — keep the % anchor
+      n.style.left = Math.max(m + w / 2, Math.min(W - m - w / 2, (x / 100) * W)) + 'px';
+    }
 
     /* ---------- flash ---------- */
     function setFlash(v) {
@@ -895,6 +903,7 @@
       root.classList.toggle('police-on', policeActive() && !isLit);
       root.classList.toggle('rm2-lowend', lowEnd());
       root.classList.toggle('rm2-calm', reduceMotion());
+      root.classList.toggle('rm2-noflash', reduceFlash());   // 깜빡임 줄이기 (or reduced motion): every blink ≤ 0.5 Hz (§10 H)
       const drilling = !!(flag('M6') && !flag('M7') && !flag('C2'));
       root.classList.toggle('rm2-drill', !!(flag('M6') && !flag('M7')));
       root.classList.toggle('rm2-spin', drilling);
@@ -1043,6 +1052,13 @@
         inner.style.setProperty('--ik', String(1 / k));
       }
       vw.zoomTo = function (x, y, z, anim) { s = clamp(z, 1, maxZ); cx = x; cy = y; apply(anim !== false); };
+      /** zoom onto a rect in image fractions {x0,y0,x1,y1}: centred on it, as close as `zCap` allows while the whole rect
+       *  stays inside `fill` of the viewer (the zoom follows the phone's width — a fixed z crops it on narrow / tall screens) */
+      vw.fitZoom = function (r, zCap, fill) {
+        fill = fill || 0.92;
+        const k1 = Math.max(1e-3, r.x1 - r.x0) * w * f, k2 = Math.max(1e-3, r.y1 - r.y0) * h * f;   // rect size at z = 1, px
+        return Math.max(1, Math.min(zCap || maxZ, maxZ, (fill * bw) / k1, (fill * bh) / k2));
+      };
       const ps = new Map(); let st = null, pin = null, lt = 0;
       box.style.touchAction = 'none';
       box.addEventListener('pointerdown', (e) => {
@@ -1157,7 +1173,7 @@
         c.onSpot = (sp) => {
           if (sp.act === 'lid') {
             setFlag('boxHand'); seenNote();
-            const z = d.lid.zoomTo; if (c.viewer.scale > 1.4) c.viewer.zoomTo(0.5, 0.5, 1); else c.viewer.zoomTo(z.x, z.y, z.z);
+            lidZoom(c, d.lid);
             return;
           }
           if (sp.act === 'pickPhone') { pickPhone(c, st, render); return; }
@@ -1283,14 +1299,42 @@
         return 'newphone';
       },
     };
+    /** §3.1 ① tap → the handwriting enlarged: the whole written block — `text` (baked `받는 사람: 601호` / `보내는 사람: —`) ∪ the
+     *  DOM {N} as laid out now — fitted to the screen (≤ lid.maxZ); tap again → back to 1×. Legacy data: a fixed lid.zoomTo. */
+    function lidZoom(c, L) {
+      const vw = c.viewer;
+      if (!L.text) { const z = L.zoomTo || { x: 0.5, y: 0.5, z: 2 }; if (vw.scale > 1.4) vw.zoomTo(0.5, 0.5, 1); else vw.zoomTo(z.x, z.y, z.z); return; }
+      const r = { x0: L.text.x0, y0: L.text.y0, x1: L.text.x1, y1: L.text.y1 };
+      const grow = (x0, y0, x1, y1) => { r.x0 = Math.min(r.x0, x0); r.y0 = Math.min(r.y0, y0); r.x1 = Math.max(r.x1, x1); r.y1 = Math.max(r.y1, y1); };
+      const nm = vw.inner.querySelector('.rm2-lidname'), ir = vw.inner.getBoundingClientRect(), nr = nm && nm.getBoundingClientRect();
+      if (nr && nr.width > 0 && ir.width > 0 && ir.height > 0) grow((nr.left - ir.left) / ir.width, (nr.top - ir.top) / ir.height, (nr.right - ir.left) / ir.width, (nr.bottom - ir.top) / ir.height);
+      else { const q = (c.st && (c.st.lifted || !c.st.m0)) ? data.GEO.lidNameLifted() : data.GEO.lidName(); q.forEach((p) => grow(p[0], p[1], p[0], p[1])); }   // not laid out: the whole name slot
+      const z = vw.fitZoom(r, L.maxZ || 2.6, L.fill || 0.92);
+      if (vw.scale > Math.min(1.4, 1 + (z - 1) * 0.6)) vw.zoomTo(0.5, 0.5, 1);
+      else vw.zoomTo((r.x0 + r.x1) / 2, (r.y0 + r.y1) / 2, z);
+    }
     function lidName(host, q, w, h) {
       const qq = q.map((p) => [p[0] * w, p[1] * h]);
-      const VW = 220, VH = 60;
+      const VW = 220, VH = 60, FS = 54, ROOM = VW - 10;
       const name = T('{N}');
       const n = el('span.rm2-lidname', null, name);
       const box = el('div.rm2-lid'); box.style.width = VW + 'px'; box.style.height = VH + 'px'; box.style.transform = quadMatrix(VW, VH, qq);
-      if ([...name].length > 6) { box.classList.add('long'); n.style.fontSize = Math.max(22, Math.round(54 * 6 / [...name].length)) + 'px'; }
       box.appendChild(n); host.appendChild(box);
+      /* {N} stays inside its slot on the lid (VW): first a guess from the length (pen-font Hangul ≈ .62 em, narrower letters ≈ .42 em),
+         then the laid-out width once the lid is in the page and again when the pen web font has arrived (the cursive fallback is wider) */
+      const size = (fs) => { n.style.fontSize = fs + 'px'; box.classList.toggle('long', fs < FS); };
+      const em = [...name].reduce((s, ch) => s + (/[ㄱ-ㆎ가-힣㐀-鿿]/.test(ch) ? 0.62 : 0.42), 0);
+      const guess = Math.max(18, Math.min(FS, Math.floor(ROOM / Math.max(em, 0.01))));
+      size(guess);
+      const fit = () => {
+        if (!n.isConnected) return;
+        n.style.fontSize = FS + 'px'; box.classList.remove('long');
+        const nw = n.offsetWidth;
+        if (!nw) { size(guess); return; }                  // hidden — keep the guess
+        size(nw > ROOM ? Math.max(18, Math.floor(FS * ROOM / nw)) : FS);
+      };
+      requestAnimationFrame(fit);
+      try { if (document.fonts && document.fonts.load) document.fonts.load(FS + "px 'Nanum Pen Script'", name).then(() => requestAnimationFrame(fit), () => {}); } catch (e) {}
     }
     function phoneAlarm(host, q, w, h, a) {
       const qq = q.map((p) => [p[0] * w, p[1] * h]);

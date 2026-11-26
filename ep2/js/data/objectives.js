@@ -5,7 +5,7 @@
  * Record: { id, title: string | () => string, optional, grayAfterM7, show() → bool, done() → bool,
  *           doneMark?() → bool (what counts as a quiet check — door: C2 only), hints:[T1, T2, T3] }
  * Titles are words that are already on screen when the card appears (§2.4 제목 규칙) — never detectors.
- * Exceptions registered with the DEBUG title check: 이 폰 · —의 홈 · 지민의 질문 (§2.4, §10 A).
+ * Exceptions registered with the DEBUG title check: 이 폰 · —의 홈 · 지민의 질문 · 상자 (§2.4, §10 A).
  * Pure data: no cross-owner calls at load time; every predicate is lazy and guarded.
  * ========================================================= */
 (function () {
@@ -76,17 +76,28 @@
       hints: ['그는 14일 동안 밤마다 이 옥상에 있었다. 어디?', '키보드가 12월 11일에 배운 말, 그날 새벽의 검색, 폴라로이드를 찍은 자리, 창밖 철문의 글씨.',
         '물탱크실. {MAKER_CONTACT}에게 "옥상 물탱크실"이라고 보낸다.'] },
 
+    // §3.16 Hints — state-aware: early lure #2 pulled the speaker's plug before M6 (lureCount 2 ∧ musicCut ∧ ¬C2 —
+    // BT row '연결 안 됨'), so the three tiers stop pointing at an impossible action. Same tiers, same 2 s hold / 60 s gaps,
+    // nothing automatic. (The plug goes at lure #2 + 45 s and M6 waits ≥ last lure + 130 s, so the card is born after the cut.)
     { id: 'door', title: '문', grayAfterM7: true,
       show: () => f('M6'), done: () => f('C2') || f('M7'), doneMark: () => f('C2'),
-      hints: ['그가 이 폰에 남긴 것 중에, 지금 그를 문 앞에서 떼어 낼 수 있는 게 있다.',
-        '04:44 알람은 어디로, 얼마나 크게 울리게 돼 있었지? 블루투스를 봐. 빈집에서 나는 소리는 누가 듣지?',
-        "블루투스 › 2층_스피커 연결 → 녹음 '우리' 재생 → 볼륨을 끝까지."] },
+      get hints() {
+        if ((v('lureCount') || 0) >= 2 && f('musicCut') && !f('C2')) {
+          return ['스피커는 이미 끊겼다. 이제 소리로 그를 떼어 낼 수는 없다.',
+            '빈집에서 두 번 울린 소리. 누군가는 들었다.',
+            '문은 버틴다. 잠근 채 기다리면 된다.'];
+        }
+        return ['그가 이 폰에 남긴 것 중에, 지금 그를 문 앞에서 떼어 낼 수 있는 게 있다.',
+          '04:44 알람은 어디로, 얼마나 크게 울리게 돼 있었지? 블루투스를 봐. 빈집에서 나는 소리는 누가 듣지?',
+          "블루투스 › 2층_스피커 연결 → 녹음 '우리' 재생 → 볼륨을 끝까지."];
+      } },
 
     { id: 'answer', title: '지민의 질문', show: () => f('jiminReturn'), done: () => f('END'),
       hints: ['그 사람은 이 질문에 틀렸다. 그는 소리를 듣지 않는 사람이다.', '지민의 12월 17일 음성 메시지를 들어 봐(위로 올리면 있다).',
         '"한 마디만 나왔어요."'] },
   ];
 
-  // DEBUG title auto-check exceptions (§2.4 · §10 A) — generic nouns, never solution words.
-  G.OBJECTIVES.titleExceptions = ['phone', 'home', 'answer'];
+  // DEBUG title auto-check exceptions (§2.4 · §10 A) — generic nouns, never solution words. 'box' exists from the start
+  // (할 일 is never empty) while its caption '상자. 받는 사람: 601호 {N}.' is drawn only after gotPhone (cold open: caption 0).
+  G.OBJECTIVES.titleExceptions = ['phone', 'home', 'answer', 'box'];
 })();

@@ -19,10 +19,10 @@
   "R_dark": "median 0.436, p5 0.239, p95 0.714; s2d = s2 x clip(R x 1.15)",
   "stencil_tank_glyph_px": "76px target, fit to the blank rectangle (293px wide); bridges per jamo (0.045 em)",
   "reg_g06_to_g05": "|d| median 0.4px, p95 1.0px, conf tiles 1633/2480",
-  "stencil_tank_contrast": "s0 1.87 (plain 2.07) · s1 1.87 (plain 2.07) · s2 1.87 (plain 2.07) · s2d 1.22 (plain 1.84) — WCAG (L+.05) ratio of letters vs the pale patch; s2d = s2 × R (letters and patch scaled alike, no letter boost)",
+  "stencil_tank_contrast": "s0 1.87 (plain 2.07) · s1 1.87 (plain 2.07) · s2 1.87 (plain 2.07) · s2d 1.71 (plain 3.74) — WCAG (L+.05) ratio of letters vs the pale patch; s2d = s2 × R, letters × max(R, 0.4) (pale paint)",
   "js_tank": "drawn (not G08/G09): phone light σ .12 door-h at .50, 4 matte nitrile fingertips 10–12 px rim-lit; cap = brim crescent lit from below at .30 (face 0)",
   "reg_ajar_lit_to_g05": "|d| median 0.8px, p95 1.9px, conf tiles 595/2480",
-  "p_tank_ajar": "leaf = s2 closed leaf warped to the open quad (edit used for geometry/shade/padlock only); patch area 51.9 %; swing 56°",
+  "p_tank_ajar": "leaf = s2 closed leaf (snow line mirrored out of its foot) warped to the open quad; edit used for geometry/shade only (its free-edge padlock cloned out: one padlock, on the frame staple); swept floor = base snow in an inner shadow; patch area 52.2 %; swing 56°",
   "reg_g11_to_g10": "|d| median 0.5px, p95 6.3px, conf tiles 1035/2480",
   "reg_g12_to_g10": "|d| median 0.5px, p95 5.9px, conf tiles 940/2480",
   "rail_window": "G13 re-run from the re-centred ref_railwin; speaker bottom right of the right pane (led {'x': 0.597, 'y': 0.838}); pipe snow mound .45 diam, sill band 6–14 px",
@@ -35,7 +35,9 @@
   "pol_tank_in": "5 markers 1–5 (2 generated + 3 drawn, contact shadow + flash falloff); mirrored, outside-only rectangle + latch cloned away",
   "pol_case": "generated polaroid showed its front (inset window, thick bottom margin) -> whole face repainted as one flat back (plane-fit flash falloff + grain) before writing 어서 와. —",
   "pol_tally": "tally strokes = 14 (two 4+1 groups + 4 verticals), no 正",
-  "pol_sticker": "only '한결' printed (navy 28,40,90), starting at the torn edge; no logo/phone/trade"
+  "pol_sticker": "only '한결' printed (navy 28,40,90), starting at the torn edge; no logo/phone/trade",
+  "sign_plate": "panel 18x8 px at (966,351) -> plain glow [NOTEXT]",
+  "sign_rail": "panel 26x10 px at (298,198) -> plain glow [NOTEXT]"
  },
  "door_gap": [
   [
@@ -299,16 +301,16 @@
   "h": 0.5961
  },
  "rail_rect": {
-  "x": 0.5631,
-  "y": 0.2858,
-  "w": 0.4039,
-  "h": 0.4039
+  "x": 0.5646,
+  "y": 0.2915,
+  "w": 0.417,
+  "h": 0.417
  },
  "railwin_rect": {
-  "x": 0.5098,
-  "y": 0.5801,
-  "w": 0.2799,
-  "h": 0.4199
+  "x": 0.5075,
+  "y": 0.5759,
+  "w": 0.282,
+  "h": 0.423
  },
  "stencil_q": {
   "plate": [

@@ -6,7 +6,7 @@
  *
  *   G.app('camera', { name:'카메라', icon, open({ view, sub, flash }) })        open params (ARCH §4.19): camera { view, flash }
  *   G.camera = { open(params) → room api | null, rear(params) (ep1 alias), stop() (no-op), isLive() → false }
- * No getUserMedia, no permission prompt, no front camera (ARCH §1 — the ep1 simulated selfie view is gone in ep2).
+ * No camera stream API, no permission prompt, no front camera (ARCH §1 — the ep1 simulated selfie view is gone in ep2).
  * Load order: after engine/room/room.js and engine/core/phone.js (G.app) — registration is guarded for partial builds.
  * ========================================================= */
 (function () {

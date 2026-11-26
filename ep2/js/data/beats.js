@@ -77,7 +77,7 @@
           if (ev && G.phone && G.phone.notify) G.phone.notify(Object.assign({}, ev, { id: 'N05', user: 'n' }));
         } catch (e) { console.error('[beats] B07 notify', e); }
         cue('church.bell', { n: 12, gap: 3.2, az: 200 });
-        sub('S03', { az: 200 });
+        sub('S03');                                     // §7.4 S03 position '하단' (subs.js az null) — not a direction sub
       } },
 
     /* ---------- B09′ ('B09p'): M4 + 30 s — GSM .08 → .15 for 2 s, anywhere (world) → flag b09Cue ---------- */
@@ -98,7 +98,7 @@
         if (!G.room || !G.room.playTankGlow) return false;
         const variant = ctx.cb('js1') ? 'hand' : 'cap';
         const p = G.room.playTankGlow({ variant, holdMs: ctx.less ? 1200 : 2400 });
-        if (!ctx.less) setTimeout(() => { try { const g = gsm(); if (g && g.pulse) g.pulse({ peak: 0.22, upMs: 600, holdMs: 1000, downMs: 800, arc: true }); } catch (e) {} }, 300);
+        if (!ctx.less) setTimeout(() => { try { const g = gsm(); if (g && g.pulse) g.pulse({ peak: 0.22, upMs: 600, holdMs: 600, downMs: 800, arc: true }); } catch (e) {} }, 300);
         let ok = false;
         try { ok = !!(await p); } catch (e) { ok = false; }
         if (ok) { try { G.flag('tankGlow', true); } catch (e) {} if (G.director && G.director.spend) G.director.spend('b09'); }

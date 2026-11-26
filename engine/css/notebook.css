@@ -27,6 +27,7 @@
 #screen > .nb-fab.nbk-fab.hide, #screen > .nb-fab.nbk-fab.hide-open { transform: translateX(40px) !important; }
 /* header gutters (right edge of the last control ≥ --nb-gut from the screen edge) */
 #screen .sv-head > .sv-right { padding-right: calc(var(--nb-gut) - 8px); }   /* G.ui.screen header (8 px own padding) */
+#screen .sv-head.sh2-shead { padding-right: var(--nb-gut); }                 /* 설정 검색 header: the search field ends left of the tab */
 #screen .so2-rhead { padding-right: var(--nb-gut); }                         /* 모먼트 root tabs header */
 #screen .md2-v-top { padding-right: var(--nb-gut); }                         /* gallery viewer / video player top bar */
 #screen .rm2-top { padding-right: var(--nb-gut); }                           /* room camera chrome (flash) */
@@ -51,9 +52,10 @@
 .nbk-tab.on { color: #2b2116; border-bottom-color: #b23b2a; }
 .nbk-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 6px 18px calc(var(--safe-bot) + 28px) 50px;
   background-image: repeating-linear-gradient(transparent 0 33px, rgba(80, 120, 180, .16) 33px 34px); background-attachment: local; background-position: 0 10px; }
-/* the in-game keyboard (z 450) covers the lower part — keep the memo lines above it */
-.nbk-sheet.kb { height: 100%; border-radius: 0; }
-.nbk-sheet.kb .nbk-body { padding-bottom: 330px; }
+/* the in-game keyboard (z 450) covers the lower part — keep the memo lines above it. State class nbk-kbopen (notebook.js): never
+   plain .kb, which is the keyboard's own class in core.css (it would hide the whole sheet). */
+.nbk-sheet.nbk-kbopen { height: 100%; border-radius: 0; padding-top: var(--safe-top, 0px); }
+.nbk-sheet.nbk-kbopen .nbk-body { padding-bottom: calc(var(--kbh, 300px) + 24px); }
 
 .nbk-sec { font-family: var(--hand); font-size: calc(24px * var(--ts, 1)); line-height: 34px; margin-top: 10px; color: #8a2c1d; word-break: keep-all; }
 .nbk-sec.grey { color: #a39077; }

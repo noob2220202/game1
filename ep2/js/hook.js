@@ -7,7 +7,8 @@
  *   [avatar] 윤세아 / seah_y · ── 2026년 12월 25일 금요일 ── · 🎤 0:12 · waveform (pinch / double tap zoom) · 오전 3:33.
  *   No autoplay. Each play → vars.hookPlays += 1; played to the end → hookFull; first 0.5 s zoomed to ≥ 50 % width →
  *   hookZoom; first playback end → G.e2.mono('mono4') → 6 s → [처음 화면으로]. 30 s with no input → [처음 화면으로].
- *   Leaving ([처음 화면으로], back, home on the hook screen, pagehide / hidden while up) → hookDone + G.e2.hookPatch().
+ *   Leaving ([처음 화면으로], back, home on the hook screen) → G.e2.hookPatch() + hookDone. pagehide / hidden while up →
+ *   the same monotone patch, but hookDone only once hookOpened (an unopened 03:33 lock resumes after a reload).
  * API: G.hook = { init(), start({replay}), resume(), replay(), isUp() }
  * Flags set: HOOK hookOpened hookZoom hookFull hookDone · vars: hookPlays. data-qa: hook.play hook.wave (voiceBubble qa 'hook')
  *   hook.home. No sound of its own except through shell/core (N17 tone, mono line).
@@ -213,10 +214,13 @@
   HK.isUp = function () { return up; };
   HK.openOverlay = function () { if (up) openOverlay(); };   // = tapping N17 / the open gesture (used by tests)
 
-  /* ---------- leaving the hook: hookDone + patch (§9.3 ⑤) ---------- */
-  function patch() {
-    setFlag('hookDone');
-    safe(() => G.e2 && G.e2.hookPatch && G.e2.hookPatch());
+  /* ---------- leaving the hook: patch (§9.3 ⑤) + hookDone ----------
+   * explicit exit ([처음 화면으로] · back · home · pause menu) → hookDone always.
+   * soft (pagehide / hidden while up) → the monotone series patch only; hookDone once hookOpened — so a reload on the
+   * unopened 03:33 lock resumes it (main → HK.resume, §9.2 'HOOK ∧ ¬hookDone'). */
+  function patch(soft) {
+    safe(() => G.e2 && G.e2.hookPatch && G.e2.hookPatch({ soft: !!soft }));
+    if (!soft || flag('hookOpened')) setFlag('hookDone');             // no-op when hookPatch already set it
     safe(() => G.save && G.save(true));
   }
   function finish(why) {
@@ -242,7 +246,7 @@
       G.bus.on('home', () => { if (up) finish('home'); });
       G.bus.on('media:play', (e) => { if (up && overlay && e && (e.id === 'hook' || e.from === 'voice')) { sawPlay = true; onPlayStart(); } });
     }
-    const leave = () => { if (up && !finished) patch(); };
+    const leave = () => { if (up && !finished) patch(true); };
     window.addEventListener('pagehide', leave);
     document.addEventListener('visibilitychange', () => { if (document.hidden) leave(); });
   };

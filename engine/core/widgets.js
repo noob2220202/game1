@@ -3,9 +3,12 @@
  *
  * G.ui.pinPad({ length, dots=true, maxLength=16, submitLabel:'확인', onSubmit(code) → Promise<true|false|string>, title, sub,
  *               theme:'dark'|'light', qa='pin', letters=true, leftKey, onKey }) → node (.reset() .setMsg(t) .setBusy(b) .code())
- *     length ⇒ auto-submit at length (ep1). No length / dots:false ⇒ free length, entered digits shown as bullets (no
- *     placeholder dots), [확인] submits. Keys: <qa>.key:<d> · <qa>.ok · <qa>.del. Physical digits / Backspace / Enter while
- *     visible and no keyboard is open. Never creates a predict bar.
+ *     length ⇒ auto-submit at length (ep1). No length / dots:false ⇒ free length: no placeholder dots (the pad never tells the
+ *     PIN's length — '자릿수 점 없음'), each entered digit is shown as one bullet, [확인] submits. Keys: <qa>.key:<d> · <qa>.ok ·
+ *     <qa>.del. Physical digits / Backspace / Enter while visible and no keyboard is open. Never creates a predict bar.
+ *     setBusy(b) = the caller's lockout (e.g. 30 s after 5 wrong tries): a state of its own, separate from the pad's internal
+ *     submit wait — a submit finishing never lifts it; every setBusy call clears the entered digits; keys and [확인] are ignored
+ *     while it is on (and during the wrong-answer shake).
  * G.ui.holdButton({ ms=800, size=64, ring=true, onDone, onCancel, qa, label }) → node   (fingerprint icon, ring fills in ms;
  *     cancel on > 10 px move / early release; Space when focused; G.audio.vibrate('fp') on done; data-qa = qa verbatim)
  * G.ui.voiceBubble({ id, dur, getBuffer, subs:[{t0,t1,text}], unplayed, from:'voice', zoom=false, label='음성 메시지',
@@ -42,7 +45,7 @@
     const free = !len || o.dots === false;
     const maxLen = o.maxLength || 16;
     const qa = o.qa || 'pin';
-    let code = '', busy = false;
+    let code = '', busy = false, locked = false;   // busy = our own submit wait · locked = the caller's lockout (setBusy)
     const dots = free ? el('div.pin-entry', { 'aria-live': 'polite' }) : el('div.pin-dots', null, Array.from({ length: len }, () => el('i')));
     const msg = el('div.pin-msg', null, o.sub ? T(o.sub) : '');
     const sublabels = { '2': 'ABC', '3': 'DEF', '4': 'GHI', '5': 'JKL', '6': 'MNO', '7': 'PQRS', '8': 'TUV', '9': 'WXYZ' };
@@ -68,11 +71,12 @@
     const node = el('div.pinpad-wrap' + (o.theme === 'light' ? '.light' : '') + (free ? '.free' : ''), { 'data-qa': o.qa ? o.qa : null },
       o.title ? el('div.pin-title', null, T(o.title)) : null, dots, msg, pad);
     function render() {
-      if (free) dots.textContent = o.dots === false ? '' : '•'.repeat(code.length);   // dots:false = '—' pad: 자릿수 점 없음 (§4.0)
+      // free length (incl. dots:false = '—' pad, 자릿수 점 없음 §4.0): no placeholder row, one bullet per entered digit
+      if (free) dots.textContent = '•'.repeat(code.length);
       else dots.querySelectorAll('i').forEach((d, i) => d.classList.toggle('on', i < code.length));
     }
     async function submit() {
-      if (busy) return;
+      if (busy || locked) return;
       if (free && !code.length) return;
       busy = true;
       await sleep(120);
@@ -88,10 +92,10 @@
         node.classList.remove('wrong');
         code = ''; render();
       }
-      busy = false;
+      busy = false;   // never touches `locked`: a lockout started inside onSubmit outlives this submit
     }
     function press(k) {
-      if (busy) return;
+      if (busy || locked || node.classList.contains('wrong')) return;
       if (k === '⌫') { code = code.slice(0, -1); sfx('key'); render(); return; }
       if (code.length >= (free ? maxLen : len)) return;
       code += k;
@@ -102,7 +106,8 @@
     }
     node.reset = () => { code = ''; render(); busy = false; node.classList.remove('ok'); };
     node.setMsg = (t) => { msg.textContent = t == null ? '' : T(String(t)); };
-    node.setBusy = (b) => { busy = !!b; node.classList.toggle('busy', !!b); };
+    // external lockout: on/off both drop whatever was typed (nothing typed before or during a lockout survives it)
+    node.setBusy = (b) => { locked = !!b; node.classList.toggle('busy', locked); code = ''; render(); };
     node.code = () => code;
     node._press = press; node._submit = submit; node._free = free;
     pads.add(node);

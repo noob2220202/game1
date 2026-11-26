@@ -201,6 +201,9 @@ function ep1Save() {
     await page.goto(URL + (FROM >= 9 ? '&jump=M8' : ''));
     if (FROM && ARG.c1) { await sleep(1000); await ev(() => window.haru.flag('C1')); }   // DEV ONLY
     if (EP1 === 'done') {
+      // the web-font stylesheets load non-blocking (media=print → all, §9.8 · F66), so their font files can still be in flight
+      // when goto resolves — let the first boot's requests settle, or the reload aborts them (REQFAIL net::ERR_ABORTED)
+      await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
       await ev((s) => { localStorage.setItem('haru-escape.save.v1', JSON.stringify(s)); }, ep1Save());
       await page.reload();
     }

@@ -44,6 +44,16 @@
     showTitle();
   }
 
+  /* ---------- P-3: one quiet link to the episode picker (series/) — only once a later episode is released ---------- */
+  function seriesLink() {
+    try {
+      const S = G.series;
+      if (!S || !S.isReleased || !Object.keys(S.releases || {}).some((n) => +n > 1 && S.isReleased(+n))) return null;
+      const href = 'series/' + (location.protocol === 'file:' ? 'index.html' : '') + (/[?&]preview=1\b/.test(location.search) ? '?preview=1' : '');
+      return el('a', { href, 'data-qa': 'title.series', style: { fontSize: '12px', color: '#6b6b70', letterSpacing: '2px', textDecoration: 'none', padding: '6px 14px' } }, '다른 이야기');
+    } catch (e) { return null; }
+  }
+
   /* ---------- title ---------- */
   function showTitle() {
     const has = G.hasSave() && (function () { try { const s = JSON.parse(localStorage.getItem(G.SAVE_KEY)); return s && s.flags && s.flags.introDone && !s.flags.ending; } catch (e) { return false; } })();
@@ -58,6 +68,7 @@
         has ? el('button.title-btn.primary', { onclick: () => start(true) }, ended ? '엔딩 다시 보기' : '이어하기') : null,
         el('button.title-btn' + (has ? '' : '.primary'), { onclick: () => (has ? confirmNew() : warn()) }, has ? '처음부터' : '시작하기'),
         el('button.title-btn', { onclick: options }, '설정')),
+      seriesLink(),
       el('div.title-foot', null, '🎧 이어폰 필수 · 어두운 곳 · 약 40분\n진행 상황은 자동 저장됩니다'));
     scr.append(bg, inner);
     document.getElementById('screen').appendChild(scr);
@@ -69,7 +80,9 @@
       document.getElementById('screen').appendChild(card);
     }
     async function confirmNew() {
-      const ok = await G.phone.dialog({ title: '처음부터 시작할까요?', text: '저장된 진행 상황이 사라집니다.', buttons: [{ label: '취소', value: false }, { label: '새로 시작', value: true, style: 'danger' }] });
+      const ov = document.getElementById('overlays'), z0 = ov ? ov.style.zIndex : '';   // P-4: dialogs live in #overlays (z 50), under the title (z 300)
+      if (ov) ov.style.zIndex = '320';                                                    // lift it above the title (under the in-app card, 330) while open
+      let ok; try { ok = await G.phone.dialog({ title: '처음부터 시작할까요?', text: '저장된 진행 상황이 사라집니다.', buttons: [{ label: '취소', value: false }, { label: '새로 시작', value: true, style: 'danger' }] }); } finally { if (ov) ov.style.zIndex = z0; }
       if (ok) { G.resetSave(); warn(); }
     }
   }

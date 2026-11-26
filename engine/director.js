@@ -422,8 +422,8 @@
   D.isStarted = function () { return started; };
   D.isSafe = function () { return D.safe('show'); };   // ep1 name (G.sd.isSafe compatibility)
 
-  /* ---------- DEBUG: haru.skipTo ---------- */
-  if (G.DEBUG || /[?&]debug=1\b/.test(location.search)) {
+  /* ---------- DEBUG: haru.skipTo (G.DEBUG only — config.ep2.js folds ?debug=1 in and ignores it on the release host) ---------- */
+  if (G.DEBUG) {
     window.haru = window.haru || {};
     window.haru.skipTo = function (id) {
       id = String(id || '').replace('′', 'p');

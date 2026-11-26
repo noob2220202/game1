@@ -299,7 +299,9 @@
   }
   async function j0205(resumed) {
     await wait(resumed ? 600 : 1800);
-    if (!resumed) await play('jTail');
+    // always through MO.play: 'done' resolves at once, a running tail (reload mid-exchange — chip jTail pending) waits on
+    // its persisted queue, a tail never started (reload right after END) starts now → jT1–jT4 exactly once (§9.2)
+    await play('jTail');
     await wait(1200);
     jump('02:05'); mark('W07');
     await play('j0205');
@@ -352,9 +354,15 @@
     amb('roofWind', true, { gainDb: -18, fade: 4 });
     const mins = Math.round(((G.state && G.state.playMs) || 0) / 60000);
     const stats = String(d.stats || '플레이 {m}분 · 힌트 {n}회').replace('{m}', mins).replace('{n}', (G.state && G.state.hintsUsed) || 0);
+    // the line may break only before the '·' (never '방탈출! 2 ·' / '돌려줄게' at 130 %): '· 돌려줄게' is one nowrap span
+    const ttl = String(T(d.title || '{N를} 위한 방탈출! 2 · 돌려줄게'));
+    const cut = ttl.lastIndexOf(' · ');
+    const titleNode = cut > 0
+      ? el('div.fl2-cred-title', null, ttl.slice(0, cut + 1), el('span', { style: { whiteSpace: 'nowrap' } }, ttl.slice(cut + 1)))
+      : el('div.fl2-cred-title', null, ttl);
     const scr = el('div.fl2-scene.fl2-credits', { 'data-qa': 'credits.skip', role: 'button' },
       el('div.fl2-cred-in', null,
-        el('div.fl2-cred-title', null, T(d.title || '{N를} 위한 방탈출! 2 · 돌려줄게')),
+        titleNode,
         el('p.fl2-cred-maker', null, T(d.maker || '만든 사람 {MAKER} · {N}에게')),
         el('p.dim', null, d.voice || ''),
         el('p.small', null, stats),
@@ -401,7 +409,8 @@
     try {
       let i = after ? ORDER.indexOf(after) + 1 : 0;
       if (i < 0) i = 0;
-      // END already happened (resume) → never before the 02:05 card (§6.1.8 'END 뒤 · 훅 전 | 엔딩 카드(02:05)부터')
+      // END already happened (resume) → straight to j0205: the jimin tail (resumed once through MO.play), then 02:05 …
+      // (§6.1.8 'END 뒤 · 훅 전' · §9.2 'END ∧ ¬HOOK')
       if (flag('END') && i <= ORDER.indexOf('j0200')) { i = ORDER.indexOf('j0205'); opts.resumedTail = true; }
       for (; i < ORDER.length; i++) {
         const s = ORDER[i];
@@ -438,8 +447,26 @@
       G.bus.on('flag:END', () => { if (endResolve) { endResolve(); endResolve = null; } });
     }
   };
+  /** The chat steps (02:00 question · jimin tail · 02:05 · C1's 02:12 DM) wait on a reply the player sends in 모먼트.
+   *  Nothing re-announces them after a reload (no second banner, no tone — ledger §4.8), so the thread the pending step
+   *  waits on is brought back on screen through the same route the N16 / N11 banner tap takes (§6.1.8 · §9.2).
+   *  Reads social's persisted script states (vars.so.script — read only). */
+  function pendingThread(step) {
+    const sc = ((vget('so') || {}).script) || {};
+    const at = step ? ORDER.indexOf(step) : -1;
+    if (flag('jiminReturn') && at < ORDER.indexOf('j0205') && !(sc.jTail === 'done' && sc.j0205 === 'done')) return 'jimin_0412';
+    if (at === ORDER.indexOf('j0205') && flag('C1') && sc.m0212 === 'run') return 'real';
+    return null;
+  }
+  function showThread(th) {
+    if (!th) return;
+    if (safe(() => G.moment && G.moment.isOpen && G.moment.isOpen(th), false)) return;
+    if (G.phone && G.phone.route) safe(() => G.phone.route({ app: 'moment', params: { thread: th } }));
+    else if (G.moment && G.moment.open) safe(() => G.moment.open({ thread: th }));
+  }
   /** resume(step) — ARCH §8.2: M8 ∧ ¬doorOpened → forced door view; doorOpened ∧ ¬END → {N} forced + next card;
-   *  END ∧ ¬HOOK → tail from 02:05 (commit retry is core's). `step` = last completed endStep. */
+   *  END ∧ ¬HOOK → the jimin tail (once — resumed if it was mid-way) → 02:05 … (commit retry is core's).
+   *  A pending chat step re-opens its thread after the forced {N} home. `step` = last completed endStep. */
   EN.resume = async function (step) {
     if (!EN._inited) EN.init();
     if (flag('HOOK')) return;
@@ -449,6 +476,7 @@
     if (step === 'hook') { safe(() => G.hook && G.hook.start && G.hook.start()); return; }
     // doorOpened ∧ ¬HOOK: the user is always {N} from here (shell lands on {N}'s home, no lock screen)
     await safe(() => (G.users && G.users.forceN ? G.users.forceN() : null), null);
+    showThread(pendingThread(step));
     await runFrom(step, { resumedTail: flag('END') });
   };
   EN.debugM8 = function () { return m8Sequence(); };

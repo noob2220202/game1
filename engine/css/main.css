@@ -39,6 +39,9 @@ img { -webkit-user-drag: none; user-select: none; }
   #screen { border-radius: 44px; }
   :root { --sb-h: 44px; }
   .home-bar { bottom: 6px !important; }
+  /* §4.0: on desktop ⏸ is the frame button above the phone (ep2 main.js .fl2-deskpause, shown with .on in game) — one ⏸ only.
+     Hidden, not removed, so the status-bar clock keeps its place; a tap there opens the quick panel like the rest of the bar. */
+  #stage:has(> .fl2-deskpause.on) .sb-pause { visibility: hidden; pointer-events: none; }
 }
 .desk-hint { position: fixed; left: 24px; bottom: 20px; color: #555; font-size: 12px; line-height: 1.6; max-width: 240px; }
 @media (max-width: 599px), (max-height: 639px) { .desk-hint { display: none; } }
@@ -62,6 +65,13 @@ img { -webkit-user-drag: none; user-select: none; }
 .sh2-switch { z-index: 55; }
 #banners { position: absolute; left: 8px; right: 8px; top: calc(var(--sb-h) + 2px); z-index: 70; pointer-events: none; }
 #banners > * { pointer-events: auto; }
+/* on the lock screen the clock is the picture (03:33 hook · M1 · M5 return): heads-up banners drop in just below the clock +
+   date block (shell.css .lk-top: sb + 30 · 84 px × min(ts, 1.1) at 1.02 · date 17 px × ts + 2), never over the digits */
+#lock:not(.hidden):not(.sh2-under) ~ #banners { top: calc(var(--sb-h) + 40px + 86px * min(var(--ts), 1.1) + 21px * var(--ts)); }
+#lock:not(.hidden):not(.sh2-under):has(> .sh2-lock.dash) ~ #banners { top: calc(var(--sb-h) + 56px + 94px * min(var(--ts), 1.1) + 19px * var(--ts)); }
+@media (max-height: 700px) { #lock:not(.hidden):not(.sh2-under) ~ #banners { top: calc(var(--sb-h) + 26px + 86px * min(var(--ts), 1.1) + 21px * var(--ts)); } }
+/* …but not while a PIN pad covers the lock (the clock is hidden; the pad's title and top keys sit there) — back under the bar */
+#lock:not(.hidden):not(.sh2-under):has(> .sh2-lock.pin-open) ~ #banners { top: calc(var(--sb-h) + 2px); }
 #statusbar { z-index: 75; }
 .home-bar { z-index: 90; }
 #fx-layer { position: absolute; inset: 0; z-index: 300; pointer-events: none; }
@@ -72,8 +82,9 @@ img { -webkit-user-drag: none; user-select: none; }
 #statusbar { position: absolute; top: 0; left: 0; right: 0; height: var(--sb-h); padding: var(--safe-top) 16px 0 0; display: flex; align-items: center; justify-content: space-between; color: #fff; font-size: 13px; font-weight: 600; transition: color .2s; letter-spacing: .1px; touch-action: none; cursor: pointer; font-variant-numeric: tabular-nums; }
 #statusbar.dark { color: #111; }
 .sb-left { display: inline-flex; align-items: center; height: 100%; min-width: 0; }
-.sb-pause { position: relative; width: 44px; height: 100%; min-height: 30px; display: inline-flex; align-items: center; justify-content: center; color: inherit; opacity: .72; flex: none; }
-.sb-pause::after { content: ''; position: absolute; left: 0; right: 0; top: 0; bottom: -8px; }
+/* 44 × 44 tap box (§10 H) in a 30 px bar: the box hangs 14 px below the bar (padding-bottom 14 + margin-bottom −14 keep the
+   glyph centred on the bar's row, on mobile and in the 44 px desktop bar alike) */
+.sb-pause { position: relative; width: 44px; height: 44px; padding-bottom: 14px; margin-bottom: -14px; display: inline-flex; align-items: center; justify-content: center; color: inherit; opacity: .72; flex: none; }
 .sb-pause svg { width: 13px; height: 13px; }
 .sb-pause:active { opacity: 1; }
 .sb-time { font-size: 13.5px; font-weight: 600; }
@@ -95,6 +106,10 @@ img { -webkit-user-drag: none; user-select: none; }
 .home-bar { position: absolute; left: 0; right: 0; bottom: calc(var(--safe-bot) + 4px); height: 22px; display: flex; align-items: center; justify-content: center; }
 .home-bar i { width: 134px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.85); box-shadow: 0 0 2px rgba(0,0,0,.5); }
 .home-bar.on-lock { pointer-events: none; }   /* on the lock the whole surface is the swipe area */
+/* while the in-game keyboard (z 450) is up the indicator rides above it, in the keyboard's bottom strip (core.css .kb padding),
+   and stays tappable (home also closes the keyboard); dark bar on the light keyboard */
+#phone.kb-open .home-bar { z-index: 460; }
+#phone.kb-open .home-bar i { background: rgba(0,0,0,.42); box-shadow: none; }
 
 /* ---------------- home (§5.1 · §5.2) ---------------- */
 #home { padding: calc(var(--sb-h) + 16px) 16px calc(var(--safe-bot) + 30px); display: flex; flex-direction: column; color: #fff; }
@@ -242,7 +257,7 @@ img { -webkit-user-drag: none; user-select: none; }
 .qp-av.dash { background: #5d5f66; color: #e8e8ea; font-weight: 500; }
 .qp-user.cur::after { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 2px solid #8fb6ff; }
 .qp-user.grey .qp-av { opacity: .35; filter: grayscale(1); }
-.qp-user.add { color: #ccc; border: 1.5px dashed rgba(255,255,255,.3); width: 40px; height: 40px; margin-left: 4px; }
+.qp-user.add { color: #ccc; border: 1.5px dashed rgba(255,255,255,.3); width: 44px; height: 44px; margin-left: 2px; }
 .qp-user.add svg { width: 20px; height: 20px; }
 .qp-nh { font-size: 12px; font-weight: 600; opacity: .55; margin: 14px 6px 6px; }
 .qp-notifs { display: flex; flex-direction: column; gap: 6px; }

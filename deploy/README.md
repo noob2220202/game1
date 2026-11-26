@@ -31,7 +31,7 @@ sudo systemctl reload caddy
 처음 접속 시 Caddy가 HTTPS 인증서를 자동 발급합니다 (몇 초~1분).
 
 이 설정이 하는 일:
-- `/.git` `/deploy/*` `/docs/*` `/tools/*` **`/work/*`** `/README.md` `/.gitignore` → 404 (정답·설계 문서 비공개)
+- `/.git` `/deploy/*` `/docs/*` `/tools/*` **`/work/*`** `/README.md` `/.gitignore` `/ep2/assets/img/meta.json` → 404 (정답·설계 문서 비공개)
 - `/assets/*` · `/ep2/assets/*` → 1주 캐시, HTML·JS·CSS(`engine/`·`ep2/` 포함) → `no-cache`
 - `Permissions-Policy`: 카메라·마이크·위치·블루투스·가속도·자이로·자기장·클립보드 읽기 전부 끔 (게임은 이 권한을 하나도 요청하지 않습니다)
 - `/ep2/` 는 디렉터리 인덱스(`ep2/index.html`)로 열립니다. 루트 `404.html`은 그대로.

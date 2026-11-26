@@ -241,7 +241,10 @@
     box: { w: 1024, h: 1536, fit: 'cover', yaw: 0, maxZ: 3,
       key: (st) => (st.m0 ? (st.lifted ? 'box_top_lifted' : 'box_top') : 'box_top_lifted_in'),
       fallbackKey: (st) => (st.m0 ? 'box_top' : 'box_top_in'),
-      lid: { x: 0.205, y: 0.668, w: 0.61, h: 0.15, zoomTo: { x: 0.43, y: 0.72, z: 2.6 } },
+      /** tap → the handwriting enlarged (§3.1 ①): room.js fits `text` — the baked `받는 사람: 601호` / `보내는 사람: —` ink box, measured
+       *  on box_top (identical on the lifted / shoe-cabinet plates) — plus the DOM {N} into `fill` of the screen width, at most `maxZ`
+       *  (a fixed 2.6× cropped the first syllables on 375–430 px phones and the name on 360 px) */
+      lid: { x: 0.205, y: 0.668, w: 0.61, h: 0.15, text: { x0: 0.264, y0: 0.695, x1: 0.49, y1: 0.756 }, maxZ: 2.6, fill: 0.92 },
       /* measured on box_top (the card shows on both sides of the phone; the polaroid corner bottom-left) */
       spotsPhone: [
         { id: 'note', x: 0.638, y: 0.462, w: 0.056, h: 0.206, open: 'note_card' },

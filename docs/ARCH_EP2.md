@@ -347,7 +347,7 @@ Android-back is shell's (flow layers register with `G.phone.pushBack`), pause me
 close ⇒ `G.clock.resume()` (ARCH §9 G33), `G.audio.unlock()` on every title button tap (`시작하기` path = warning [확인], `이어하기`,
 `훅 다시 보기` — §9.7), `--ts` text scale from settings, lazy preload groups on milestones (`G.PRELOAD_GROUPS`
 start/m1/m2/m3/m4/m7 via `requestIdleCallback`, §9.8), `navigator.wakeLock.request('screen')` on start + re-request on visible (§9.7),
-`haru.skipTo`, and the DEBUG notebook-title auto-check (§10 A: card title ∈ strings drawn so far, except `이 폰` `—의 홈` `지민의 질문`).
+`haru.skipTo`, and the DEBUG notebook-title auto-check (§10 A: card title ∈ strings drawn so far, except `이 폰` `—의 홈` `지민의 질문` `상자` — `G.OBJECTIVES.titleExceptions = [phone, home, answer, box]`).
 
 **assets** (not a build agent here): produces `G.IMG` / `G.IMGMETA` / `G.AUDIO_FILES` and files. Consumers' expectations: ARCH §5.1.
 

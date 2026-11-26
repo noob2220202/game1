@@ -549,15 +549,17 @@
     title: () => S().display.title,
     render(api) {
       const D = S().display;
-      const cur = (G.settings && G.settings.textSize) || 1;
+      const cur = Number(G.settings && G.settings.textSize) || 1;
       const near = D.sizes.reduce((a, o) => (Math.abs(o[0] - cur) < Math.abs(a - cur) ? o[0] : a), D.sizes[0][0]);
+      // one source of truth: G.settings.textSize → G.saveSettings() → 'settings' bus → ep2 main applySettings() sets --ts on :root
+      // (no inline --ts on #screen — that would shadow the pause menu's 작게·보통·크게 until a reload)
+      api.on('settings', api.refresh);
       const seg = el('div.sh2-ts', null, D.sizes.map(([v, l], i) => {
         const b = el('button' + (v === near ? '.on' : ''), { 'data-qa': 'display.textSize:' + v }, el('b', { style: { fontSize: 13 + i * 3 + 'px' } }, T(D.sample)), el('small', null, l));
         b.addEventListener('click', () => {
           sfx('tap');
-          if (G.settings) { G.settings.textSize = v; if (G.saveSettings) G.saveSettings(); }
-          const scr = document.getElementById('screen'); if (scr) scr.style.setProperty('--ts', String(v));
-          api.refresh();
+          if (G.settings) G.settings.textSize = v;
+          if (G.saveSettings) G.saveSettings(); else api.refresh();
         });
         return b;
       }));

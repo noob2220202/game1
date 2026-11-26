@@ -8,8 +8,10 @@
 :root { --c2-accent: #0a84ff; --c2-ui: var(--font, 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif); }
 
 /* ---------------- in-game keyboard ---------------- */
+/* bottom padding = the home-indicator strip: .home-bar (22 px at safe + 4 · desktop 6 px) sits in it above the keyboard (main.css
+   #phone.kb-open .home-bar z 460), so the bottom key row never runs under the indicator and home stays reachable while typing */
 .kb { position: absolute; left: 0; right: 0; bottom: 0; z-index: 450; background: rgba(209, 212, 219, .97); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
-  padding: 0 3px calc(var(--safe-bot, 0px) + 18px); transform: translateY(100%); transition: transform .25s cubic-bezier(.2, .9, .3, 1); touch-action: manipulation;
+  padding: 0 3px calc(var(--safe-bot, 0px) + 28px); transform: translateY(100%); transition: transform .25s cubic-bezier(.2, .9, .3, 1); touch-action: manipulation;
   font-family: var(--c2-ui); -webkit-user-select: none; user-select: none; }
 .kb.in { transform: none; visibility: visible; }
 .kb:not(.in) { visibility: hidden; transition: transform .25s cubic-bezier(.2, .9, .3, 1), visibility 0s linear .25s; }   /* no predict-bar strip left at the bottom after a screen closes */
@@ -35,7 +37,7 @@
 .kb-key.space { flex: 5; }
 .kb-key.go { flex: 1.8; background: var(--c2-accent); color: #fff; }
 .kb-key.lang { flex: 1.3; }
-@media (max-height: 680px) { .kb-key { height: 38px; } .kb-row { margin-bottom: 6px; } .kb-row.num .kb-key { height: 34px; } .kb-predict, .kb-cell { height: 40px; } }
+@media (max-height: 680px) { .kb-key { height: 38px; } .kb-row { margin-bottom: 6px; } .kb-row.num .kb-key { height: 34px; } }   /* predict cells stay 44 px (§10 H tap target) */
 #screen.kb-open .screen-view .sv-body { padding-bottom: calc(var(--kbh, 300px) + 12px); }
 
 /* ---------------- fake text field ---------------- */
@@ -58,6 +60,8 @@
 .pin-dots i.on { background: currentColor; }
 .pin-entry { min-height: 28px; min-width: 120px; font-size: 26px; letter-spacing: 10px; text-align: center; line-height: 28px; padding-left: 10px; }
 .pinpad-wrap.wrong .pin-dots, .pinpad-wrap.wrong .pin-entry { animation: c2wrong .45s; }
+@media (prefers-reduced-motion: reduce) { .pinpad-wrap.wrong .pin-dots, .pinpad-wrap.wrong .pin-entry { animation: none; } }
+body.reduce-shake .pinpad-wrap.wrong .pin-dots, body.reduce-shake .pinpad-wrap.wrong .pin-entry { animation: none; }
 @keyframes c2wrong { 0%, 100% { transform: none; } 20% { transform: translateX(-12px); } 40% { transform: translateX(10px); } 60% { transform: translateX(-7px); } 80% { transform: translateX(4px); } }
 .pin-msg { min-height: 40px; font-size: 13px; margin-top: 12px; opacity: .85; text-align: center; padding: 0 20px; line-height: 1.5; white-space: pre-line; word-break: keep-all; }
 .pin-pad { display: grid; grid-template-columns: repeat(3, 76px); gap: 16px 26px; margin-top: 8px; }
@@ -146,9 +150,15 @@
 
 /* ---------------- #fx-layer: subtitles · monologue · arcs · vignette ---------------- */
 #fx-layer { position: absolute; inset: 0; z-index: 300; pointer-events: none; overflow: hidden; }
-.c2-vignette { position: absolute; inset: 0; opacity: 0; transition: opacity 1.2s ease;
-  background: radial-gradient(ellipse at center, transparent 48%, rgba(0, 0, 0, var(--vig, 0)) 100%); }
+/* vignette (value law §6.1: --vig = .30 + .40·T, set by G.fx.setVignette). On the phone UI it is an edge shade that follows the
+   screen rectangle (no oval over white app screens: at T .70 the edge reads ≈ 220 against a 255 centre); the radial falloff is
+   kept only while the room / eye view is the visible surface (#phone.c2-room — fx.js). No transition on the shade itself:
+   spatial.js's 180 ms heartbeat pulse on --vig must show; only the on/off opacity fades. */
+.c2-vignette { position: absolute; inset: 0; opacity: 0; transition: opacity 1.2s ease; pointer-events: none;
+  box-shadow: inset 0 0 calc(36px + 48px * var(--vig, 0)) calc(-4px + 12px * var(--vig, 0)) rgba(0, 0, 0, calc(var(--vig, 0) * .45)); }
+#phone.c2-room .c2-vignette { box-shadow: none; background: radial-gradient(ellipse 120% 100% at 50% 50%, transparent 52%, rgba(0, 0, 0, var(--vig, 0)) 100%); }
 .c2-vignette.on { opacity: 1; }
+@media (min-width: 600px) and (min-height: 640px) { .c2-vignette { border-radius: 44px; } }   /* follow #screen's rounded corners in the desktop frame */
 .c2-subs { position: absolute; left: 16px; right: 16px; bottom: calc(var(--safe-bot, 0px) + 104px); display: flex; flex-direction: column; align-items: center; gap: 6px;
   transition: bottom .25s cubic-bezier(.2, .9, .3, 1); }
 #phone.kb-open .c2-subs { bottom: calc(var(--kbh, 300px) + 14px); }
@@ -157,8 +167,11 @@
 .c2-sub.in { opacity: 1; transform: none; }
 .c2-sub.out { opacity: 0; }
 .c2-mono { position: absolute; left: 22px; right: 22px; bottom: calc(var(--safe-bot, 0px) + 168px); display: flex; justify-content: center; }
+/* monologue: same cream serif voice, on a translucent dark pill like .c2-sub so it reads over white app screens / list rows /
+   chat bubbles as well as over the wallpaper */
 .c2-mono-line { font-family: var(--serif, 'Gowun Batang', serif); font-size: calc(17px * var(--ts, 1)); line-height: 1.6; color: rgba(246, 242, 232, .96); text-align: center;
-  letter-spacing: .3px; word-break: keep-all; text-shadow: 0 1px 2px rgba(0, 0, 0, .9), 0 0 18px rgba(0, 0, 0, .85), 0 0 34px rgba(0, 0, 0, .6);
+  letter-spacing: .3px; word-break: keep-all; background: rgba(0, 0, 0, .62); padding: 6px 14px; border-radius: 10px; max-width: 100%; text-shadow: 0 1px 2px rgba(0, 0, 0, .7);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);   /* list text / bubbles under the pill blur away instead of reading through */
   opacity: 0; transform: translateY(4px); transition: opacity .7s ease, transform .9s ease; }
 .c2-mono-line.in { opacity: 1; transform: none; }
 .c2-mono-line.out { opacity: 0; transition: opacity .7s ease; }

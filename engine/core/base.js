@@ -126,6 +126,15 @@
     const mn = typeof c.MAKER_NAME === 'string' ? c.MAKER_NAME.trim() : '';
     return !mn || mn === '너의 친구' ? '친구' : mn;
   }
+  /** {MAKER_HON} — how a third person (the detective) names {MAKER}: '친구분' when makerContact() is the generic fallback
+   *  (MAKER_CONTACT empty and MAKER_NAME empty or '너의 친구'), else '<contact> 님'. Both end in a final consonant, so the
+   *  particle after the token never changes (DESIGN §4.0 token rule · §4.10.8′). */
+  function makerHon() {
+    const c = cfg();
+    const mc = typeof c.MAKER_CONTACT === 'string' ? c.MAKER_CONTACT.trim() : '';
+    const mn = typeof c.MAKER_NAME === 'string' ? c.MAKER_NAME.trim() : '';
+    return !mc && (!mn || mn === '너의 친구') ? '친구분' : makerContact() + ' 님';
+  }
   const TOKEN_OK = /^\{(q|s|n|m|k|min|off|ok|kind|predict|i|d|t)\}$/;
   G.T = function (s) {
     if (typeof s !== 'string' || s.indexOf('{') < 0) return s;
@@ -133,9 +142,10 @@
     s = s.replace(/\{\$([A-Za-z0-9_]+)\}/g, (m, k) => (STR && typeof STR[k] === 'string' ? STR[k] : (dwarn('T$' + k, '[G.T] unknown system string', m), m)));
     const names = (G.STORY && G.STORY.names) || {};
     s = s.replace(/\{([a-zA-Z]+)\}/g, (m, k) => (Object.prototype.hasOwnProperty.call(names, k) && typeof names[k] === 'string' ? names[k] : m));
-    s = s.replace(/\{(MAKER_CONTACT|MAKER_ID|MAKER)\}/g, (m, k) => {
+    s = s.replace(/\{(MAKER_CONTACT|MAKER_ID|MAKER_HON|MAKER)\}/g, (m, k) => {
       const c = cfg();
       if (k === 'MAKER_CONTACT') return makerContact();
+      if (k === 'MAKER_HON') return makerHon();
       if (k === 'MAKER_ID') return typeof c.MAKER_HANDLE === 'string' ? c.MAKER_HANDLE.trim().replace(/^@/, '') : '';
       return typeof c.MAKER_NAME === 'string' && c.MAKER_NAME.trim() ? c.MAKER_NAME : '너의 친구';
     });

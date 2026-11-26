@@ -7,9 +7,11 @@
  *   Esc (one action per press): keyboard close → pause menu close → notebook close → G.phone.back() while canBack()
  *   → pause. Two-finger tap (both touches end within 300 ms, moved < 10 px; a pinch is never a tap) → pause.
  *   Desktop ⏸ above the phone frame (data-qa pause.btn). Wake lock on start + on visible (no prompt; rejection ignored).
- *   Lazy preload groups start/m1/m2/m3/m4/m7 via requestIdleCallback (2 s timeout fallback).
+ *   Preload: the title background alone first, then G.PRELOAD + 'start' (on its load / error, at the first resume /
+ *   #start / introDone, or after 6 s if the request hangs); lazy groups m1/m2/m3/m4/m7 via requestIdleCallback
+ *   (2 s timeout fallback).
  *   DEBUG: ?jump=<id> → haru.jump after boot; notebook-title auto-check (card title ∈ strings drawn so far,
- *   except 이 폰 · —의 홈 · 지민의 질문) → console + window.haru.titleCheck().
+ *   except 이 폰 · —의 홈 · 지민의 질문 · 상자) → console + window.haru.titleCheck().
  * API: G.main = { boot(), resumeFrom(state, opts) }
  * Never defines G.T / G.NAME (core). No look-away logic, no reload reactions (§9.2: he never reacts to reloads).
  * ========================================================= */
@@ -51,8 +53,31 @@
     loadedGroups[name] = true;
     idle(() => preload(g));
   }
+  /** first group (cold open — G.PRELOAD + 'start'), fired once: after the title background, on any progress, or at once */
+  let startFired = false;
+  function preloadStart() {
+    if (startFired) return; startFired = true;
+    preload(G.PRELOAD || []);
+    if (G.PRELOAD_GROUPS && G.PRELOAD_GROUPS.start) { loadedGroups.start = true; preload(G.PRELOAD_GROUPS.start); }
+  }
+  /** the title background is requested first, alone (§9.8 — on a slow link it must not queue behind ~1 MB of cold-open
+   *  images); the start group follows on its load / error, or when the player leaves the title (resume / #start /
+   *  introDone call preloadStart too). The timer only covers a title request that hangs without an error: it is not
+   *  1.5 s, because at 1.6 Mbps the title image itself needs ~3 s next to the title's web fonts, so a short timer fired
+   *  first and the group competed with it again (QA F69: title bg 15.7 s with 1.5 s vs ≈ 12 s when it waits).
+   *  No <link rel=preload> in the HTML: that would fetch before gate.js can redirect a pre-release visit. */
+  const TITLE_WAIT_MS = 6000;
+  function titleFirst() {
+    const src = safe(() => (G.e2 && G.e2.img ? G.e2.img('title_ep2') : (G.IMG && G.IMG.title_ep2) || ''), '');
+    if (!src) { preloadStart(); return; }
+    const i = new Image();
+    i.decoding = 'async';
+    i.onload = i.onerror = () => preloadStart();
+    setTimeout(preloadStart, TITLE_WAIT_MS);
+    i.src = src; kept.push(i);
+  }
   function preloadByProgress() {
-    if (flag('introDone')) group('m1');
+    if (flag('introDone')) { preloadStart(); group('m1'); }
     if (flag('M1')) group('m2');
     if (flag('M2')) group('m3');
     if (flag('M3')) group('m4');
@@ -131,7 +156,7 @@
     collect(root);
     new MutationObserver((ms) => ms.forEach((m) => { if (m.type === 'characterData') collect(m.target); else m.addedNodes.forEach(collect); }))
       .observe(root, { childList: true, subtree: true, characterData: true });
-    const exc = new Set((G.OBJECTIVES && G.OBJECTIVES.titleExceptions) || ['phone', 'home', 'answer']);
+    const exc = new Set((G.OBJECTIVES && G.OBJECTIVES.titleExceptions) || ['phone', 'home', 'answer', 'box']);
     // a card is judged the first time the player can see it (the notebook is open) — the corpus is what was drawn before
     setInterval(() => {
       if (!(G.notebook && G.notebook.isOpen && G.notebook.isOpen())) return;
@@ -175,9 +200,7 @@
     call(G.hook, 'init');
     call(G.scenes, 'init');
     call(G.e2, 'seriesBoot');
-    // preload: first group now, the next on idle; later groups follow progress
-    preload(G.PRELOAD || []);
-    if (G.PRELOAD_GROUPS && G.PRELOAD_GROUPS.start) { loadedGroups.start = true; preload(G.PRELOAD_GROUPS.start); }
+    // preload: the title background first, then the cold-open group (titleFirst); later groups follow progress
     if (G.bus) {
       G.bus.on('flag', preloadByProgress);
       G.bus.on('flag:introDone', () => { wakeLock(); });
@@ -190,8 +213,9 @@
     // a 시작하기 / 처음부터 reset reloads the page with #start → straight to the warning (the tap was the title button)
     if (/^#start$/.test(location.hash || '')) {
       try { history.replaceState(history.state, '', location.pathname + location.search); } catch (e) {}
+      preloadStart();
       call(G.scenes, 'warn');
-    } else call(G.scenes, 'title');
+    } else { titleFirst(); call(G.scenes, 'title'); }
     const jm = /[?&]jump=([A-Za-z0-9]+)/.exec(location.search);
     if (G.DEBUG && jm) setTimeout(() => { M._played = true; if (window.haru && window.haru.jump) window.haru.jump(jm[1]); else console.warn('[main] haru.jump missing'); }, 400);
   };
@@ -208,6 +232,7 @@
       if (G.scenes) G.scenes._dropTitle && G.scenes._dropTitle();
     });
     wakeLock();
+    preloadStart();
     preloadByProgress();
     const vars = (G.state && G.state.vars) || {};
     if (!flag('introDone') || flag('hookDone')) { call(G.scenes, 'title'); return; }

@@ -2,7 +2,10 @@
  * Lock screens (ep2) — owner: shell. DESIGN §3.2 · §3.9 · §3.19 ⑥⑦ · §4.0 (잠금 표) · §4.1.8 · §4.6.4 · §4.7.1 · §5.3 · §9.5-2/-3/-4
  *   {N} normal — clock · date · smart-lock line · widget line · N01–N03 · [긴급 통화] · ◉ finger (always on, 0.8 s) · [카메라]
  *               swipe ≥ 80 px / ↑ / Enter / desktop drag: trusted → open, else `PIN 입력` pad (any code → PIN이 올바르지 않습니다)
- *   '—'        — old_room_lock · clock/date only → PIN pad `—` / `PIN 입력` (no dots, [확인], '0310' via G.users.unlockDash)
+ *   '—'        — old_room_lock · clock/date only → PIN pad `—` / `PIN 입력` (no placeholder dots — typed digits show as
+ *               bullets only, free length 1–16, [확인], '0310' via G.users.unlockDash)
+ *   Lockout (every 5th wrong PIN, 30 s wall clock): startCountdown → pad.setBusy(true) each tick, setBusy(false) at the end —
+ *               the pad's own lockout state, cleared of typed digits on both edges (core widgets.js).
  *   hook mode  — §4.1.8 (12월 25일 금요일 · 03:33 · trust line · widget · only N17) → onOpen(notif|null), never the home
  * API: G.lock = { init(), show(user='n', {mode:'normal'|'hook', onOpen}), hide(), isShown() }
  *      internal (shell): _tapNotif(n) · _back() · _canBack() · _closeSheets()
@@ -49,7 +52,7 @@
   LK.ICON = ICON;
 
   let node = null, layer = null, user = 'n', mode = 'normal', opts = {}, offs = [], unlocking = false, opened = false;
-  let pinView = null, pendingNotif = null, sheets = [], lockoutTimer = 0, pauseOpen = false, lastHM = '', swallowClick = false;
+  let pinView = null, pendingNotif = null, sheets = [], lockoutTimer = 0, pauseOpen = false, lastHM = '', swallowClick = false, listRO = null;
 
   /* ---------------- init ---------------- */
   let inited = false;
@@ -134,7 +137,23 @@
     node = n;
     drawClock(); drawTrust(); drawNotifs();
     bindSurface(n);
+    // the list's height is whatever the clock block (grows with text size) and the bottom row leave (shell.css) — refit the
+    // cards whenever that box changes size (first layout, viewport, text size, trust line appearing / going)
+    if (typeof ResizeObserver !== 'undefined') { listRO = new ResizeObserver(() => fitNotifs()); listRO.observe(list); }
+    else requestAnimationFrame(() => fitNotifs());
     return n;
+  }
+  /* §10 H (90–130 % text, 360 × 640): cards never run under 긴급 통화 · ◉ · 카메라. The list is oldest first, so when the box
+     cannot hold every card the OLDEST whole cards are left out (never a half card, never the newest — e.g. the M5 fake DM). */
+  function fitNotifs() {
+    const list = node && node._list;
+    if (!list || !list.isConnected) return;
+    const rows = Array.from(list.children);
+    rows.forEach((r) => r.classList.remove('lk-clip'));
+    const h = list.clientHeight;
+    if (!h || !rows.length) return;
+    const last = rows[rows.length - 1];
+    for (let i = 0; i < rows.length - 1 && last.offsetTop + last.offsetHeight > h + 1; i++) rows[i].classList.add('lk-clip');
   }
   function buildDash() {
     const U = (G.STORY.users && G.STORY.users.dash) || {};
@@ -179,6 +198,7 @@
       row.addEventListener('click', (e) => { e.stopPropagation(); if (swallowClick) { swallowClick = false; return; } sfx('tap'); LK._tapNotif(n, g.items); });
       list.appendChild(row);
     });
+    fitNotifs();
   }
 
   /* ---------------- gestures ---------------- */
@@ -330,7 +350,7 @@
     pendingNotif = null;
   }
 
-  /* ---------------- '—' PIN pad (no dots · [확인] · exactly '0310' — §3.9 · §9.5-2) ---------------- */
+  /* ---------------- '—' PIN pad (no placeholder dots · typed bullets · [확인] · exactly '0310' — §3.9 · §9.5-2) ---------------- */
   function openDashPin() {
     if (pinView || !node) return;
     sfx('whoosh');
@@ -389,6 +409,7 @@
   };
   function cleanup() {
     offs.forEach((f) => { try { f && f(); } catch (e) {} }); offs = [];
+    if (listRO) { try { listRO.disconnect(); } catch (e) {} listRO = null; }
     clearInterval(lockoutTimer);
     LK._closeSheets();
     pinView = null;
