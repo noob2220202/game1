@@ -2,23 +2,28 @@ haru.pengueverything.cloud {
 	root * /var/www/haru
 	encode zstd gzip
 
-	# 정답·설계 문서, git, 배포 파일은 외부에 노출하지 않음
-	@hidden path /.git /.git/* /deploy/* /docs/* /tools/* /README.md /.gitignore
+	# 정답·설계 문서, 작업 폴더, git, 배포 파일은 외부에 노출하지 않음
+	# (/work/* = 2편 설계·정답 원고 — 배포 차단 1순위, DESIGN_EP2 §0.2 S13 · §10 K)
+	@hidden path /.git /.git/* /deploy /deploy/* /docs /docs/* /tools /tools/* /work /work/* /README.md /.gitignore
 	respond @hidden 404
 
 	@manifest path *.webmanifest
 	header @manifest Content-Type "application/manifest+json"
 
-	@assets path /assets/*
+	# 이미지·소리는 1주 캐시 (1편 /assets/*, 2편 /ep2/assets/*)
+	@assets path /assets/* /ep2/assets/*
 	header @assets Cache-Control "public, max-age=604800"
-	@code path / *.html *.js *.css
+
+	# HTML·JS·CSS는 매번 확인 (engine/ · ep2/ 코드도 같음)
+	@code path / */ *.html *.js *.css
 	header @code Cache-Control "no-cache"
 
 	header {
 		Strict-Transport-Security "max-age=31536000"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
-		Permissions-Policy "camera=(), microphone=(), geolocation=(), fullscreen=(self)"
+		# 카메라·마이크·위치·블루투스·모션 센서·클립보드 읽기는 어떤 페이지도 쓰지 않는다 (2편의 블루투스·위치는 전부 게임 UI)
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), bluetooth=(), accelerometer=(), gyroscope=(), magnetometer=(), clipboard-read=(), fullscreen=(self)"
 		-Server
 	}
 

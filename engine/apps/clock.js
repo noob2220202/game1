@@ -1,163 +1,210 @@
 /* =========================================================
- * 시계 — DESIGN §4.7. Tabs: 알람 / 세계 시각 / 스톱워치.
- * - 04:44 · {N} (1회, 켜짐): toggle/long-press → '이 알람은 다른 기기에서 관리됩니다';
- *   deletable only after END (flag alarmDeleted).
- * - live seconds from G.clock.now(): when the clock is capped they loop 57→58→59 ("stuck time").
+ * 시계 (owner: media) — DESIGN §4.7.4 (both users) · §3.16 재료 · §4.7.1 / §3.1 알람 화면 (N04 visual) ·
+ * §3.20.1 cb.alarmDel · §5.6 (no '다른 기기가 관리하는 알람' reason text).
+ * Tabs 알람 · 세계 시각 · 스톱워치 · 타이머 (the last three are default screens with no content;
+ * the world clock shows the in-game clock, whose seconds loop 57→58→59 while capped — engine rule).
+ * Alarm list: on/off toggle + long-press → `삭제` only. Detail = VIEW-ONLY screen: rows do not react,
+ * no pencil / time wheel / volume slider / output picker / [저장], NO preview button, no reason text.
+ * Ring screen (cold open): G.clockApp.ring('a2310') → layer .md2-ring (z 46, above the M0 eye view):
+ * `오후 11:10` · `문 앞` · `♪ 우리` (moving bars) · [해제 ›] slide → resolves. It plays NO sound
+ * (the alarm sound is flow's G.audio.box15). No 다시 울림 button.
+ *
+ * Public API : G.clockApp = { ring(alarmId) → Promise<void>, ringing() → bool }
+ * Hooks set  : 'alarm:ring'
+ * Bus        : emits 'alarm:ringing' {id}; listens 'tick' / 'clock:min' (display only)
+ * Vars       : vars.md.alarmOn {id: bool} · vars.md.alarmDel {id: true}
+ * data-qa    : clock.alarm:<id> clock.toggle:<id> alarm.slide (+ clock.tab:<id>, clock.delete)
  * ========================================================= */
 (function () {
   'use strict';
-  const G = window.G;
-  const { el, pad } = G.util;
-  const SD = G.sd;
-  const T = (s) => SD.T(s);
+  const G = (window.G = window.G || {});
+  const MU = G.mdu;
+  if (!MU) { console.error('[clock] media helpers missing (engine/apps/phone.js)'); return; }
+  const el = MU.el, T = MU.T, pad = MU.pad;
+  const AD = () => (G.STORY && G.STORY.alarms) || { n: [], dash: [], tabs: [['alarm', '알람']] };
+  const CA = (G.clockApp = G.clockApp || {});
   const IC = {
     alarm: '<svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="7.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 9.5V13l2.5 1.8M4.5 5.5l3-2.5M19.5 5.5l-3-2.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
     world: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 12h17M12 3.5c2.6 2.4 3.6 5.3 3.6 8.5s-1 6.1-3.6 8.5M12 3.5C9.4 5.9 8.4 8.8 8.4 12s1 6.1 3.6 8.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
     sw: '<svg viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="7.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 13.5V9.5M10 2.8h4M18 6.5l1.5-1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
-    lock: '<svg viewBox="0 0 24 24"><rect x="6" y="10.5" width="12" height="9" rx="2" fill="currentColor"/><path d="M8.5 10.5V8a3.5 3.5 0 017 0v2.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>',
+    timer: '<svg viewBox="0 0 24 24"><path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9s8 4 8 9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
   };
-  const alarms = () => (G.STORY.alarms || []).filter((a) => (!a.show || a.show()) && !G.state.vars['alarmDel_' + a.id]);
-  const isOn = (a) => { const st = G.state.vars['alarm_' + a.id]; return st == null ? a.on : st; };
-  const locked = (a) => a.managed && !G.flag('END');
-  function k12(h) { return { ap: h < 12 ? '오전' : '오후', h: h % 12 === 0 ? 12 : h % 12 }; }
-  function untilText(a) {
-    const now = G.clock.now();
-    const t = new Date(now); t.setHours(a.h, a.m, 0, 0);
-    if (t <= now) t.setDate(t.getDate() + 1);
-    const mins = Math.round((t - now) / 60000);
-    const h = Math.floor(mins / 60), m = mins % 60;
-    return `${h ? h + '시간 ' : ''}${m}분 후에 알람이 울립니다`;
-  }
+  const list = (user) => (AD()[user === 'dash' ? 'dash' : 'n'] || []).filter((a) => !(MU.md().alarmDel || {})[a.id]);
+  const isOn = (a) => { const v = (MU.md().alarmOn || {})[a.id]; return typeof v === 'boolean' ? v : !!a.on; };
+  const splitTime = (s) => { const m = String(s || '').match(/^(오전|오후)\s*(.+)$/); return m ? [m[1], m[2]] : ['', String(s || '')]; };
 
   let tab = 'alarm';
-  let swStart = null, swAcc = 0, swLaps = [];
-  G.app('clock', {
+  MU.app('clock', {
     name: '시계',
-    icon: G.ICONS.clock,
-    folder: '기타',
+    icon: (G.ICONS && G.ICONS.clock) || { bg: 'linear-gradient(160deg,#3a3a40,#141416)', svg: IC.alarm },
+    badge: () => 0,
     open(p) {
-      if (p && p.tab) tab = p.tab;
-      const wrap = el('div.clk-wrap');
-      const tabs = el('div.clk-tabs');
-      const scr = G.ui.screen({ title: '시계', theme: 'dark', cls: 'clk-screen', body: wrap });
-      scr.appendChild(tabs);
-      let ticker = null;
+      p = p || {};
+      if (p.tab) tab = p.tab;
+      const user = p.user || MU.user();
+      const wrap = el('div.md2-clk-wrap');
+      const tabs = el('nav.md2-tabs.dark');
+      const scr = MU.screen({ title: '', theme: 'dark', cls: 'md2-clk', body: wrap, footer: tabs });
+      let stopTab = null;
       function render() {
+        if (stopTab) { stopTab(); stopTab = null; }
         wrap.innerHTML = ''; tabs.innerHTML = '';
-        clearInterval(ticker);
-        [['alarm', '알람', IC.alarm], ['world', '세계 시각', IC.world], ['sw', '스톱워치', IC.sw]].forEach(([k, l, ic]) => {
-          const b = el('button' + (tab === k ? '.on' : ''), null, el('span', { html: ic }), el('small', null, l));
-          b.addEventListener('click', () => { if (tab === k) return; G.audio.sfx.tap(); tab = k; render(); });
+        (AD().tabs || []).forEach(([k, l]) => {
+          const b = el('button.md2-tab' + (tab === k ? '.on' : ''), { type: 'button', html: (IC[k] || '') + `<span>${T(l)}</span>` });
+          MU.qa(b, 'clock.tab:' + k);
+          b.addEventListener('click', () => { if (tab === k) return; MU.sfx('tap'); tab = k; render(); });
           tabs.appendChild(b);
         });
-        scr.querySelector('.sv-title').textContent = { alarm: '알람', world: '세계 시각', sw: '스톱워치' }[tab];
-        if (tab === 'alarm') alarmTab(wrap, render);
-        if (tab === 'world') ticker = worldTab(wrap);
-        if (tab === 'sw') ticker = swTab(wrap);
+        MU.setTitle(scr, T(((AD().tabs || []).find((t) => t[0] === tab) || [])[1] || ''));
+        if (tab === 'alarm') alarmTab(wrap, user, render);
+        else if (tab === 'world') stopTab = worldTab(wrap);
+        else if (tab === 'sw') stopTab = swTab(wrap);
+        else stopTab = timerTab(wrap);
       }
       render();
-      G.phone.push(scr, { onClose: () => clearInterval(ticker), onResume: render });
-      G.bus.emit('clock:open');
+      MU.push(scr, { onClose: () => { if (stopTab) stopTab(); }, onResume: render });
     },
   });
 
   /* ---------------- 알람 ---------------- */
-  function alarmTab(wrap, rerender) {
-    const list = alarms();
-    const next = list.filter(isOn).sort((a, b) => (a.h * 60 + a.m) - (b.h * 60 + b.m))[0];
-    const now = G.clock.now();
-    const nowEl = el('div.clk-now');
-    const head = el('div.clk-head', null, el('div.ch-big', null, next ? untilText(next) : '모든 알람이 꺼져 있습니다'), el('div.ch-sub', null, next ? `${G.util.fmtKDate(now)} · ${k12(next.h).ap} ${k12(next.h).h}:${pad(next.m)}` : ''), nowEl);
-    const upd = () => { const d = G.clock.now(); nowEl.textContent = `현재 ${k12(d.getHours()).ap} ${k12(d.getHours()).h}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
-    upd();
-    const t = setInterval(() => { if (!nowEl.isConnected) { clearInterval(t); return; } upd(); }, 250);
-    wrap.appendChild(head);
-    const box = el('div.clk-list');
-    list.forEach((a) => {
+  function alarmTab(wrap, user, rerender) {
+    const box = el('div.md2-alarms');
+    list(user).forEach((a) => {
       const on = isOn(a);
-      const { ap, h } = k12(a.h);
-      const tg = el('button.toggle' + (on ? '.on' : '') + (locked(a) ? '.locked' : ''), { 'aria-label': '알람 켜기/끄기' });
-      tg.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (locked(a)) { G.audio.sfx.error(); tg.classList.add('nope'); setTimeout(() => tg.classList.remove('nope'), 400); G.phone.toast(T(a.managed)); G.bus.emit('clock:managed'); return; }
-        G.state.vars['alarm_' + a.id] = !on; G.save(); G.audio.sfx.tap(); rerender();
+      const [ap, hm] = splitTime(a.time);
+      const nm = T(a.name);
+      const tg = MU.toggle(on, 'clock.toggle:' + a.id, (v) => {
+        const m = Object.assign({}, MU.md().alarmOn || {}); m[a.id] = v; MU.mdSet({ alarmOn: m });
+        card.classList.toggle('off', !v);
       });
-      const row = el('div.alarm-card' + (on ? '' : '.off') + (a.managed ? '.managed' : ''), null,
-        el('div.ac-main', null,
-          el('div.ac-label', null, a.managed ? el('i', { html: IC.lock }) : null, T(a.label || '알람')),
-          el('div.ac-time', null, el('small', null, ap), `${h}:${pad(a.m)}`),
-          el('div.ac-rep', null, T(a.repeat || ''))),
+      const card = el('div.md2-alarm' + (on ? '' : '.off'), { role: 'button', tabindex: 0 },
+        el('div.md2-al-main', null,
+          el('div.md2-al-time', null, ap ? el('small', null, ap) : null, hm),
+          el('div.md2-al-sub', null, nm ? el('b', null, nm) : null, el('span', null, T(a.repeat || '')))),
         tg);
-      G.ui.onLongPress(row, async () => {
-        if (locked(a)) { G.audio.sfx.error(); G.phone.toast(T(a.managed)); G.bus.emit('clock:managed'); return; }
-        const ok = await G.phone.dialog({ title: '알람 삭제', text: `${ap} ${h}:${pad(a.m)} ${T(a.label || '')} 알람을 삭제할까요?`, buttons: [{ label: '취소', value: false }, { label: '삭제', value: true, style: 'danger' }] });
-        if (!ok) return;
-        G.state.vars['alarmDel_' + a.id] = 1; G.save();
-        if (a.managed) { G.flag('alarmDeleted', true); }
-        G.phone.toast('알람이 삭제되었습니다');
-        rerender();
-      }, 550);
-      row.addEventListener('click', () => { if (locked(a)) { G.audio.sfx.tap(); G.phone.toast(T(a.managed)); G.bus.emit('clock:managed'); } });
-      box.appendChild(row);
+      MU.qa(card, 'clock.alarm:' + a.id);
+      card.addEventListener('click', () => { MU.sfx('tap'); detail(a); });
+      card.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); detail(a); } });
+      longPress(card, () => askDelete(a, rerender));
+      box.appendChild(card);
     });
-    if (!list.length) box.appendChild(el('div.empty-state', null, '알람 없음'));
     wrap.appendChild(box);
-    wrap.appendChild(el('div.clk-hint', null, '알람을 길게 누르면 삭제할 수 있습니다'));
+  }
+  function longPress(node, fn) {
+    let t = null, sx = 0, sy = 0, fired = false;
+    node.addEventListener('pointerdown', (e) => { fired = false; sx = e.clientX; sy = e.clientY; clearTimeout(t); t = setTimeout(() => { t = null; fired = true; fn(); }, 560); });
+    node.addEventListener('pointermove', (e) => { if (t && Math.hypot(e.clientX - sx, e.clientY - sy) > 10) { clearTimeout(t); t = null; } });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => node.addEventListener(ev, () => { clearTimeout(t); t = null; }));
+    node.addEventListener('click', (e) => { if (fired) { e.stopImmediatePropagation(); e.preventDefault(); fired = false; } }, true);
+    node.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+  /** long-press → a single `삭제` action (a real alarm app's selection action; no text beyond the label) */
+  function askDelete(a, rerender) {
+    MU.sfx('tap');
+    const label = T(AD().deleteLabel || '삭제');
+    const doDel = () => { const d = Object.assign({}, MU.md().alarmDel || {}); d[a.id] = true; MU.mdSet({ alarmDel: d }); rerender(); };
+    if (G.phone && G.phone.sheet) {
+      Promise.resolve(G.phone.sheet({ buttons: [{ label, value: 'delete', style: 'danger' }], qa: 'clock.delete' })).then((v) => { if (v === 'delete') doDel(); });
+      return;
+    }
+    const scr = document.querySelector('.md2-clk.in') || document.querySelector('.md2-clk');
+    if (scr) MU.menu(scr, [{ label, qa: 'sheet.btn:delete', onClick: doDel }]);
+  }
+  function detail(a) {
+    const [ap, hm] = splitTime(a.time);
+    const rows = el('div.md2-al-rows', null, (a.detail || []).map(([k, v]) => el('div.md2-al-row', null, el('span', null, T(k)), v ? el('b', null, T(v)) : null)));
+    const body = el('div.md2-al-detail', null, el('div.md2-al-big', null, ap ? el('small', null, ap) : null, hm), rows);
+    const scr = MU.screen({ title: '', theme: 'dark', cls: 'md2-clk md2-al-view', body });
+    MU.noMenu(scr);
+    MU.push(scr);
   }
 
-  /* ---------------- 세계 시각 ---------------- */
+  /* ---------------- 세계 시각 / 스톱워치 / 타이머 (default screens) ---------------- */
   function worldTab(wrap) {
-    const big = el('span.wt-time');
-    const sec = el('span.wt-sec');
-    const date = el('div.wt-date');
-    const zones = el('div.wt-zones');
-    const face = el('div.wt-face', null, el('i.h'), el('i.m'), el('i.s'), el('b'));
-    wrap.append(face, el('div.wt-big', null, big, sec), date, el('div.wt-net', null, '네트워크 제공 시간 · Haesol_404'), zones);
-    const cities = [['서울', 0, '오늘'], ['런던', -9, ''], ['뉴욕', -14, '']];
+    const face = el('div.md2-wt-face', null, el('i.h'), el('i.m'), el('i.s'), el('b'));
+    const big = el('div.md2-wt-time'), date = el('div.md2-wt-date');
+    wrap.append(el('div.md2-wt', null, face, big, date));
     function upd() {
-      const d = G.clock.now();
-      const { ap, h } = k12(d.getHours());
-      big.textContent = `${ap} ${h}:${pad(d.getMinutes())}`;
-      sec.textContent = ':' + pad(d.getSeconds());
-      date.textContent = `서울 · ${G.util.fmtKDate(d)}`;
-      const hh = d.getHours() % 12 + d.getMinutes() / 60, mm = d.getMinutes() + d.getSeconds() / 60;
+      const d = MU.now();
+      big.textContent = `${MU.fmtK(d)}:${pad(d.getSeconds())}`;
+      date.textContent = `${d.getMonth() + 1}월 ${d.getDate()}일 ${MU.WEEK[d.getDay()]}요일`;
+      const hh = (d.getHours() % 12) + d.getMinutes() / 60, mm = d.getMinutes() + d.getSeconds() / 60;
       face.querySelector('.h').style.transform = `rotate(${hh * 30}deg)`;
       face.querySelector('.m').style.transform = `rotate(${mm * 6}deg)`;
       face.querySelector('.s').style.transform = `rotate(${d.getSeconds() * 6}deg)`;
-      zones.innerHTML = '';
-      cities.forEach(([n, off]) => {
-        const z = new Date(d.getTime() + off * 3600000);
-        const k = k12(z.getHours());
-        const dd = z.getDate() === d.getDate() ? '오늘' : z.getDate() < d.getDate() ? '어제' : '내일';
-        zones.appendChild(el('div.wt-z', null, el('div', null, el('b', null, n), el('small', null, `${dd}, ${off === 0 ? '현지 시간' : off + '시간'}`)), el('span', null, `${k.ap} ${k.h}:${pad(z.getMinutes())}`)));
-      });
     }
     upd();
-    return setInterval(upd, 250);
+    const offs = [MU.on('tick', upd), MU.on('clock:min', upd), MU.on('clock:jump', upd)];
+    return () => offs.forEach((f) => f && f());
+  }
+  let swStart = null, swAcc = 0;
+  function swTab(wrap) {
+    const disp = el('div.md2-sw');
+    const btn = el('button.md2-sw-btn', { type: 'button', 'aria-label': '시작' });
+    const reset = el('button.md2-sw-btn.sec', { type: 'button', 'aria-label': '초기화', html: '<svg viewBox="0 0 24 24"><path d="M5 12a7 7 0 102.1-5M5 4v4h4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>' });
+    const ms = () => swAcc + (swStart ? performance.now() - swStart : 0);
+    const fmt = (t) => `${pad(Math.floor(t / 60000))}:${pad(Math.floor(t / 1000) % 60)}.${pad(Math.floor(t / 10) % 100)}`;
+    function sync() { btn.innerHTML = swStart ? MU.ICON.pause : MU.ICON.play; btn.classList.toggle('run', !!swStart); reset.style.visibility = !swStart && ms() ? 'visible' : 'hidden'; disp.textContent = fmt(ms()); }
+    btn.addEventListener('click', () => { MU.sfx('tap'); if (swStart) { swAcc += performance.now() - swStart; swStart = null; } else swStart = performance.now(); sync(); });
+    reset.addEventListener('click', () => { MU.sfx('tap'); swAcc = 0; swStart = null; sync(); });
+    wrap.append(el('div.md2-sw-wrap', null, disp, el('div.md2-sw-btns', null, reset, btn)));
+    sync();
+    let raf = 0;
+    const loop = () => { raf = requestAnimationFrame(loop); if (!document.hidden && swStart) disp.textContent = fmt(ms()); };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }
+  function timerTab(wrap) {
+    const btn = el('button.md2-sw-btn', { type: 'button', 'aria-label': '시작', html: MU.ICON.play, disabled: true });
+    wrap.append(el('div.md2-sw-wrap', null, el('div.md2-sw', null, '00:00:00'), el('div.md2-sw-btns', null, btn)));
+    return null;
   }
 
-  /* ---------------- 스톱워치 (real time) ---------------- */
-  function swTab(wrap) {
-    const disp = el('div.sw-disp');
-    const laps = el('div.sw-laps');
-    const startBtn = el('button.sw-btn.go');
-    const lapBtn = el('button.sw-btn');
-    function ms() { return swAcc + (swStart ? performance.now() - swStart : 0); }
-    function fmt(t) { const cs = Math.floor(t / 10) % 100, s = Math.floor(t / 1000) % 60, m = Math.floor(t / 60000); return `${pad(m)}:${pad(s)}.${pad(cs)}`; }
-    function sync() {
-      startBtn.textContent = swStart ? '중지' : ms() ? '계속' : '시작';
-      startBtn.classList.toggle('stop', !!swStart);
-      lapBtn.textContent = swStart ? '구간 기록' : '초기화';
-      lapBtn.disabled = !swStart && !ms();
-      laps.innerHTML = '';
-      swLaps.slice().reverse().forEach((l, i) => laps.appendChild(el('div.sw-lap', null, el('span', null, `구간 ${swLaps.length - i}`), el('b', null, fmt(l)))));
+  /* ---------------- ring screen (cold open · N04) ---------------- */
+  let ringing = null;
+  CA.ringing = () => !!ringing;
+  CA.ring = function (alarmId) {
+    if (ringing) return ringing.promise;
+    const a = (AD().n || []).concat(AD().dash || []).find((x) => x.id === (alarmId || 'a2310')) || (AD().n || [])[1] || {};
+    const R = a.ring || { time: a.time, title: T(a.name), playing: '', slide: '' };
+    const host = document.getElementById('screen') || document.body;
+    const knob = el('div.md2-ring-knob', { html: '<svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 9.8V13l2.2 1.6M5 6l3-2.5M19 6l-3-2.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>' });
+    const label = el('span.md2-ring-lbl', null, T(R.slide));
+    const track = el('div.md2-ring-track', { role: 'slider', tabindex: 0, 'aria-label': T(R.slide), 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': 0 }, label, knob);
+    MU.qa(track, 'alarm.slide');
+    const node = el('div.md2-ring', { dataset: { theme: 'dark' } },
+      el('div.md2-ring-top', null, el('div.md2-ring-time', null, T(R.time)), el('div.md2-ring-title', null, T(R.title))),
+      el('div.md2-ring-mid', null, el('span.md2-ring-eq', null, el('i'), el('i'), el('i'), el('i')), el('span', null, T(R.playing))),
+      el('div.md2-ring-bot', null, track));
+    let resolveFn;
+    const promise = new Promise((res) => { resolveFn = res; });
+    ringing = { promise, id: a.id };
+    host.appendChild(node);
+    requestAnimationFrame(() => node.classList.add('in'));
+    let removeBack = null;
+    try { if (G.phone && G.phone.pushBack) removeBack = G.phone.pushBack(() => !!ringing); } catch (e) {}   // back does nothing while it rings (slide only)
+    // slide
+    let drag = false, x0 = 0, f = 0;
+    const maxX = () => Math.max(40, track.clientWidth - knob.offsetWidth - 8);
+    const setF = (v) => { f = Math.max(0, Math.min(1, v)); knob.style.transform = `translateX(${f * maxX()}px)`; label.style.opacity = String(1 - f * 1.4); track.setAttribute('aria-valuenow', Math.round(f * 100)); };
+    function finish() {
+      if (!ringing) return;
+      ringing = null;
+      if (removeBack) removeBack();
+      node.classList.add('done'); node.classList.remove('in');
+      setTimeout(() => node.remove(), 420);
+      resolveFn();
     }
-    startBtn.addEventListener('click', () => { G.audio.sfx.tap(); if (swStart) { swAcc += performance.now() - swStart; swStart = null; } else swStart = performance.now(); sync(); });
-    lapBtn.addEventListener('click', () => { G.audio.sfx.tap(); if (swStart) swLaps.push(ms()); else { swAcc = 0; swLaps = []; } sync(); });
-    wrap.append(disp, el('div.sw-btns', null, lapBtn, startBtn), laps);
-    sync();
-    const upd = () => { disp.textContent = fmt(ms()); };
-    upd();
-    return setInterval(upd, 33);
-  }
+    track.addEventListener('pointerdown', (e) => { drag = true; x0 = e.clientX - f * maxX(); try { track.setPointerCapture(e.pointerId); } catch (er) {} knob.style.transition = 'none'; });
+    track.addEventListener('pointermove', (e) => { if (drag) setF((e.clientX - x0) / maxX()); });
+    const up = () => { if (!drag) return; drag = false; knob.style.transition = ''; if (f > 0.62) { setF(1); finish(); } else setF(0); };
+    track.addEventListener('pointerup', up); track.addEventListener('pointercancel', up); track.addEventListener('lostpointercapture', up);
+    track.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setF(1); finish(); } });
+    node.addEventListener('contextmenu', (e) => e.preventDefault());
+    setTimeout(() => { try { track.focus({ preventScroll: true }); } catch (e) {} }, 300);
+    MU.emit('alarm:ringing', { id: a.id });
+    return promise;
+  };
+  if (G.hooks && G.hooks.set) G.hooks.set('alarm:ring', (id) => CA.ring(id));
+  if (G.DEBUG && window.haru) window.haru.ring = (id) => CA.ring(id || 'a2310');
 })();

@@ -1,116 +1,122 @@
 /* =========================================================
- * 메일 — inbox + reader (DESIGN §4.3; account seah.y@hanmail.net)
- * G.STORY.mails = [{id, from, addr, subj, body(string|fn|Node), t, show(), unread, read, preview, tag, star, onOpen}]
- * Live: G.mail.push({from, addr, subj, body(string), preview, ...}) → stored in vars.liveMails (serializable),
- *       banner + badge. G.mail.open(id) opens a mail directly.
+ * engine/apps/mail.js — 메일 (saved inbox · read-only) · owner: social
+ * DESIGN §4.3 · §3.21 메일 · §3.20.1 cb.manager · §5.1 메일 row · §9.6 names (police via {police})
+ * ARCH §3.3 · §4.19 (G.mail = { open(id), folder(name) }) · §6.3 (mail.item:<id> · mail.folder:<name>)
+ *
+ * Data: G.STORY.mailAccount { head, account, banner, folders:[[id,label]], attach, fromLabel, toLabel, to }
+ *       G.STORY.mails [{ id, folder:'inbox'|'trash', from, fromFull, subj, date, sent, body:(cb)=>string[], footer, deletedNote, redact }]
+ * Behaviour: no compose / reply / forward; every bracketed '[…]' segment is a link button → toast G.e2.STR.mailNoOpen.
+ * All mails are read (no badge). Flags set: none. Storage: none.
  * ========================================================= */
 (function () {
   'use strict';
-  const G = window.G;
-  const { el, pad } = G.util;
-  const M = (G.mail = {});
-  const T = (s) => (G.T ? G.T(s) : s);
-  const parseT = (t) => (G.chat && G.chat.parseT ? G.chat.parseT(t) : t ? new Date(t) : null);
+  const G = (window.G = window.G || {});
+  const C = G.chat || {};
+  const el = C.el || (G.util && G.util.el);
+  const T = (s) => (C.T ? C.T(s) : s);
+  const STR = (k) => (C.str ? C.str(k) : '');
+  const tap = () => C.tap && C.tap();
+  const M = (G.mail = G.mail || {});
+  const ACC = () => (G.STORY && G.STORY.mailAccount) || {};
+  const ALL = () => (G.STORY && G.STORY.mails) || [];
+  const cb = (k) => { try { return G.e2 && G.e2.cb ? G.e2.cb(k) : false; } catch (e) { return false; } };
+  let folder = 'inbox';
+  let render = null;
 
-  function all() {
-    return (G.STORY.mails || []).filter((m) => !m.show || m.show()).concat(G.state.vars.liveMails || [])
-      .sort((a, b) => +(parseT(b.t) || 0) - +(parseT(a.t) || 0));
+  const COLORS = ['#5b7fd6', '#6b9e8a', '#a07fc2', '#c98a5b', '#5aa0b8'];
+  function avatar(name, big) {
+    const n = T(name || '?').replace(/^\[.*?\]\s*/, '');
+    let h = 0; for (const ch of n) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return el('span.so2-ml-av' + (big ? '.big' : ''), { style: { background: COLORS[h % COLORS.length] }, 'aria-hidden': 'true' }, Array.from(n)[0] || '?');
   }
-  function isUnread(m) { return !G.state.read['mail:' + m.id] && m.unread !== false && !m.read; }
-  M.all = all;
-  M.unread = () => all().filter(isUnread).length;
-  M.push = function (m) {
-    m = Object.assign({ id: 'live' + Date.now(), t: G.clock.now().getTime(), unread: true }, m);
-    G.state.vars.liveMails = (G.state.vars.liveMails || []).concat([m]); G.save();
-    G.phone.notify({ app: 'mail', title: T(m.from), body: T(m.subj), route: { app: 'mail', params: { mail: m.id } } });
-    G.phone.refreshBadges && G.phone.refreshBadges();
-    G.bus.emit('mail:new', m);
-    if (M._render) M._render();
-    return m;
-  };
-  M.open = function (id) { G.phone.openApp('mail', { mail: id }); };
+  /** text with '[…]' link segments → buttons (no network, no account) */
+  function richLine(line, cls) {
+    const node = el('div.' + (cls || 'so2-ml-line'));
+    const parts = String(T(line)).split(/(\[[^\]]+\])/);
+    parts.forEach((p) => {
+      if (!p) return;
+      if (/^\[[^\]]+\]$/.test(p)) {
+        node.appendChild(el('button.so2-ml-link', { onclick: (e) => { e.stopPropagation(); tap(); G.phone && G.phone.toast && G.phone.toast(T(ACC().attach || '{$mailNoOpen}')); } }, p));
+      } else node.appendChild(document.createTextNode(p));
+    });
+    if (!String(line).trim()) node.classList.add('gap');
+    if (/^s*·/.test(String(line))) node.classList.add('bul');
+    return node;
+  }
 
-  /* status-bar text colour for this module's screens ('dark' = dark text on a light background) */
-  G.bus.on('screen:push', (e) => {
-    const n = e && e.node; if (!n || !n.classList) return;
-    let st = null;
-    if ([].some((c) => n.classList.contains(c))) st = 'light';
-    else if (['ml-screen'].some((c) => n.classList.contains(c))) st = 'dark';
-    if (!st) return;
-    n.dataset.status = st;
-    if (G.phone.top && G.phone.top() === e) G.phone.statusTheme(st);
-  });
-
-  const COLORS = ['#5b8def', '#ef8a5b', '#3fb68b', '#a06cd5', '#e0607e', '#d4a72c', '#4aa3c7'];
-  function avatar(m, big) {
-    const name = T(m.from || '?');
-    let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-    const bg = m.otp || /해솔홈/.test(name) ? '#0f1b26' : COLORS[h % COLORS.length];
-    return el('span.ml-av' + (big ? '.big' : ''), { style: { background: bg } }, name.replace(/^\[.*?\]\s*/, '').slice(0, 1));
+  function listScreen() {
+    const acc = ACC();
+    const holder = el('div.so2-ml-list');
+    const folders = el('div.so2-ml-folders');
+    const scr = (C.screen || G.ui.screen)({ title: T(acc.head || '받은편지함'), sub: T(acc.account || ''), body: el('div', null, el('div.so2-band.grey', null, T(acc.banner || '{$mailSync}')), folders, holder), cls: 'so2-ml' });
+    function draw() {
+      folders.innerHTML = '';
+      (acc.folders || [['inbox', '받은편지함'], ['trash', '휴지통 1']]).forEach(([id, label]) => {
+        folders.appendChild(el('button.so2-ml-folder' + (folder === id ? '.on' : ''), { 'data-qa': 'mail.folder:' + id, onclick: () => { if (folder === id) return; tap(); folder = id; draw(); } }, T(label)));
+      });
+      const tt = scr.querySelector('.sv-title');
+      const fl = (acc.folders || []).find((x) => x[0] === folder);
+      if (tt) tt.textContent = folder === 'trash' ? T(fl ? fl[1] : '휴지통 1').replace(/\s*\d+$/, '') : T(acc.head || '받은편지함');
+      holder.innerHTML = '';
+      ALL().filter((m) => (m.folder || 'inbox') === folder).forEach((m) => {
+        holder.appendChild(el('button.so2-ml-row', { 'data-qa': 'mail.item:' + m.id, onclick: () => { tap(); view(m); } },
+          avatar(m.from),
+          el('span.so2-ml-main', null,
+            el('span.so2-ml-top', null, el('b', null, T(m.from)), el('small', null, T(m.date || ''))),
+            el('span.so2-ml-subj', null, T(m.subj)),
+            m.deletedNote ? el('span.so2-ml-del', null, T(m.deletedNote)) : el('span.so2-ml-prev', null, previewOf(m)))));
+      });
+    }
+    render = draw;
+    draw();
+    (C.pushScreen || ((s, o) => G.phone.push(s, o)))(scr, { appId: 'mail', onClose: () => { if (render === draw) render = null; } });
+    return scr;
   }
-  function when(m) {
-    const d = parseT(m.t); if (!d) return '';
-    const now = G.clock.now();
-    if (d.toDateString() === now.toDateString()) return G.util.fmtKTime(d);
-    if (d.getFullYear() === now.getFullYear()) return `${d.getMonth() + 1}월 ${d.getDate()}일`;
-    return `${String(d.getFullYear()).slice(2)}.${pad(d.getMonth() + 1)}.${pad(d.getDate())}`;
-  }
+  function bodyOf(m) { try { return (typeof m.body === 'function' ? m.body(cb) : m.body || []).filter((x) => x != null); } catch (e) { console.error('[social] mail body', e); return []; } }
   function previewOf(m) {
-    if (m.preview) return T(m.preview);
-    const b = typeof m.body === 'string' ? m.body : '';
-    return T(b.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()).slice(0, 60);
+    const b = bodyOf(m);
+    const line = b.find((x) => String(x).trim()) || '';
+    return T(String(line).replace(/^\s*·\s*/, ''));
+  }
+  function view(m) {
+    const acc = ACC();
+    const lines = bodyOf(m);
+    const body = el('div.so2-ml-view' + (m.redact ? '.redact' : ''),
+      el('div.so2-ml-vsubj', null, T(m.subj)),
+      m.deletedNote ? el('div.so2-ml-del', null, T(m.deletedNote)) : null,
+      el('div.so2-ml-from', null, avatar(m.from, true),
+        el('div.so2-ml-fromt', null,
+          el('div', null, el('span.so2-ml-k', null, T(acc.fromLabel || '보낸 사람')), el('b', null, T(m.fromFull || m.from))),
+          el('div', null, el('span.so2-ml-k', null, T(acc.toLabel || '받는 사람')), el('span', null, T(acc.to || '{N}'))),
+          el('div.so2-ml-date', null, T(m.sent || '')))),
+      el('div.so2-ml-body', null, lines.map((l) => richLine(l))),
+      m.footer ? el('div.so2-ml-foot', null, m.footer.map((l) => richLine(l, 'so2-ml-fline'))) : null);
+    const scr = (C.screen || G.ui.screen)({ title: '', body, cls: 'so2-ml so2-ml-reader' });
+    scr.dataset.qa = 'mail.view:' + m.id;
+    (C.pushScreen || ((s, o) => G.phone.push(s, o)))(scr, { anim: 'slide', appId: 'mail' });
+    if (G.bus) G.bus.emit('mail:open', m.id);
   }
 
-  G.app('mail', {
-    name: '메일',
-    icon: G.ICONS.mail,
-    badge: () => M.unread(),
-    open(p) {
-      const wrap = el('div.ml-list');
-      const search = el('button.ml-search', { html: '<svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>메일 검색</span>' });
-      search.addEventListener('click', () => G.phone.toast('검색하려면 네트워크 연결이 필요합니다'));
-      const scr = G.ui.screen({ title: '받은편지함', sub: G.STORY.mailAccount || '', cls: 'ml-screen', body: el('div', null, search, wrap) });
-      function render() {
-        wrap.innerHTML = '';
-        const list = all();
-        const n = list.filter(isUnread).length;
-        wrap.appendChild(el('div.ml-count', null, n ? `읽지 않은 메일 ${n}개` : '모든 메일을 읽었습니다'));
-        list.forEach((m) => {
-          const un = isUnread(m);
-          const row = el('button.ml-row' + (un ? '.unread' : '') + (m.otp ? '.otp' : ''), null,
-            avatar(m),
-            el('div.ml-main', null,
-              el('div.ml-top', null, el('b', null, T(m.from)), m.tag ? el('em', null, m.tag) : null, el('small', null, when(m))),
-              el('div.ml-subj', null, T(m.subj)),
-              el('div.ml-prev', null, previewOf(m))),
-            m.star ? el('i.ml-star', { html: '<svg viewBox="0 0 24 24"><path d="M12 3.6l2.5 5.2 5.7.8-4.1 4 1 5.7L12 16.6l-5.1 2.7 1-5.7-4.1-4 5.7-.8z" fill="#f5b400"/></svg>' }) : null);
-          row.addEventListener('click', () => { G.audio && G.audio.sfx.tap(); view(m); });
-          wrap.appendChild(row);
-        });
-      }
-      M._render = render;
-      render();
-      G.phone.push(scr, { onResume: render, onClose: () => { M._render = null; } });
-      if (p && p.mail) { const m = all().find((x) => x.id === p.mail); if (m) view(m); }
-    },
-  });
+  M.open = function (id) {
+    const m = ALL().find((x) => x.id === id);
+    if (G.phone && G.phone.openApp && G.apps && G.apps.mail) return G.phone.openApp('mail', { id });
+    if (m) { folder = m.folder || 'inbox'; listScreen(); view(m); }
+  };
+  M.folder = function (name) { folder = name === 'trash' ? 'trash' : 'inbox'; if (render) render(); else if (G.phone && G.phone.openApp) G.phone.openApp('mail', { folder }); };
+  M.unread = () => 0;
 
-  function view(m) {
-    const d = parseT(m.t);
-    const b = typeof m.body === 'function' ? m.body() : m.body;
-    const body = el('div.mail-view.ml-view', null,
-      el('div.mv-subj', null, T(m.subj)),
-      m.tag ? el('span.ml-tag', null, m.tag) : null,
-      el('div.ml-from', null, avatar(m, true),
-        el('div', null,
-          el('div.ml-fn', null, el('b', null, T(m.from)), el('small', null, m.addr ? `<${m.addr}>` : '')),
-          el('div.ml-to', null, `받는 사람: ${G.STORY.mailAccount || '나'}`),
-          el('div.ml-date', null, d ? `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}. ${G.util.fmtKTime(d)}` : ''))),
-      b instanceof Node ? b : el('div.mv-body.ml-body', { html: T(b || '') }));
-    const right = [el('button', { 'aria-label': '답장', html: '<svg viewBox="0 0 24 24"><path d="M10 6L4 12l6 6M4.5 12H15a5 5 0 015 5v1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>', onclick: () => G.phone.toast(G.flag('netFree') ? '보낼 수 없습니다 · 계정 인증이 필요합니다' : '전송 실패 · 관리자 네트워크에서 발신이 제한되었습니다') })];
-    G.phone.push(G.ui.screen({ title: '', body, right, cls: 'ml-screen' }));
-    G.state.read['mail:' + m.id] = true; G.save(); G.phone.refreshBadges && G.phone.refreshBadges();
-    G.bus.emit('mail:open', m.id);
-    m.onOpen && m.onOpen();
+  if (G.app) {
+    G.app('mail', {
+      name: '메일',
+      icon: G.ICONS && G.ICONS.mail,
+      badge: () => 0,   // every saved mail is already read (§4.3)
+      open(p) {
+        p = p || {};
+        const m = p.id ? ALL().find((x) => x.id === p.id) : null;
+        folder = p.folder === 'trash' || (m && m.folder === 'trash') ? 'trash' : 'inbox';
+        listScreen();
+        if (m) view(m);
+      },
+    });
   }
 })();

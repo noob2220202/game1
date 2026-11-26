@@ -1,70 +1,40 @@
 /* =========================================================
- * 카메라 app: rear = the room (G.room); front = a dark in-game selfie view.
- * CLIENT OVERRIDE (docs/ARCH.md): no getUserMedia, no permission prompts — the front camera is
- * a simulated feed only. Story hook kept for compatibility:
- * G.STORY.camera = { onSelfie(api) }  api: {video:null, overlay, faceCount(n), box(x,y,w,h), close(), real:false}
- * CAM.stop() is kept (no-op safe) so older callers never leave anything running.
+ * 하루를 위한 방탈출! 2 — 카메라 app = 방 보기 (engine/apps/camera.js · owner: room)
+ * DESIGN §2.6 ② (방 보기 = the phone's camera app, {N}'s user only) · §4.7.6 · §9.5-4 · ARCH §3.2 room · §4.19 open params.
+ * The camera chrome (close · flashlight · 1×/2×/8× pill · shutter → vars.shots · direction dots · turn arrows) is drawn by
+ * engine/room/room.js in camera mode; this file only registers the app and routes its open params.
+ *
+ *   G.app('camera', { name:'카메라', icon, open({ view, sub, flash }) })        open params (ARCH §4.19): camera { view, flash }
+ *   G.camera = { open(params) → room api | null, rear(params) (ep1 alias), stop() (no-op), isLive() → false }
+ * No getUserMedia, no permission prompt, no front camera (ARCH §1 — the ep1 simulated selfie view is gone in ep2).
+ * Load order: after engine/room/room.js and engine/core/phone.js (G.app) — registration is guarded for partial builds.
  * ========================================================= */
 (function () {
   'use strict';
-  const G = window.G;
-  const { el, sleep } = G.util;
-  const CAM = (G.camera = {});
+  const G = (window.G = window.G || {});
+  const CAM = (G.camera = G.camera || {});
 
-  G.app('camera', {
-    name: '카메라',
-    icon: G.ICONS.camera,
-    dock: true,
-    open(p) { CAM.rear(p); },
-  });
-
-  CAM.rear = function (p) {
+  CAM.open = function (p) {
     p = p || {};
-    return G.room.open({ mode: p.mode || 'camera', view: p.view, onFlip: () => { const r = G.room.current(); if (r) r.close(); CAM.front(); } });
+    if (!G.room || typeof G.room.open !== 'function') { console.warn('[camera] G.room missing'); return null; }
+    // camera mode exists only for {N} (§2.6) — '—' has no camera icon; resume / deep links are guarded here too
+    try { if (G.users && G.users.current && G.users.current() === 'dash') return null; } catch (e) {}
+    const o = { mode: 'camera', view: p.view, sub: p.sub, fromLock: !!p.fromLock };
+    if (p.flash != null) o.flash = !!p.flash;
+    return G.room.open(o);
   };
+  CAM.rear = CAM.open;                       // ep1 name (shell's QS tile may still call it)
+  CAM.stop = function () {};                 // nothing real is ever opened
+  CAM.isLive = function () { return false; };
 
-  let frontApi = null;
-  CAM.stop = function () { /* no real camera is ever opened */ };
-  CAM.isLive = () => false;
-
-  CAM.front = async function () {
-    if (frontApi && frontApi.isOpen()) return frontApi;
-    const root = el('div.room.selfie');
-    // simulated front camera: near-black room, faint screen glow on an out-of-focus face-shaped shadow
-    const fake = el('div.selfie-fake', null, el('div.sf-glow'), el('div.sf-shadow'));
-    const overlay = el('div', { style: { position: 'absolute', inset: 0, pointerEvents: 'none' } });
-    const faceBox = el('div.face-box', { style: { position: 'absolute', left: '30%', top: '30%', width: '40%', height: '30%', border: '1.5px solid #ffd60a', borderRadius: '10px', opacity: 0, transition: 'all .5s' } });
-    const faceLbl = el('div', { style: { position: 'absolute', top: 'calc(var(--sb-h) + 60px)', left: 0, right: 0, textAlign: 'center', fontSize: '12px', color: '#ffd60a', letterSpacing: '1px' } }, '');
-    const closeBtn = el('button.cam-close', { 'aria-label': '닫기', html: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>' });
-    const flip = el('button.cam-flip', { 'aria-label': '카메라 전환', html: '<svg viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 13.5a3 3 0 015-2.2M15 12.5a3 3 0 01-5 2.2" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>' });
-    const shutter = el('button.cam-shutter', { 'aria-label': '촬영' }, el('i'));
-    root.append(fake, overlay, faceBox, faceLbl, el('div.room-grain'),
-      el('div.cam-top', null, closeBtn, el('div.cam-top-mid', null, el('div.room-label', null, '전면 카메라')), el('span', { style: { width: '40px' } })),
-      el('div.cam-bottom', null, el('div.cam-modes', null, el('span', null, '동영상'), el('b', null, '사진'), el('span', null, '인물')), el('div.cam-row', null, el('span', { style: { width: '46px' } }), shutter, flip)));
-    let closed = false;
-    const ov = G.phone.overlay(root, { onBack: () => close() });
-    function close() {
-      if (closed) return;
-      closed = true;
-      ov.close();
-      if (frontApi === api) frontApi = null;
-      G.bus.emit('camera:front-close');
-    }
-    closeBtn.addEventListener('click', () => close());
-    flip.addEventListener('click', () => { close(); setTimeout(() => CAM.rear(), 250); });
-    shutter.addEventListener('click', () => { G.audio.sfx.shutter(); G.fx.flash('#fff', 300); G.bus.emit('camera:selfie-shot'); });
-
-    const api = (frontApi = {
-      video: null, overlay, root, real: false,
-      faceCount(n) { faceLbl.textContent = n ? `얼굴 ${n}` : ''; },
-      box(x, y, w, h, color) { faceBox.style.opacity = 1; Object.assign(faceBox.style, { left: x * 100 + '%', top: y * 100 + '%', width: w * 100 + '%', height: h * 100 + '%', borderColor: color || '#ffd60a' }); },
-      hideBox() { faceBox.style.opacity = 0; },
-      close,
-      isOpen: () => !closed && document.body.contains(root),
-    });
-    G.bus.emit('camera:front', api);
-    if (G.STORY.camera && G.STORY.camera.onSelfie) G.STORY.camera.onSelfie(api);
-    else { await sleep(900); if (!closed) { api.box(0.3, 0.3, 0.4, 0.3); api.faceCount(1); } }
-    return api;
-  };
+  function icon() {
+    const ic = G.ICONS && G.ICONS.camera;
+    if (ic) return ic;
+    return { bg: 'linear-gradient(160deg,#4a4f57,#23262b)', svg: '<svg viewBox="0 0 24 24"><path d="M4 8h3l1.6-2h6.8L17 8h3v11H4z" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.4" fill="none" stroke="#fff" stroke-width="1.6"/></svg>' };
+  }
+  if (typeof G.app === 'function') {
+    G.app('camera', { name: '카메라', icon: icon(), open(p) { CAM.open(p || {}); }, badge() { return 0; } });
+  } else {
+    console.warn('[camera] G.app missing — camera app not registered');
+  }
 })();

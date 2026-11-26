@@ -183,6 +183,7 @@
     if (SC._ending) return; SC._ending = true;
     const A = G.audio;
     G.flag('END', true);
+    G.series && G.series.endEp1();
     G.clock.freeze(7, 0);
     A.gsm(0); A.amb('drone', false, 3); A.amb('room', false, 4); A.amb('rain', 0.25, 20); A.tension(0);
     G.notebook && G.notebook.show && G.notebook.show(false);

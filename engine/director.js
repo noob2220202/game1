@@ -1,251 +1,439 @@
 /* =========================================================
- * Horror director (design §6): progress-keyed beats, safe zones, his watcher
- * lines, look-away log, tension curve, idle nudges, mirroring cut.
+ * engine/director.js (flow) — episode-2 horror director (DESIGN_EP2 §6.1 · ARCH §4.18). Data-driven: reads
+ * G.BEATDATA2 (ep2/js/data/beats.js) and runs only records whose owner is 'director'.
+ *   safe zones S1–S10 (§6.1.3) · defer world / wait / wait30 · delayMs · show-beat spacing ≥ 25 s,
+ *   dread ≤ 1/60 s (M0–M5) and ≤ 1/40 s (M5–M6) · simultaneous world beats: lower class +1.5 s ·
+ *   tension T (§6.1.5, converges over 20 s; M7 1.0 → .3 in 40 s) → G.audio.tension(T) + G.fx.setVignette(.30 + .40T)
+ *   drone on M1…M8 (off over 8 s at M8), −100 cent while the user is '—' (2 s; back over 4 s) · END: wind −9 dB,
+ *   drone 0, GSM 0 · micro ambience m.* (M1 → M6 only, (120 − 75T)·(0.7–1.3) s, never 50–80° / 105–125°) ·
+ *   clock-jump compensation for 00:00 (B07 +2 s, sched 'dir:B07') · JS budget (vars.dir.jsSpent).
+ * REMOVED for ep2 (hard mode / world rule): watcher lines, his chat voice, wrong-password taunts, look-away log,
+ *   tab-title/favicon tricks, idle nudges, knock, mirroring cut, notebook pings. Nothing here reacts to the
+ *   player's UI actions with a scare; failures never trigger beats (§6.1.4).
+ * Timing: logic runs on core's 250 ms 'tick' (playMs) at 1 s granularity + debounced bus events; it never ticks
+ *   while hidden or paused (G.clock.running()).
+ *
+ * API: G.director = { init(), start(), stop(), safe(kind), zones(), mark(id), fired(id) → pm|null, spend(id) → bool,
+ *                     T() → number, hold(name, on), run(id) (debug skipTo) }
+ * Bus out: 'dir:beat' {id}. Flags set here: tankGlow (B09), b09Cue (B09′). Vars: vars.dir {fired, jsSpent, himTone, T, dropped}.
+ * Sched ids: 'dir:B07', 'dir:b09cue'.
  * ========================================================= */
 (function () {
   'use strict';
-  const G = window.G;
-  const { sleep } = G.util;
-  const D = (G.director = {});
-  const BD = () => G.BEATDATA;
-  let started = false;
-  const holds = new Set();
-  let lastBeatAt = 0, lastFlagAt = Date.now(), reliefUntil = 0, kbOpen = false;
+  const G = (window.G = window.G || {});
+  const D = (G.director = G.director || {});
+  const BD = () => G.BEATDATA2 || { beats: [], micro: [], tension: {} };
+  const RANK = { micro: 0, relief: 1, dread: 2, sting: 3, jump: 4 };
 
-  function fired(id) { return !!(G.state.vars.fired || {})[id]; }
-  function fire(id) { G.state.vars.fired = Object.assign({}, G.state.vars.fired, { [id]: Date.now() }); G.save(); }
-  function since(flag) { const t = G.state.flags[flag]; return t ? (Date.now() - t) / 1000 : -1; }
-  D.hold = function (name, on) { if (on) holds.add(name); else holds.delete(name); };
-  D.safe = function () {
-    if (holds.size || kbOpen) return false;
-    if (G.climax && G.climax.safeZone && G.climax.safeZone()) return false;
-    if (G.flag('M7') && !G.flag('END')) return false;
-    if (Date.now() < reliefUntil) return false;
-    if (document.querySelector('.notebook.in, .call-screen, .dialog-wrap, .mfa, .cinema')) return false;
-    if (G.state.vars.js1At && Date.now() - G.state.vars.js1At < 45000) return false;
+  let inited = false, started = false;
+  const pendingMarks = [];
+  const holds = new Set();
+  let monoShowing = false;
+  let accMs = 0, lastEvalPm = -1, evalTimer = 0;
+  let lastShowPm = -Infinity, lastDreadPm = -Infinity;
+  const readySince = {};     // id → pm when when()+where first held (delayMs / wait30 cap)
+  const waitSince = {};      // id → pm when a wait30 beat started waiting
+  const worldDelay = {};     // id → pm before which a shifted world beat must not run
+  let running = {};          // id → true while an async run is in flight
+  let nextMicroPm = null;
+  let prevMin = null;
+  let endApplied = false, m8Applied = false, droneOn = false;
+  let tCur = 0;
+
+  /* ---------- guarded access ---------- */
+  function safeCall(fn, dflt) { try { return fn(); } catch (e) { return dflt; } }
+  function flag(n) { return safeCall(() => !!G.flag(n), false); }
+  function pm() { return (G.state && G.state.playMs) || 0; }
+  function pmOf(n) {
+    const v = safeCall(() => (G.pm ? G.pm(n) : null), null);
+    if (v != null) return v;
+    const p = G.state && G.state.vars && G.state.vars.pm;
+    return p && p[n] != null ? p[n] : null;
+  }
+  function dir() {
+    const vars = (G.state && G.state.vars) || {};
+    const d = vars.dir && typeof vars.dir === 'object' && !Array.isArray(vars.dir) ? vars.dir : (vars.dir = {});
+    if (!d.fired || Array.isArray(d.fired)) d.fired = {};
+    if (!d.jsSpent) d.jsSpent = { b09: false, b14: false };
+    if (typeof d.himTone !== 'number') d.himTone = 0;
+    if (!d.dropped) d.dropped = {};
+    return d;
+  }
+  function save() { safeCall(() => G.save && G.save()); }
+  function less() { return safeCall(() => (G.e2 && G.e2.less ? !!G.e2.less() : (G.settings && G.settings.scares !== 'full')), false); }
+  function speaker() { return safeCall(() => (G.e2 && G.e2.speaker ? !!G.e2.speaker() : (G.settings && G.settings.audioMode === 'speaker')), false); }
+  function isRunning() { return safeCall(() => (G.clock && G.clock.running ? !!G.clock.running() : !document.hidden), !document.hidden); }
+  function clockMin() { return safeCall(() => (G.clock && G.clock.minutes ? G.clock.minutes() : null), null); }
+  function toMin(hm) {
+    const v = safeCall(() => (G.clock && G.clock.toMin ? G.clock.toMin(hm) : null), null);
+    if (v != null) return v;
+    const [h, m] = String(hm).split(':').map(Number);
+    return (h < 12 ? 1440 : 0) + h * 60 + m;
+  }
+  function passed(hm) {
+    const v = safeCall(() => (G.clock && G.clock.passed ? G.clock.passed(hm) : null), null);
+    if (v != null) return !!v;
+    const m = clockMin();
+    return m != null && m >= toMin(hm);
+  }
+  function user() { return safeCall(() => (G.users && G.users.current ? G.users.current() : (G.state.vars.user || 'n')), 'n'); }
+  function roomSnap() {
+    const open = safeCall(() => !!(G.room && G.room.isOpen && G.room.isOpen()), false);
+    const cur = open ? safeCall(() => (G.room.current && G.room.current()) || {}, {}) : {};
+    return { open, mode: cur.mode || null, view: cur.view || null, sub: cur.sub || null, zoom: cur.zoom || 1, closeup: cur.closeup || null };
+  }
+  function topApp() { return safeCall(() => { const t = G.phone && G.phone.top && G.phone.top(); return t ? t.appId || t.id || null : null; }, null); }
+  function cb(k) { return safeCall(() => (G.e2 && G.e2.cb ? G.e2.cb(k) : null), null); }
+
+  /* ---------- fired / mark / spend ---------- */
+  D.fired = function (id) { const f = dir().fired[id]; return f == null ? null : f; };
+  D.mark = function (id) {
+    if (!id) return;
+    if (!inited || !G.state) { pendingMarks.push([id, pm()]); return; }
+    const d = dir();
+    if (d.fired[id] == null) { d.fired[id] = pm(); save(); }
+    if (id === 'B09') lastDreadPm = pm();
+    safeCall(() => G.bus && G.bus.emit('dir:beat', { id }));
+  };
+  function unmark(id) { const d = dir(); delete d.fired[id]; save(); }
+  D.spend = function (id) {
+    const d = dir();
+    if (d.jsSpent[id]) return false;
+    d.jsSpent[id] = true; save();
     return true;
   };
-  G.bus.on('keyboard', (on) => { kbOpen = on; });
-  G.bus.on('flag', () => { lastFlagAt = Date.now(); });
-  // leads opened here/elsewhere with in-memory done predicates are lost on reload: close them from the flag too
-  G.bus.on('flag:ringHeard', () => { G.notebook && G.notebook.leadDone && G.notebook.leadDone('callme'); });
-  G.bus.on('flag:frag47', () => { G.notebook && G.notebook.leadDone && G.notebook.leadDone('doorAB'); });
+  D.hold = function (name, on) { if (on) holds.add(name); else holds.delete(name); schedEval(); };
 
-  /* ---------- his voice ---------- */
-  D.his = async function (lines, o) {
-    o = o || {};
-    if (!Array.isArray(lines)) lines = [lines];
-    G.flag('haruThread', true);
-    for (const raw of lines) {
-      const text = G.T(raw);
-      await G.chat.push('talk', 'haru', { from: 'them', text, creepy: true }, { tone: 'him', typingMs: o.typing != null ? o.typing : 1200, notify: true });
-      await sleep(o.gap != null ? o.gap : 1800);
-    }
+  /* ---------- safe zones (§6.1.3) ---------- */
+  D.zones = function () {
+    const p = pm();
+    const z = {};
+    z.S1 = safeCall(() => (G.ui && G.ui.inputActive ? !!G.ui.inputActive() : !!(G.ui && G.ui.keyboardOpen && G.ui.keyboardOpen())), false);
+    z.S2 = safeCall(() => !!(G.notebook && G.notebook.isOpen && G.notebook.isOpen()), false);
+    z.S3 = monoShowing || holds.has('recap') || holds.has('mono');
+    z.S4 = safeCall(() => !!(G.users && G.users.switching && G.users.switching()), false);
+    z.S5 = safeCall(() => { const st = G.media && G.media.state && G.media.state(); return !!(st && st.playing && (st.from === 'voice' || st.from === 'gallery')); }, false);
+    z.S6 = ['M0', 'M1', 'M2', 'M3', 'M4', 'M5'].some((m) => { const t = pmOf(m); return t != null && flag(m) && p - t < 20000; });
+    z.S7 = (() => { const t = pmOf('toneRestored'); return t != null && p - t < 40000; })();
+    z.S8 = safeCall(() => !!(G.climax && G.climax.safeZone && G.climax.safeZone()), false) || (() => { const t = pmOf('tankGlow'); return t != null && p - t < 45000; })();
+    z.S9 = safeCall(() => !!(G.phone && G.phone.modalOpen && G.phone.modalOpen()), false);
+    z.S10 = flag('M8') && !flag('HOOK');
+    z.H = holds.size > 0;
+    return z;
   };
-  D.manager = async function (lines, gap) {
-    for (const t of lines) { await G.chat.push('talk', 'manager', { from: 'them', text: G.T(t) }, { tone: 'friend', typingMs: 900 }); await sleep(gap || 1500); }
+  function climaxNow() { return flag('M6') && !flag('M7'); }
+  D.safe = function (kind) {
+    const z = D.zones();
+    kind = kind || 'show';
+    if (kind === 'world') return !z.S1 && !z.S2;                      // decorations (shake / vignette pulse) allowed
+    if (kind === 'jump') return !z.S1 && !z.S2;
+    if (kind === 'mono') return !(z.S1 || z.S2 || z.S3 || z.S4 || z.S5 || z.S6 || z.S8 || z.H);   // ignores S10 (mono4)
+    // show
+    if (z.S1 || z.S2 || z.S9 || z.S10 || z.H) return false;
+    if (climaxNow()) return true;                                      // M6–M7: S3–S7 do not apply
+    return !(z.S3 || z.S4 || z.S5 || z.S6 || z.S7 || z.S8);
   };
-
-  /* ---------- tension ---------- */
-  const TT = [['M7', 1], ['M6', 0.85], ['M5', 0.75], ['M4', 0.65], ['F3', 0.6], ['F2', 0.5], ['F1', 0.4], ['M2', 0.3], ['M1', 0.15]];
-  D.T = function () { if (G.flag('M8')) return 0.2; for (const [f, v] of TT) if (G.flag(f)) return v; return 0.05; };
-  function applyTension() {
-    const T = D.T();
-    if (G.audio.ok && G.audio.ok()) { G.audio.tension(T); G.audio.amb('rain', 0.6 + 0.4 * T); }
-    document.documentElement.style.setProperty('--vig', String(0.35 + T * 0.45));
-    document.body.classList.toggle('dread', T >= 0.5);
+  function zoneBlocks(z, onlyS1S2) {
+    if (z.S1 || z.S2 || z.H) return true;
+    if (onlyS1S2) return false;
+    if (z.S9 || z.S10) return true;
+    if (climaxNow()) return false;
+    return z.S3 || z.S4 || z.S5 || z.S6 || z.S7 || z.S8;
   }
 
-  /* ---------- mirroring cut (P6 / M5) ---------- */
-  G.cutMirroring = async function () {
-    if (!G.mirroring()) return;
-    G.flag('M5', true);
-    G.phone.updateStatus && G.phone.updateStatus();
-    G.audio.sfx.castEnd();
-    G.fx.glitch(120);
-    G.phone.toast('화면 공유가 중지되었습니다');
-    G.notebook && G.notebook.note && G.notebook.note('화면 공유를 끊었다. 이제 그 사람은 화면을 못 본다.');
-    await sleep(1500);
-    const burst = BD().cutBurst;
-    G.flag('haruThread', true);
-    for (let i = 0; i < burst.length; i++) {
-      await G.chat.push('talk', 'haru', { from: 'them', text: G.T(burst[i]), creepy: true }, { tone: 'him', typingMs: 300, notify: true });
-      await sleep(i < 4 ? 1300 : 700);
-    }
-    await sleep(1200);
-    G.audio.sfx.knock(3, { az: 270, where: 'inside', vol: 0.9 });
-    G.audio.gsm(0.35);
-  };
-
-  /* ---------- beats ---------- */
-  const BEATS = [
-    { id: 'B05', when: () => G.state.vars.firstRoomLookAt && (Date.now() - G.state.vars.firstRoomLookAt) / 1000 > 40 && G.room && G.room.isOpen(), run: () => G.audio.sfx.boiler() },
-    { id: 'B06', when: () => since('M1') > 20, run: () => G.phone.notify({ app: 'gallery', title: '1년 전 오늘', body: '2025년 11월 24일의 추억을 확인하세요', route: { app: 'gallery', params: { memories: true } } }) },
-    { id: 'B08', when: () => since('M1') > 60, run: () => D.manager(BD().managerFirst) },
-    { id: 'B11', when: () => G.flag('M2'), safeOnly: false, run: () => { G.audio.sfx.pen(); G.audio.sfx.pageTurn(); G.notebook && G.notebook.ping && G.notebook.ping(); } },
-    { id: 'B12', when: () => G.flag('F1'), run: async () => {
-      await D.his(G.flag('knockedBack') ? BD().firstContactKnock : BD().firstContact, { gap: 2000 });
-      G.notebook && G.notebook.note && G.notebook.note('…내 계정이다. 내 폰, 누가 갖고 있어.');
-      setTimeout(() => G.audio.sfx.elevator(), 60000);
-      G.hooks.call('room:refreshLayers');
-    } },
-    { id: 'B13', when: () => G.flag('F2') && fired('B12'), run: async () => {
-      G.audio.sfx.batteryLow(true);
-      G.phone.notify({ app: 'settings', appName: '배터리', title: '배터리 4%', body: '절전 모드를 켜세요' });
-      G.hooks.call('room:refreshLayers');
-      await sleep(4000);
-      await D.his(BD().f2, { gap: 2200 });
-      await sleep(9000);
-      managerSlip();
-    } },
-    { id: 'B15', when: () => G.flag('F3') && fired('B13'), run: async () => {
-      G.hooks.call('room:refreshLayers');
-      await D.his(G.flag('vaultSeen') ? BD().f3Seen : BD().f3);
-    } },
-    { id: 'B17', when: () => since('M4') > 45, run: () => {
-      G.audio.musicBox({ variant: 'winddown', az: 270, closet: 0.7 });
-      G.fx.sub('(옷장 안에서… 오르골 소리?)', 5000);
-    } },
-    { id: 'B20', when: () => since('M5') > 30, run: () => G.hooks.call('gallery:addSharedFace') },
-    { id: 'B22', when: () => G.flag('M6'), safeOnly: false, run: () => { G.audio.gsm(0.12); setTimeout(() => G.audio.gsm(0), 6000); G.audio.sfx.success(); } },
-    { id: 'B23', when: () => since('M6') > 20, run: () => { G.audio.sfx.rackFall({ az: 270 }); G.state.vars.rackFallen = true; G.save(); } },
-  ];
-
-  async function managerSlip() {
-    // 관리실 sends a photo, deletes it 1.2 s later. The 알림 기록 keeps it.
-    G.flag('managerSlip', true);
-    const thumb = G.IMG.vault_haru_sleep;
-    G.phone.notify({ app: 'talk', title: '관리실', body: '[사진] 아직 안 자네 ㅎ', route: { app: 'talk', params: { thread: 'manager' } }, cls: 'blurthumb', duration: 1400 });
-    const m = await G.chat.push('talk', 'manager', { from: 'them', img: thumb, deletedLater: true }, { notify: false });
-    await sleep(1300);
-    if (m) { m.deleted = true; m.img = null; G.save(); }
-    G.bus.emit('chat:msg', { kind: 'talk', id: 'manager', msg: m });
-    await sleep(2500);
-    D.manager([BD().managerSorry]);
+  /* ---------- snapshot ---------- */
+  function snap() {
+    return {
+      flag, pm, pmOf: (f) => { const v = pmOf(f); return v == null ? Infinity : v; },
+      clock: () => safeCall(() => G.clock.now(), new Date()), passed,
+      user: user(), room: roomSnap(), app: topApp(),
+      firedAt: (id) => D.fired(id), vars: (G.state && G.state.vars) || {},
+    };
+  }
+  function whereOk(b, s) {
+    const w = b.where || 'any';
+    if (w === 'any') return true;
+    if (w.startsWith('room:')) { const list = w.slice(5).split(','); return s.room.open && (list.includes(s.room.view) || list.includes(s.room.sub)); }
+    if (w.startsWith('user:')) return s.user === w.slice(5);
+    if (w.startsWith('app:')) return s.app === w.slice(4);
+    return true;
+  }
+  function milestoneIdx() {
+    const order = ['M0', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'END'];
+    let k = -1; order.forEach((m, i) => { if (flag(m)) k = i; });
+    return k;
   }
 
-  /* ---------- fragments: relief window ---------- */
-  G.bus.on('fragment', ({ id, count }) => {
-    reliefUntil = Date.now() + 20000;
-    G.audio.musicBox({ variant: 'fragment' });
-    G.audio.sfx.pen();
-    G.phone.toast(`조각 ${count}/3 — ${id}`);
+  /* ---------- running a beat ---------- */
+  function ctxFor(s, z) {
+    return { less: less(), speaker: speaker(), user: s.user, view: s.room.view, zones: z, cb, mark: D.mark, decor: !z.S1 && !z.S2, s, director: D };
+  }
+  async function runBeat(b, s, z) {
+    if (!b || running[b.id]) return;
+    if (D.fired(b.id) != null && !b._force) return;
+    running[b.id] = true;
+    D.mark(b.id);
+    if (b.kind === 'show') { lastShowPm = pm(); if (b.cls === 'dread') lastDreadPm = pm(); }
+    let res;
+    try { res = b.run ? await b.run(ctxFor(s || snap(), z || D.zones())) : undefined; }
+    catch (e) { console.error('[director] beat', b.id, e); }
+    running[b.id] = false;
+    if (res === false && !b._force) {
+      // the beat could not happen (e.g. the view changed under it) — allow it again until its `until`
+      unmark(b.id); readySince[b.id] = null;
+    }
+  }
+  function findBeat(id) { return (BD().beats || []).find((x) => x.id === id) || null; }
+  D.run = function (id) {   // haru.skipTo — ignores when/until/safe
+    const b = findBeat(id);
+    if (!b || !b.run) return false;
+    const copy = Object.assign({}, b, { _force: true });
+    runBeat(copy, snap(), D.zones());
+    return true;
+  };
+
+  /* ---------- evaluation (one show beat per evaluation; world beats on time) ---------- */
+  function evaluate() {
+    evalTimer = 0;
+    if (!started || !G.state) return;
+    if (!isRunning()) return;
+    const p = pm();
+    const s = snap();
+    const z = D.zones();
+    const d = dir();
+    const due = [];
+    let showDone = false;
+    for (const b of BD().beats || []) {
+      if (b.owner !== 'director' || !b.run) continue;
+      if (D.fired(b.id) != null || d.dropped[b.id] || running[b.id]) continue;
+      let dropNow = false;
+      if (b.until) dropNow = safeCall(() => !!b.until(s), false);
+      if (dropNow) { d.dropped[b.id] = p; readySince[b.id] = null; save(); continue; }
+      const ok = safeCall(() => !!(b.when && b.when(s)), false) && whereOk(b, s);
+      if (!ok) { readySince[b.id] = null; waitSince[b.id] = null; continue; }
+      if (readySince[b.id] == null) readySince[b.id] = p;
+      if (b.delayMs && p - readySince[b.id] < b.delayMs) continue;
+      if (b.kind === 'world' || b.defer === 'world') { due.push(b); continue; }
+      // show beats
+      if (showDone) continue;
+      if (b.defer === 'wait30') {
+        if (z.S1 || z.S2 || z.H) continue;                                   // input / notebook: no cap
+        if (zoneBlocks(z, false)) {
+          if (waitSince[b.id] == null) waitSince[b.id] = p;
+          if (p - waitSince[b.id] < 30000) continue;
+        }
+      } else if (zoneBlocks(z, false)) continue;                             // 'wait'
+      if (p - lastShowPm < 25000) continue;
+      if (b.cls === 'dread' && !flag('M6')) {
+        const gap = flag('M5') ? 40000 : 60000;
+        if (p - lastDreadPm < gap) continue;
+      }
+      showDone = true;
+      runBeat(b, s, z);
+    }
+    if (due.length) {
+      due.sort((a, b) => (RANK[b.cls] || 0) - (RANK[a.cls] || 0));
+      due.forEach((b, i) => {
+        if (i === 0) { if (worldDelay[b.id] && p < worldDelay[b.id]) return; runBeat(b, s, z); return; }
+        if (!worldDelay[b.id]) worldDelay[b.id] = p + 1500 * i;            // lower class shifted +1.5 s
+        if (p >= worldDelay[b.id]) runBeat(b, s, z);
+      });
+    }
+    lastEvalPm = p;
+  }
+  function schedEval() {
+    if (!started || evalTimer) return;
+    evalTimer = setTimeout(evaluate, 30);
+  }
+
+  /* ---------- tension (§6.1.5) ---------- */
+  function targetT() {
+    const tt = BD().tension || {};
+    if (flag('END')) return tt.END != null ? tt.END : 0;
+    if (flag('M8')) return tt.M8 != null ? tt.M8 : 0.2;
+    if (flag('M7')) {
+      const t0 = pmOf('M7');
+      const el = t0 == null ? 0 : pm() - t0;
+      const hi = tt.M7 != null ? tt.M7 : 1, lo = tt.M7end != null ? tt.M7end : 0.3;
+      return Math.max(lo, hi - (hi - lo) * Math.min(1, el / 40000));
+    }
+    for (const m of ['M6', 'M5', 'M4', 'M3', 'M2', 'M1', 'M0']) if (flag(m)) return tt[m] != null ? tt[m] : 0;
+    return 0;
+  }
+  D.T = function () { return tCur; };
+  function stepTension(dtMs) {
+    const target = targetT();
+    if (flag('M7') && !flag('M8')) {
+      // the M7 curve is itself the 40 s fall — follow it closely (fast attack to 1.0)
+      tCur += (target - tCur) * Math.min(1, dtMs / 1500);
+    } else {
+      tCur += (target - tCur) * (1 - Math.exp(-dtMs / 6700));   // ≈ 95 % in 20 s
+    }
+    if (Math.abs(target - tCur) < 0.002) tCur = target;
+    dir().T = Math.round(tCur * 1000) / 1000;
     applyTension();
-  });
-
-  /* ---------- watcher: he comments on what you open ---------- */
-  let watchCount = 0, lastWatch = 0;
-  G.bus.on('app:open', (id) => {
-    if (!G.mirroring() || !G.flag('F1')) return;
-    const line = BD().watcher[id];
-    if (!line || watchCount >= 10 || Date.now() - lastWatch < 75000) return;
-    const k = 'watch_' + id; if (G.state.vars[k]) return;
-    G.state.vars[k] = 1; watchCount++; lastWatch = Date.now();
-    setTimeout(() => { if (G.mirroring()) D.his(line, { typing: 1500 }); }, 4000 + Math.random() * 5000);
-  });
-  let wrongCount = 0;
-  G.bus.on('memo:fail', () => maybeWrong());
-  G.bus.on('lock:fail', () => {});
-  function maybeWrong() { if (!G.mirroring() || !G.flag('F1') || wrongCount >= 2) return; if (Math.random() < 0.3) { wrongCount++; D.his(BD().wrongPw); } }
-  D.wrongPassword = maybeWrong;
-
-  /* ---------- look-away log (rule ②) ---------- */
-  let hiddenAt = null, hiddenGame = null;
-  function onHide() {
-    if (!started || !G.flag('M1')) return;
-    hiddenAt = Date.now(); hiddenGame = G.clock.now().getTime();
-    if (G.mirroring() && G.flag('M2')) { G.fx.setTitle(G.T('{N야} 어디 가?')); G.fx.setFavicon('👁'); }
   }
-  function onShow() {
-    if (hiddenAt == null) return;
-    const dur = Date.now() - hiddenAt; hiddenAt = null;
-    G.fx.setTitle(); G.fx.setFavicon('🚪');
-    if (dur < 1500) return;
-    const log = G.state.vars.lookLog || [];
-    log.push({ t: hiddenGame, dur });
-    G.state.vars.lookLog = log.slice(-8);
-    G.state.vars.lookAways = (G.state.vars.lookAways || 0) + 1;
-    G.state.vars.lookBonus = Math.min(2, (G.state.vars.lookBonus || 0) + (dur > 4000 ? 1 : 0));
-    G.save();
-    G.hooks.has('room:refreshLayers') && G.hooks.call('room:refreshLayers');
-    if (dur > 4000 && G.mirroring() && G.flag('F1')) {
-      const n = (G.state.vars.returnMsgs || 0);
-      if (n < 3 && Date.now() - (G.state.vars.returnMsgAt || 0) > 90000) {
-        G.state.vars.returnMsgs = n + 1; G.state.vars.returnMsgAt = Date.now(); G.save();
-        const m = Math.floor(dur / 60000), s = Math.floor((dur % 60000) / 1000);
-        const line = BD().returnLines[n].replace('{m}', m).replace('{s}', s).replace('{n}', G.state.vars.lookAways);
-        setTimeout(() => D.his(line), 1500);
-        if (G.room && G.room.isOpen()) G.audio.sfx.creakWardrobe({ az: 270, dur: 1.6 });
+  function applyTension() {
+    safeCall(() => { if (G.audio && G.audio.tension) G.audio.tension(tCur); });
+    const vig = 0.30 + 0.40 * tCur;
+    safeCall(() => {
+      if (G.fx && G.fx.setVignette) G.fx.setVignette(vig);
+      else { const scr = document.getElementById('screen'); if (scr) scr.style.setProperty('--vig', String(vig)); }
+    });
+  }
+
+  /* ---------- ambience driven by state (drone, '—' detune, M8, END) ---------- */
+  function amb(id, on, o) { safeCall(() => { if (G.audio && G.audio.amb) G.audio.amb(id, on, o || {}); }); }
+  function syncAmbience() {
+    const wantDrone = flag('M1') && !flag('M8');
+    if (wantDrone && !droneOn) { droneOn = true; amb('drone', true, { fade: 4 }); }
+    if (flag('M8') && !m8Applied) { m8Applied = true; droneOn = false; amb('drone', false, { fade: 8 }); }
+    if (flag('END') && !endApplied) {
+      endApplied = true;
+      amb('roofWind', true, { gainDb: -9, fade: 6 });
+      amb('drone', false, { fade: 3 });
+      safeCall(() => { const g = G.audio && G.audio.gsmTank; if (g && g.fadeTo) g.fadeTo(0, 3000); });
+    }
+  }
+  function onSwitched(e) {
+    const to = e && e.to;
+    safeCall(() => {
+      if (!G.audio || !G.audio.droneDetune) return;
+      if (to === 'dash') G.audio.droneDetune(-100, 2); else if (to === 'n') G.audio.droneDetune(0, 4);
+    });
+    schedEval();
+  }
+
+  /* ---------- 00:00 compensation (§6.1.7) ---------- */
+  function sched() { return G.e2 && G.e2.sched ? G.e2.sched : null; }
+  function checkMidnight() {
+    const m = clockMin();
+    if (m == null) return;
+    const MID = 1440;
+    if (D.fired('B07') == null && m >= MID) {
+      const sc = sched();
+      const pending = sc && sc.has ? safeCall(() => sc.has('dir:B07'), false) : false;
+      if (!pending) {
+        if (prevMin != null && prevMin < MID && m === MID) runBeat(findBeat('B07'));            // the clock flowed into 00:00
+        else if (sc && sc.after) safeCall(() => sc.after(2000, 'dir:B07'));                       // skipped (jump) or resumed past it
+        else setTimeout(() => runBeat(findBeat('B07')), 2000);
       }
     }
-  }
-  document.addEventListener('visibilitychange', () => (document.hidden ? onHide() : onShow()));
-  window.addEventListener('pagehide', onHide);
-  window.addEventListener('pageshow', onShow);
-
-  /* ---------- room hooks ---------- */
-  G.bus.on('room:view', (v) => {
-    if (!G.state.vars.firstRoomLookAt) {
-      G.state.vars.firstRoomLookAt = Date.now(); G.save();
-    }
-    // B04: first look at the wardrobe -> a 2-frame catchlight in the gap (once, silent). room.js has the glint API.
-    if (v === 'wardrobe' && !fired('B04') && !G.flag('M7')) {
-      fire('B04');
-      setTimeout(() => { const r = G.room && G.room.current && G.room.current(); if (r && r.glint) r.glint(70); }, 900);
-    }
-    if (G.flag('M1') && !fired('B07') && v !== 'wardrobe' && D.safe()) {
-      fire('B07');
-      setTimeout(() => { G.audio.sfx.knock(2, { az: 270, where: 'inside', vol: 0.5, gap: 0.6 }); G.flag('knockInvite', true); G.fx.sub('(옷장 쪽에서… 똑, 똑)', 2600); }, 2200);
-    }
-  });
-
-  /* ---------- micro ambience & idle nudges ---------- */
-  let nextMicro = Date.now() + 60000;
-  function micro() {
-    const T = D.T();
-    if (Date.now() < nextMicro) return;
-    nextMicro = Date.now() + (120 - 80 * T) * 1000 * (0.7 + Math.random() * 0.6);
-    if (!G.audio.ok || !G.audio.ok() || G.flag('M7')) return;
-    const A = G.audio, r = Math.random();
-    if (r < 0.3) A.noise(A.now(), 2.5, 0.05, A.at(110, { dist: 6 }) || A.bus('amb'), { a: 1.2, filters: [{ type: 'lowpass', freq: 600 }] }); // pipe upstairs
-    else if (r < 0.55) A.noise(A.now(), 4, 0.04, A.at(180, { dist: 12 }) || A.bus('amb'), { a: 1.8, brown: true, filters: [{ type: 'lowpass', freq: 300 }] }); // distant car
-    else if (r < 0.8) A.noise(A.now(), 0.01, 0.12, A.at(200 + Math.random() * 140, { dist: 2.5 }) || A.bus('amb'), { filters: [{ type: 'bandpass', freq: 2000, Q: 6 }] }); // wall tick
-    else if (G.flag('M1') && !G.flag('M8')) G.audio.sfx.knock(1, { az: 270, where: 'inside', vol: 0.35 });
-  }
-  function idle() {
-    if (!G.flag('M1') || G.flag('M7')) return;
-    const idleS = (Date.now() - lastFlagAt) / 1000;
-    if (idleS > 150 && !G.state.vars.nudge150At || (G.state.vars.nudge150At && Date.now() - G.state.vars.nudge150At > 150000 && idleS > 150)) {
-      G.state.vars.nudge150At = Date.now(); G.save();
-      G.audio.sfx.knock(1, { az: 270, where: 'inside', vol: 0.4 });
-    }
+    prevMin = m;
   }
 
-  /* ---------- main loop ---------- */
-  async function tick() {
-    if (!started || document.hidden) return;
-    if (G.flag('END')) return;
-    micro(); idle();
-    const now = Date.now();
-    for (const b of BEATS) {
-      if (fired(b.id)) continue;
-      let ok = false; try { ok = b.when(); } catch (e) { ok = false; }
-      if (!ok) continue;
-      if (b.safeOnly !== false && (!D.safe() || now - lastBeatAt < 8000)) continue;
-      fire(b.id); lastBeatAt = now;
-      try { await b.run(); } catch (e) { console.error('[beat]', b.id, e); }
-      break;
-    }
+  /* ---------- micro ambience (§6.1.6) ---------- */
+  function inForbidden(az) { return (BD().microForbidden || [[50, 80], [105, 125]]).some(([a, b]) => az >= a && az <= b); }
+  function pickMicro() {
+    const list = (BD().micro || []).filter((x) => x && x.id);
+    if (!list.length) return null;
+    const tot = list.reduce((a, x) => a + (x.weight || 1), 0);
+    let r = Math.random() * tot;
+    for (const x of list) { r -= x.weight || 1; if (r <= 0) return x; }
+    return list[list.length - 1];
   }
-  D.start = function (cont) {
+  function microTick() {
+    const active = flag('M1') && !flag('M6');
+    if (!active) { nextMicroPm = null; return; }
+    const p = pm();
+    const gapMs = () => (120 - 75 * tCur) * 1000 * (0.7 + Math.random() * 0.6);
+    if (nextMicroPm == null) { nextMicroPm = p + gapMs(); return; }
+    if (p < nextMicroPm) return;
+    nextMicroPm = p + gapMs();
+    const m = pickMicro();
+    if (!m) return;
+    let az = 0;
+    for (let tries = 0; tries < 6; tries++) {
+      const ranges = m.az || [[0, 360]];
+      const [a, b] = ranges[Math.floor(Math.random() * ranges.length)];
+      az = Math.round(a + Math.random() * (b - a)) % 360;
+      if (!inForbidden(az)) break;
+    }
+    if (inForbidden(az)) return;
+    safeCall(() => { if (G.audio && G.audio.cue) G.audio.cue(m.id, { az, el: m.el }); });
+    if (m.sub) safeCall(() => { if (G.audio && G.audio.sub) G.audio.sub(m.sub, { az }); });
+  }
+
+  /* ---------- tick ---------- */
+  function onTick(e) {
+    if (!started) return;
+    let dt = 250;
+    if (e && typeof e.dt === 'number') dt = e.dt;
+    else if (e instanceof Date) dt = 1000;                 // ep1-style emitter fallback
+    if (!isRunning()) return;
+    accMs += Math.max(0, Math.min(dt, 1000));
+    if (accMs < 1000) return;
+    const step = accMs; accMs = 0;
+    stepTension(step);
+    syncAmbience();
+    checkMidnight();
+    microTick();
+    evaluate();
+  }
+
+  /* ---------- sched handlers ---------- */
+  function registerSched() {
+    const sc = sched();
+    if (!sc || !sc.on) return;
+    safeCall(() => sc.on('dir:B07', () => runBeat(findBeat('B07'))));
+    safeCall(() => sc.on('dir:b09cue', () => runBeat(findBeat('B09p'))));
+  }
+  function ensureB09Cue() {
+    if (!flag('M4') || D.fired('B09p') != null) return;
+    const sc = sched(); const t = pmOf('M4');
+    if (!sc || t == null) return;
+    if (!safeCall(() => sc.has('dir:b09cue'), false)) safeCall(() => sc.at(t + 30000, 'dir:b09cue'));
+  }
+
+  /* ---------- lifecycle ---------- */
+  D.init = function () {
+    if (inited) return;
+    inited = true;
+    dir();
+    pendingMarks.splice(0).forEach(([id, at]) => { const d = dir(); if (d.fired[id] == null) d.fired[id] = at; safeCall(() => G.bus && G.bus.emit('dir:beat', { id })); });
+    registerSched();
+    if (!G.bus) return;
+    G.bus.on('tick', onTick);
+    ['flag', 'flag:off', 'keyboard', 'notebook:open', 'notebook:close', 'media:play', 'media:stop', 'room:view', 'room:zoom',
+      'room:open', 'room:close', 'app:open', 'screen:push', 'screen:pop', 'home', 'clock:min', 'users:switching', 'lock:unlock']
+      .forEach((ev) => G.bus.on(ev, schedEval));
+    G.bus.on('mono:show', () => { monoShowing = true; });
+    G.bus.on('mono:hide', () => { monoShowing = false; schedEval(); });
+    G.bus.on('users:switched', onSwitched);
+    G.bus.on('clock:jump', () => { checkMidnight(); schedEval(); });
+    G.bus.on('flag:M4', () => { ensureB09Cue(); });
+    G.bus.on('visibility', (v) => { if (v && !v.hidden) { accMs = 0; schedEval(); } });
+  };
+  D.start = function () {
+    if (!inited) D.init();
     if (started) return;
     started = true;
+    tCur = typeof dir().T === 'number' ? dir().T : targetT();
     applyTension();
-    G.bus.on('flag', applyTension);
-    setInterval(tick, 1000);
-    if (cont && G.mirroring() && G.flag('F1')) setTimeout(() => D.his(BD().reloadLine), 6000);
-    if (G.flag('M5') && !G.flag('M6')) G.audio.gsm(0.35);
+    droneOn = false; m8Applied = false; endApplied = false;
+    syncAmbience();
+    if (user() === 'dash') safeCall(() => G.audio && G.audio.droneDetune && G.audio.droneDetune(-100, 0.5));
+    ensureB09Cue();
+    prevMin = null;
+    checkMidnight();
+    schedEval();
   };
-  D.fired = fired; D.fire = fire;
-  D.isSafe = D.safe; // G.sd.isSafe (js/data/talk.js) looks for this name; without it scripted chat beats ignored holds/relief/JS1 windows
+  D.stop = function () { started = false; clearTimeout(evalTimer); evalTimer = 0; };
+  D.isStarted = function () { return started; };
+  D.isSafe = function () { return D.safe('show'); };   // ep1 name (G.sd.isSafe compatibility)
+
+  /* ---------- DEBUG: haru.skipTo ---------- */
+  if (G.DEBUG || /[?&]debug=1\b/.test(location.search)) {
+    window.haru = window.haru || {};
+    window.haru.skipTo = function (id) {
+      id = String(id || '').replace('′', 'p');
+      if (D.run(id)) return true;
+      // runners owned by other flow files
+      const map = { B20: () => G.ending && G.ending.debugM8 && G.ending.debugM8(), B23: () => G.hook && G.hook.start && G.hook.start(),
+        B01: () => G.scenes && G.scenes.coldOpen && G.scenes.coldOpen() };
+      if (map[id]) { map[id](); D.mark(id); return true; }
+      console.warn('[director] skipTo: no runnable record for', id);
+      return false;
+    };
+  }
 })();

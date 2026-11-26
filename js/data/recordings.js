@@ -316,7 +316,7 @@
   const HZ = KEY_HZ();
   G.STORY.recordings = [
     {
-      id: 'noise', title: '잡음 (지우지 마)', t: '2025-11-21 01:12', dur: 24, mode: 'phase', maxHz: 10000, db: [-74, -22],
+      id: 'noise', title: '잡음 (지우지 마)', t: '2025-11-23 01:12', dur: 24, mode: 'phase', maxHz: 10000, db: [-74, -22],
       voiceAt: NOISE_VOICE_AT, cues: NOISE_CUES, segment: [6.25, 7.95], stereoCaption: '[치지직—]',
       transcript: [{ t: 0, text: '[치지직—] (음성을 인식할 수 없습니다)' }],
       render: renderNoise,

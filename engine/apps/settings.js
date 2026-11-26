@@ -1,487 +1,670 @@
 /* =========================================================
- * 설정 — DESIGN §4.8 (One UI-flavored).
- *  검색 (keywords) · 연결 › Wi-Fi / 블루투스 / 화면 공유(스마트뷰) [연결 끊기] → G.cutMirroring()
- *  알림 › 알림 기록 (story + live; 04:04 slip after managerSlip → managerExposed)
- *  손쉬운 사용 › 오디오 › 모노 오디오 → G.audio.setMono(on) + flag monoSeen · 글자 크기 (no shake row: client override)
- *  디지털 웰빙 (계산기 2시간 41분, hourly bars) · 저장공간 (계산기 2.1GB) · 배터리 · 휴대전화 정보
- * API: G.settingsApp.open(screenId) — 'cast'|'audio'|'notifHistory'|'wellbeing'|'storage'|...
+ * 설정 (ep2) — owner: shell. DESIGN §4.6.0–§4.6.8 · §4.6.11 · §4.6.12 · §5.3 · §5.6 · §5.7; ARCH §4.22 (settings:screen)
+ *   Screen registry by key. settings.js keys: root search connect wifi wifi.saved wifi.net bt bt.device sound volume sound.notif
+ *     notif notif.apps notif.apps.moment notif.perChat notif.perChat.fake display wallpaper location accounts accounts.manage
+ *     accounts.login battery about general
+ *   security.js keys: lock lock.smart lock.smart.item bio bio.finger bio.fingerDetail bio.fingerAdd users users.detail users.n
+ *     kbd kbd.predict kbd.words wifi.saved.saemal_rooftop  ·  media: alerts.settings
+ * API: G.settingsApp = { open(key, params) → Promise<bool>, register(key, {title, render(api) → Node, verify, onOpen, keywords}), has(key),
+ *                        ui:{ row, group, foot, hero, toggle, slider } }
+ *      hook 'settings:screen' (key, params) → bool · G.app('settings', { open({key, params}) })
+ * Every row that opens a key renders data-qa="settings.row:<key>".
+ * Flags set: soundSettingsOpened (알림 소리 · {N}) · perChatSeen (대화별 알림음 · {N}). Vars: soundMode · dnd · sh.*
  * ========================================================= */
 (function () {
   'use strict';
-  const G = window.G;
-  const { el, pad, clamp } = G.util;
-  const SD = G.sd;
-  const T = (s) => SD.T(s);
-  const S = () => G.STORY.settings || {};
-  const mirroring = () => (G.mirroring ? G.mirroring() : G.flag('M1') && !G.flag('M5'));
-  const isMono = () => { try { return G.audio.isMono ? G.audio.isMono() : !!G.state.vars.mono; } catch (e) { return false; } };
-  const setMono = (on) => { try { if (G.audio.setMono) G.audio.setMono(on); else G.state.vars.mono = on; } catch (e) {} G.save(); };
-  const cut = () => { if (G.cutMirroring) G.cutMirroring(); else G.flag('M5', true); };
+  const G = (window.G = window.G || {});
+  const UTIL = G.util || {};
+  const el = UTIL.el;
+  const pad = UTIL.pad || ((n) => String(n).padStart(2, '0'));
 
-  /* ---------------- icons ---------------- */
+  const T = (s) => { if (typeof s === 'function') { try { s = s(); } catch (e) { console.error('[settings] lazy', e); s = ''; } } if (s == null) return ''; return G.T ? G.T(String(s)) : String(s); };
+  const STR = (k) => T((G.e2 && G.e2.STR && G.e2.STR[k]) || '');
+  const flag = (n) => !!(G.flag && G.flag(n));
+  const setFlag = (n) => { if (G.flag && !G.flag(n)) G.flag(n, true); };
+  const safe = (fn, d) => { try { return fn(); } catch (e) { console.error('[settings]', e); return d; } };
+  const sfx = (n) => { try { G.audio && G.audio.sfx && G.audio.sfx[n] && G.audio.sfx[n](); } catch (e) {} };
+  const vget = (k, d) => { const v = G.state && G.state.vars ? G.state.vars[k] : undefined; return v === undefined ? d : v; };
+  const vset = (k, v) => { if (G.vars) G.vars(k, v); };
+  const SH = () => { const v = (G.state && G.state.vars) || {}; if (!v.sh) v.sh = {}; return v.sh; };
+  const save = () => { try { G.save && G.save(); } catch (e) {} };
+  const S = () => (G.STORY && G.STORY.settings) || {};
+  const user = () => (G.users && G.users.current ? G.users.current() : 'n');
+  const isDash = () => user() === 'dash';
+  const PH = () => G.phone || {};
+  const ui = () => (G.phone && G.phone.ui) || {};
+  const now = () => (G.clock && G.clock.now ? G.clock.now() : new Date(2026, 11, 24, 23, 12));
+
+  /* ---------------- glyphs (white on round colour) ---------------- */
   const W = 'fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
   const GL = {
     wifi: `<svg viewBox="0 0 24 24"><path ${W} d="M2.5 9a14 14 0 0119 0M5.5 12.2a9.5 9.5 0 0113 0M8.6 15.4a5 5 0 016.8 0"/><circle cx="12" cy="19" r="1.6" fill="#fff"/></svg>`,
-    bell: '<svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0112 0v5l1.5 2h-15z" fill="#fff"/><circle cx="12" cy="20.5" r="1.6" fill="#fff"/></svg>',
     sound: `<svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="#fff"/><path ${W} d="M15.5 9a4 4 0 010 6M18 6.5a7.5 7.5 0 010 11"/></svg>`,
+    bell: '<svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0112 0v5l1.5 2h-15z" fill="#fff"/><circle cx="12" cy="20.5" r="1.6" fill="#fff"/></svg>',
     display: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="#fff"/><path ${W} d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg>`,
-    batt: '<svg viewBox="0 0 24 24"><rect x="3" y="7.5" width="16" height="9" rx="2" fill="none" stroke="#fff" stroke-width="2"/><rect x="5" y="9.5" width="6" height="5" rx="1" fill="#fff"/><path d="M20.5 10.5v3" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>',
-    storage: `<svg viewBox="0 0 24 24"><ellipse cx="12" cy="6.5" rx="7" ry="2.8" fill="none" stroke="#fff" stroke-width="2"/><path ${W} d="M5 6.5v11c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8v-11M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8"/></svg>`,
-    hour: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" ${W}/><path ${W} d="M12 7v5l3.2 2"/></svg>`,
-    access: '<svg viewBox="0 0 24 24"><circle cx="12" cy="4.8" r="2" fill="#fff"/><path d="M4.5 8.5l7.5 1.5 7.5-1.5M12 10v4.5l-3 6M12 14.5l3 6" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    wall: `<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3" ${W}/><path ${W} d="M4 16l4.5-4.5 4 4 2.5-2.5L20 18"/><circle cx="15.5" cy="8.5" r="1.6" fill="#fff"/></svg>`,
+    lock: '<svg viewBox="0 0 24 24"><rect x="6" y="10.5" width="12" height="9" rx="2" fill="#fff"/><path d="M8.5 10.5V8a3.5 3.5 0 017 0v2.5" fill="none" stroke="#fff" stroke-width="2"/></svg>',
+    shield: '<svg viewBox="0 0 24 24"><path d="M12 3l7 3v5.5c0 4.4-3 8-7 9.5-4-1.5-7-5.1-7-9.5V6z" fill="#fff"/></svg>',
+    pin: '<svg viewBox="0 0 24 24"><path d="M12 21s-6-6.1-6-11a6 6 0 0112 0c0 4.9-6 11-6 11z" fill="#fff"/><circle cx="12" cy="10" r="2.2" fill="#3fa45b"/></svg>',
+    users: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2" fill="#fff"/><path d="M3 19c0-3.4 2.7-5.6 6-5.6s6 2.2 6 5.6z" fill="#fff"/><circle cx="16.5" cy="9" r="2.5" fill="#fff" opacity=".75"/><path d="M15.5 13.6c2.9.2 5.5 2 5.5 5.4h-4" fill="#fff" opacity=".75"/></svg>',
+    cloud: '<svg viewBox="0 0 24 24"><path d="M7 18a4.5 4.5 0 01-.6-9A6 6 0 0118 9.5a4.3 4.3 0 01-.5 8.5z" fill="#fff"/></svg>',
+    general: `<svg viewBox="0 0 24 24"><path ${W} d="M5 7h14M5 12h14M5 17h14"/><circle cx="9" cy="7" r="1.8" fill="#fff"/><circle cx="15" cy="12" r="1.8" fill="#fff"/><circle cx="8" cy="17" r="1.8" fill="#fff"/></svg>`,
+    batt: '<svg viewBox="0 0 24 24"><rect x="3" y="7.5" width="16" height="9" rx="2" fill="none" stroke="#fff" stroke-width="2"/><rect x="5" y="9.5" width="9" height="5" rx="1" fill="#fff"/><path d="M20.5 10.5v3" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>',
     info: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" ${W}/><path ${W} d="M12 11v5.5M12 7.8v.2"/></svg>`,
-    game: '<svg viewBox="0 0 24 24"><path d="M6 8h12a4 4 0 014 4v2a3 3 0 01-5.2 2L15 14H9l-1.8 2A3 3 0 012 14v-2a4 4 0 014-4z" fill="#fff"/></svg>',
-    link: `<svg viewBox="0 0 24 24"><path ${W} d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/></svg>`,
     bt: `<svg viewBox="0 0 24 24"><path ${W} d="M7 7.5l10 9-5 4.5V3l5 4.5-10 9"/></svg>`,
-    cast: `<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12.5" rx="2" ${W}/><path ${W} d="M3 20.5a3 3 0 013-3M3 16.5a6.5 6.5 0 016.5 4"/></svg>`,
+    plane: '<svg viewBox="0 0 24 24"><path d="M21 15.5l-8-4.5V5a1.5 1.5 0 00-3 0v6L2 15.5V17l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-4.5l8 2.5z" fill="#fff"/></svg>',
     search: '<svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
-    lock: '<svg viewBox="0 0 24 24"><rect x="6" y="10.5" width="12" height="9" rx="2" fill="currentColor"/><path d="M8.5 10.5V8a3.5 3.5 0 017 0v2.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>',
     chev: '<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 13.2l1.7 1.3-1.8 3.1-2-.8a7.6 7.6 0 01-2 1.2l-.3 2.1h-3.6l-.3-2.1a7.6 7.6 0 01-2-1.2l-2 .8-1.8-3.1 1.7-1.3a7.8 7.8 0 010-2.4L3.4 9.5l1.8-3.1 2 .8a7.6 7.6 0 012-1.2l.3-2.1h3.6l.3 2.1a7.6 7.6 0 012 1.2l2-.8 1.8 3.1-1.7 1.3a7.8 7.8 0 010 2.4z" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+    lockSm: '<svg viewBox="0 0 24 24"><rect x="6" y="10.5" width="12" height="9" rx="2" fill="currentColor"/><path d="M8.5 10.5V8a3.5 3.5 0 017 0v2.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>',
+    wifiSm: '<svg viewBox="0 0 24 24"><path d="M2.5 9a14 14 0 0119 0M5.5 12.2a9.5 9.5 0 0113 0M8.6 15.4a5 5 0 016.8 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="19" r="1.7" fill="currentColor"/></svg>',
+    speaker: '<svg viewBox="0 0 24 24"><rect x="6" y="2.8" width="12" height="18.4" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="14.6" r="3.3" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="7.2" r="1.2" fill="currentColor"/></svg>',
+    more: '<svg viewBox="0 0 24 24"><circle cx="12" cy="5.5" r="1.8" fill="currentColor"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/><circle cx="12" cy="18.5" r="1.8" fill="currentColor"/></svg>',
   };
-  const ic = (bg, g) => el('span.st-ic', { style: { background: bg }, html: GL[g] || g });
-  const APPCOL = { calculator: '#ff9f0a', talk: '#f7c600', gallery: '#ff375f', haesol: '#0f1b26', settings: '#8e8e93', memo: '#f4c430', recorder: '#ff453a', moment: '#c13584', mail: '#1e88e5', browser: '#007aff' };
-  function appIcon(id) {
-    const a = G.apps && G.apps[id];
-    if (a && a.icon) return el('span.st-appic', { style: { background: a.icon.bg }, html: a.icon.svg });
-    return el('span.st-appic', { style: { background: APPCOL[id] || '#8e8e93' } });
-  }
+  const roundIc = (bg, g) => el('span.sh2-ic', { style: { background: bg }, html: GL[g] || '' });
 
-  /* ---------------- building blocks ---------------- */
+  /* =========================================================
+   * building blocks (exported to security.js as G.settingsApp.ui)
+   * ========================================================= */
+  /** row({title, sub, meta, right, key, params, onClick, qa, cls, disabled, chev, icon, grey}) */
   function row(o) {
-    const r = el('button.st-row' + (o.cls ? '.' + o.cls : ''), { disabled: o.disabled || null },
+    o = o || {};
+    const act = !!(o.key || o.onClick) && !o.disabled && !o.grey;
+    const r = el((act ? 'button' : 'div') + '.sh2-row' + (o.cls ? '.' + o.cls.split(' ').join('.') : '') + (o.grey ? '.grey' : ''),
+      { 'data-qa': o.qa || (o.key ? 'settings.row:' + o.key : null) },
       o.icon || null,
-      el('span.st-main', null, el('span.st-t', null, T(o.title)), o.sub ? el('span.st-s', null, T(o.sub)) : null),
-      o.right || (o.meta ? el('span.st-meta', null, T(o.meta)) : null),
-      o.onClick && !o.right && o.chev !== false ? el('span.st-chev', { html: GL.chev }) : null);
-    if (o.onClick) r.addEventListener('click', (e) => { G.audio && G.audio.sfx.tap(); o.onClick(e, r); });
-    if (o.id) r.dataset.sid = o.id;
+      el('span.sh2-main', null, el('span.sh2-t', null, T(o.title)), o.sub instanceof Node ? el('span.sh2-s', null, o.sub) : (o.sub != null && T(o.sub) !== '' ? el('span.sh2-s', null, T(o.sub)) : null)),
+      o.right || (o.meta != null && T(o.meta) !== '' ? el('span.sh2-meta', null, T(o.meta)) : null),
+      act && o.chev !== false && !o.right ? el('span.sh2-chev', { html: GL.chev }) : null);
+    if (act) r.addEventListener('click', (e) => { sfx('tap'); if (o.onClick) o.onClick(e, r); else APP.open(o.key, o.params || {}); });
     return r;
   }
-  const group = (title, rows) => el('div.st-group-wrap', null, title ? el('div.st-gh', null, title) : null, el('div.st-group', null, rows.filter(Boolean)));
-  function toggle(on, fn, opts) {
-    opts = opts || {};
-    const t = el('button.toggle' + (on ? '.on' : ''), { 'aria-label': opts.label || '켜기/끄기', role: 'switch', 'aria-checked': String(!!on) });
-    t.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const r = fn(!t.classList.contains('on'));
-      if (r === false) { t.classList.add('nope'); setTimeout(() => t.classList.remove('nope'), 400); return; }
-      t.classList.toggle('on'); t.setAttribute('aria-checked', String(t.classList.contains('on')));
-      G.audio && G.audio.sfx.tap();
-    });
-    return t;
-  }
-  function slider(value, onChange, o) {
+  const group = (title, rows, foot) => el('div.sh2-gw', null, title ? el('div.sh2-gh', null, T(title)) : null,
+    el('div.sh2-group', null, (rows || []).filter(Boolean)), foot ? el('div.sh2-foot', null, T(foot)) : null);
+  const foot = (t) => el('div.sh2-foot', null, T(t));
+  const hero = (big, small, icon) => el('div.sh2-hero', null, icon || null, el('b', null, T(big)), small ? el('small', null, T(small)) : null);
+  const toggle = (on, fn, o) => (ui().toggle ? ui().toggle(on, fn, o) : el('span'));
+  const slider = (v, o) => (ui().slider ? ui().slider(v, o) : el('span'));
+  const btnRow = (label, fn, o) => {
     o = o || {};
-    const fill = el('i.sl-fill'), knob = el('b.sl-knob');
-    const s = el('div.slider', { role: 'slider' }, el('span.sl-track', null, fill), knob);
-    let v = clamp(value, 0, 1);
-    const set = (x, fire) => { v = clamp(x, 0, 1); fill.style.width = v * 100 + '%'; knob.style.left = v * 100 + '%'; if (fire) onChange && onChange(v); };
-    set(v);
-    s.style.touchAction = 'none';
-    const pos = (e) => { const r = s.getBoundingClientRect(); return (e.clientX - r.left) / r.width; };
-    s.addEventListener('pointerdown', (e) => { s.setPointerCapture(e.pointerId); s.classList.add('drag'); set(pos(e), true); });
-    s.addEventListener('pointermove', (e) => { if (s.classList.contains('drag')) set(pos(e), true); });
-    const up = () => { s.classList.remove('drag'); o.onEnd && o.onEnd(v); };
-    s.addEventListener('pointerup', up); s.addEventListener('pointercancel', up);
-    return s;
+    const b = el('button.sh2-action' + (o.danger ? '.danger' : '') + (o.primary ? '.primary' : ''), { 'data-qa': o.qa || null }, T(label));
+    b.addEventListener('click', (e) => { e.stopPropagation(); sfx('tap'); fn(); });
+    return b;
+  };
+
+  /* =========================================================
+   * registry + navigation
+   * ========================================================= */
+  const REG = {};
+  const APP = (G.settingsApp = G.settingsApp || {});
+  APP.register = function (key, def) { REG[key] = def; };
+  APP.has = (key) => !!REG[key];
+  APP.ui = { row, group, foot, hero, toggle, slider, btnRow, GL, roundIc };
+
+  /** open a key: from the home → the 설정 app with that screen on top of its root; inside any app → pushed on top (back returns there) */
+  APP.open = async function (key, params) {
+    params = Object.assign({}, params || {});
+    if (!key || key === 'root') { PH().openApp && PH().openApp('settings'); return true; }
+    if (String(key).indexOf('app:') === 0) { PH().openApp && PH().openApp(String(key).slice(4)); return true; }
+    if (!REG[key]) {
+      if (key === 'alerts.settings' && G.alerts && G.alerts.openSettings) { safe(() => G.alerts.openSettings()); return true; }
+      console.warn('[settings] unknown screen', key); return false;
+    }
+    if (!(PH().stackDepth && PH().stackDepth())) { PH().openApp('settings', { key, params }); return true; }
+    return pushKey(key, params);
+  };
+  async function pushKey(key, params) {
+    const def = REG[key];
+    if (!def) return false;
+    const need = typeof def.verify === 'function' ? safe(() => def.verify(params), false) : !!def.verify;
+    if (need && !params.verified) {
+      const ok = G.security && G.security.verify ? await G.security.verify({ reason: key }) : true;
+      if (!ok) return false;
+      params.verified = true;
+    }
+    const offs = [];
+    let scr = null, entry = null, first = true, own = [];
+    const runOwn = () => { own.forEach((f) => { try { f && f(); } catch (e) {} }); own = []; };
+    const api = {
+      key, params, get user() { return user(); }, get scr() { return scr; }, T, STR,
+      open: (k, p) => APP.open(k, p),
+      back: () => { if (PH().top && entry && PH().top() === entry) PH().pop(); },
+      refresh: () => { if (!scr) return; runOwn(); const y = scr.body.scrollTop; scr.body.innerHTML = ''; scr.body.appendChild(safe(() => def.render(api), el('div'))); scr.body.scrollTop = y; },
+      own: (fn) => own.push(fn),                        // disposed on the next refresh and on close
+      onClose: (fn) => offs.push(fn),
+      on: (ev, fn) => { if (first && G.bus) offs.push(G.bus.on(ev, fn)); },   // registered once (first render only)
+      setTitle: (t) => { const n = scr && scr.querySelector('.sv-title'); if (n) n.textContent = T(t); },
+      row, group, foot, hero, toggle, slider, btnRow, GL,
+    };
+    const body = safe(() => def.render(api), el('div'));
+    first = false;
+    const title = T(typeof def.title === 'function' ? safe(() => def.title(api), '') : def.title);
+    scr = G.ui.screen({ title, cls: 'sh2-st' + (def.cls ? ' ' + def.cls : ''), body, right: def.right ? safe(() => def.right(api), null) : null });
+    scr.dataset.settingsKey = key;
+    entry = PH().push(scr, { onClose: () => { runOwn(); offs.forEach((f) => { try { f && f(); } catch (e) {} }); }, onResume: () => { if (def.resume !== false) api.refresh(); } });
+    if (def.onOpen) safe(() => def.onOpen(api));
+    G.bus && G.bus.emit('settings:screen', { key });
+    return true;
   }
-  function screen(title, body, cls) {
-    const scr = G.ui.screen({ title, cls: 'st-screen' + (cls ? ' ' + cls : ''), body });
-    G.phone.push(scr);
-    return scr;
+  APP.pushKey = pushKey;
+  if (G.hooks && G.hooks.set) G.hooks.set('settings:screen', (key, params) => { APP.open(key, params); return !!(REG[key] || String(key).indexOf('app:') === 0 || key === 'root'); });
+
+  G.app('settings', {
+    name: '설정',
+    icon: (G.ICONS && G.ICONS.settings) || { bg: 'linear-gradient(160deg,#9aa0a6,#5f6368)', svg: GL.gear },
+    open(p) {
+      p = p || {};
+      root();
+      const key = p.key || p.screen;
+      if (key && key !== 'root') setTimeout(() => pushKey(key, Object.assign({}, p.params || {})), 0);
+    },
+  });
+
+  /* =========================================================
+   * 첫 화면 (§4.6.0)
+   * ========================================================= */
+  function root() {
+    const D = S();
+    const body = el('div.sh2-root');
+    const search = el('button.sh2-search', { 'data-qa': 'settings.search' }, el('span', { html: GL.search }), el('span.sh2-search-ph', null, T(D.searchPh || '설정 검색')));
+    search.addEventListener('click', () => { sfx('tap'); searchScreen(); });
+    const acc = D.account || {};
+    const name = isDash() ? '—' : T(acc.title || '{N}');
+    const av = isDash() ? '—' : (G.phone && G.phone._initial ? G.phone._initial() : name.slice(0, 1));
+    const card = el('button.sh2-acct', { 'data-qa': 'settings.account' }, el('span.sh2-acct-av' + (isDash() ? '.dash' : ''), null, av),
+      el('span.sh2-acct-m', null, el('b', null, name), el('small', null, T(acc.sub || ''))));
+    card.addEventListener('click', () => { sfx('tap'); APP.open('accounts'); });
+    const rows = (D.root || []).map((r) => row({ key: r.key, title: r.title, sub: r.sub, icon: roundIc(r.bg, r.icon) }));
+    const groups = [rows.slice(0, 3), rows.slice(3, 5), rows.slice(5, 9), rows.slice(9)];
+    body.append(search, card, ...groups.map((g) => group(null, g)));
+    const scr = G.ui.screen({ title: D.title || '설정', cls: 'sh2-st sh2-st-root', body });
+    PH().push(scr, { onResume: () => { const n = scr.querySelectorAll('.sh2-row .sh2-s'); (D.root || []).forEach((r, i) => { if (n[i] && typeof r.sub === 'function') n[i].textContent = T(r.sub); }); } });
+  }
+
+  /* 설정 검색 (§4.6.0 표 — 정규화 부분 일치, 예측 바가 뜨는 일반 입력칸) */
+  const norm = (s) => String(s || '').normalize('NFC').toLowerCase().replace(/[\s\-_·]+/g, '');
+  function searchMatches(q) {
+    const n = norm(q);
+    if (!n) return [];
+    const out = [], seen = {};
+    (S().search || []).forEach((row) => {
+      const hit = row.keys.some((k) => { const kk = norm(k); return kk && (kk.includes(n) || n.includes(kk)); });
+      if (hit) row.results.forEach((r) => { if (!seen[r[2]]) { seen[r[2]] = 1; out.push(r); } });
+    });
+    return out;
+  }
+  APP.search = searchMatches;
+  function searchScreen() {
+    const results = el('div.sh2-results');
+    let field = null;
+    const draw = (q) => {
+      results.innerHTML = '';
+      const raw = String(q || '').trim();
+      if (!raw) return;
+      const hits = searchMatches(raw);
+      if (!hits.length) { results.appendChild(el('div.sh2-noresult', null, STR('noResult').replace('{q}', raw))); return; }
+      results.appendChild(group(null, hits.map(([title, path, key]) => row({ title, sub: path || null, key,
+        onClick: () => { if (field && G.ui.hideKeyboard) G.ui.hideKeyboard(); APP.open(key, {}); } }))));
+    };
+    if (G.ui.field) {
+      field = G.ui.field({ placeholder: T(S().searchPh || '설정 검색'), mode: 'ko', ctx: 'settingsSearch', predict: true, qa: 'settings.searchField', submitLabel: '검색',
+        onChange: (v) => draw(v), onSubmit: (v) => { G.ui.hideKeyboard && G.ui.hideKeyboard(); draw(v); } });
+      field.node.classList.add('sh2-sfield');
+    }
+    const back = el('button.sv-back', { 'aria-label': '뒤로', 'data-qa': 'settings.back', html: (G.phone.SVG && G.phone.SVG.back) || '' });
+    back.addEventListener('click', () => PH().back());
+    const head = el('header.sv-head.sh2-shead', null, back, el('div.sh2-sbox', null, el('span', { html: GL.search }), field ? field.node : null));
+    const body = el('div.sv-body', null, results);
+    const scr = el('section.sh2-st.sh2-st-search', { dataset: { status: 'dark', theme: 'light' } }, head, body);
+    scr.body = body; scr.head = head;
+    PH().push(scr, { anim: 'fade' });
+    if (field) setTimeout(() => field.focus(), 120);
   }
 
   /* =========================================================
-   * root
+   * 연결 · Wi-Fi · 블루투스 (§4.6.6 · §4.6.7 · §5.6)
    * ========================================================= */
-  G.app('settings', {
-    name: '설정',
-    icon: G.ICONS.settings,
-    open(p) {
-      if (p && p.screen && OPEN[p.screen]) { root(); OPEN[p.screen](p); return; }
-      root();
+  const btState = () => (PH().btState ? PH().btState() : 'idle');
+  APP.register('connect', {
+    title: () => S().connect.title,
+    render(api) {
+      const C = S().connect;
+      const W = PH().wifi;
+      const bst = btState();
+      const air = !!SH().airplane;
+      const at = toggle(air, (on) => { setAirplane(on); setTimeout(api.refresh, 30); }, { label: C.airplane });
+      api.on('wifi:change', api.refresh); api.on('bt:change', api.refresh);
+      return el('div', null, group(null, [
+        row({ key: 'wifi', title: C.wifi, sub: W && W.connected() ? 'saemal_rooftop' : '', icon: roundIc('#3e91ff', 'wifi') }),
+        row({ key: 'bt', title: C.bt, sub: bst === 'connected' ? PH().btName() : '', icon: roundIc('#3e91ff', 'bt') }),
+        row({ title: C.airplane, icon: roundIc('#ff9f43', 'plane'), right: at }),
+      ]));
     },
   });
-  function root() {
-    const list = el('div.st-root');
-    const results = el('div.st-results');
-    const field = G.ui.field({ placeholder: '설정 검색', mode: 'ko', submitLabel: '검색', onChange: (v) => doSearch(v), onSubmit: (v) => { G.ui.hideKeyboard(); doSearch(v); } });
-    field.node.classList.add('st-search-f');
-    const search = el('div.st-search', null, el('span', { html: GL.search }), field.node);
-    const prof = el('button.st-prof', { onclick: () => G.phone.toast('seah.y@hanmail.net · 다른 기기 1대에서 로그인됨') },
-      el('span.st-prof-av', null, '🐶'), el('div', null, el('b', null, '윤세아'), el('small', null, '계정 · seah.y@hanmail.net')));
-    const castSub = () => (mirroring() ? '화면 공유 중 · sagongsa의 Galaxy' : 'Wi-Fi · 블루투스 · 화면 공유');
-    const connRow = row({ icon: ic('#0a84ff', 'wifi'), title: '연결', sub: castSub(), onClick: () => OPEN.conn() });
-    list.append(
-      prof,
-      group(null, [connRow]),
-      group(null, [
-        row({ icon: ic('#ff3b30', 'bell'), title: '알림', sub: '알림 기록 · 방해 금지', onClick: () => OPEN.notif() }),
-        row({ icon: ic('#ff9f0a', 'sound'), title: '소리 및 진동', sub: '음량 · 진동', onClick: () => OPEN.sound() }),
-        row({ icon: ic('#34c759', 'display'), title: '디스플레이', sub: '밝기 · 글자 크기', onClick: () => OPEN.display() }),
-      ]),
-      group(null, [
-        row({ icon: ic('#30b0c7', 'batt'), title: '배터리', sub: `${G.phone.battery ? G.phone.battery() : 23}%`, onClick: () => OPEN.battery() }),
-        row({ icon: ic('#5e5ce6', 'storage'), title: '저장공간', sub: '41.6GB / 128GB 사용 중', onClick: () => OPEN.storage() }),
-        row({ icon: ic('#32d74b', 'hour'), title: '디지털 웰빙', sub: '하루 평균 사용 시간 · 앱 타이머', onClick: () => OPEN.wellbeing() }),
-      ]),
-      group(null, [
-        row({ icon: ic('#0a84ff', 'access'), title: '손쉬운 사용', sub: '오디오 · 시인성 향상', onClick: () => OPEN.access() }),
-        row({ icon: ic('#8e8e93', 'info'), title: '휴대전화 정보', sub: '세아의 Galaxy', onClick: () => OPEN.about() }),
-      ]),
-      group('게임', [row({ icon: ic('#7f1d1d', 'game'), title: '게임 설정', sub: '사운드 · 진동 · 공포 연출 · 글자 크기', onClick: () => gameOptions() })]));
-    function doSearch(q) {
-      const s = String(q || '').trim().toLowerCase().replace(/\s+/g, '');
-      results.innerHTML = '';
-      list.classList.toggle('hide', !!s);
-      results.classList.toggle('in', !!s);
-      if (!s) return;
-      const hits = (S().search || []).filter((it) => it.title.replace(/\s+/g, '').toLowerCase().includes(s) || it.k.some((k) => { const kk = k.replace(/\s+/g, '').toLowerCase(); return kk.includes(s) || s.includes(kk); }));
-      if (!hits.length) { results.appendChild(el('div.st-noresult', null, `'${q}'에 대한 결과 없음`)); return; }
-      results.appendChild(group(`검색 결과 ${hits.length}개`, hits.map((it) => row({ title: it.title, sub: it.path, onClick: () => { G.ui.hideKeyboard(); OPEN[it.go] && OPEN[it.go]({ hl: it.hl }); } }))));
-      G.bus.emit('settings:search', s);
-    }
-    const body = el('div', null, search, results, list);
-    const scr = G.ui.screen({ title: '설정', cls: 'st-screen st-rootscr', body });
-    G.phone.push(scr, { onResume: () => { connRow.querySelector('.st-s').textContent = castSub(); } });
+  function setAirplane(on) {
+    const sh = SH(); const W = PH().wifi; const bt = G.media && G.media.bt;
+    if (on) { sh.apPrev = { wifi: W ? W.on() : true, bt: PH().btOn ? PH().btOn() : true }; sh.airplane = true; if (W) W.setOn(false); if (bt) safe(() => bt.setOn(false)); }
+    else { const p = sh.apPrev || { wifi: true, bt: true }; sh.airplane = false; if (W && p.wifi) W.setOn(true); if (bt && p.bt) safe(() => bt.setOn(true)); }
+    save();
   }
 
-  const OPEN = {};
-  /* ---------------- 연결 ---------------- */
-  function castDur() {
-    const now = G.clock.now();
-    const start = new Date(2026, 10, 24, 0, 12, 0).getTime();
-    const end = G.flag('M5') && G.state.vars.castCutAt ? G.state.vars.castCutAt : now.getTime();
-    const s = Math.max(0, Math.floor((end - start) / 1000));
-    return `${Math.floor(s / 3600)}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}`;
-  }
-  G.bus.on('flag:M5', () => { if (!G.state.vars.castCutAt) { G.state.vars.castCutAt = G.clock.now().getTime(); G.save(); } });
-  OPEN.conn = function () {
-    const castRow = row({ icon: ic(mirroring() ? '#ff9f0a' : '#8e8e93', 'cast'), title: '화면 공유(스마트뷰)', sub: mirroring() ? `연결됨 · sagongsa의 Galaxy · ${castDur()}` : '연결 안 됨', onClick: () => OPEN.cast(), id: 'cast' });
-    const body = el('div', null,
-      group(null, [
-        row({ icon: ic('#0a84ff', 'wifi'), title: 'Wi-Fi', sub: 'Haesol_404 (관리자 네트워크)', onClick: () => OPEN.wifi() }),
-        row({ icon: ic('#0a84ff', 'bt'), title: '블루투스', sub: '세아의 버즈 (연결 안 됨)', onClick: () => OPEN.bt() }),
-        castRow,
-      ]),
-      group(null, [
-        row({ icon: ic('#8e8e93', 'link'), title: '모바일 핫스팟 및 테더링', sub: 'SIM 없음', disabled: true }),
-        row({ icon: ic('#8e8e93', 'link'), title: '데이터 사용', sub: 'SIM 없음 · 모바일 데이터 사용 불가', disabled: true }),
-      ]));
-    const scr = screen('연결', body);
-    const t = setInterval(() => { if (!scr.isConnected) { clearInterval(t); return; } const s = castRow.querySelector('.st-s'); if (s) s.textContent = mirroring() ? `연결됨 · sagongsa의 Galaxy · ${castDur()}` : '연결 안 됨'; }, 1000);
-    G.bus.emit('settings:conn');
-  };
-  OPEN.cast = function () {
-    const wrap = el('div');
-    function render() {
-      wrap.innerHTML = '';
-      const on = mirroring();
-      const dur = el('b.cast-dur', null, castDur());
-      const card = el('div.cast-card' + (on ? '.on' : ''), null,
-        el('div.csc-top', null, el('span.csc-ic', { html: GL.cast }), el('div', null, el('b', null, 'sagongsa의 Galaxy'), el('small', null, on ? '연결됨 · 화면 미러링' : '연결 끊김'))),
-        el('div.csc-rows', null,
-          el('div', null, el('span', null, '연결 시작'), el('b', null, '오전 12:12')),
-          el('div', null, el('span', null, on ? '연결 시간' : '연결 종료'), on ? dur : el('b', null, castDur())),
-          el('div', null, el('span', null, '기기'), el('b', null, 'Galaxy S21 (SM-G991N)'))),
-        on ? el('button.csc-cut', { onclick: confirmCut }, '연결 끊기') : el('div.csc-off', null, '이 휴대폰의 화면이 더 이상 다른 기기에 표시되지 않습니다.'));
-      wrap.append(
-        el('div.cast-hero', null, el('div.ch-ring' + (on ? '.on' : ''), { html: GL.cast }), el('b', null, on ? '화면 공유 중' : '화면 공유 꺼짐'), el('small', null, on ? '이 휴대폰의 화면이 아래 기기에 표시되고 있습니다.' : '근처의 기기를 찾으려면 Wi-Fi를 켜 두세요.')),
-        el('div.st-gh', null, on ? '연결된 기기' : '최근 연결'), card,
-        el('div.st-foot', null, '화면 공유는 화면만 전송합니다. 소리는 이 휴대폰에서만 재생됩니다.'));
-      if (on) { const t = setInterval(() => { if (!dur.isConnected) { clearInterval(t); return; } dur.textContent = castDur(); }, 1000); }
-    }
-    async function confirmCut() {
-      G.audio.sfx.tap();
-      const ok = await G.phone.dialog({ title: '화면 공유를 중지할까요?', text: 'sagongsa의 Galaxy와의 연결이 끊기고, 이 휴대폰의 화면이 더 이상 표시되지 않습니다.', buttons: [{ label: '취소', value: false }, { label: '연결 끊기', value: true, style: 'danger' }] });
-      if (!ok || !mirroring()) return;
-      cut();
-      G.bus.emit('settings:castCut');
-      setTimeout(render, 150);
-    }
-    render();
-    const off = G.bus.on('flag:M5', () => render());
-    const scr = G.ui.screen({ title: '화면 공유(스마트뷰)', cls: 'st-screen', body: wrap });
-    G.phone.push(scr, { onClose: off });
-    G.bus.emit('settings:cast');
-  };
-  OPEN.wifi = function () {
-    const nets = (S().wifi || []).filter((w) => !w.show || w.show());
-    const bars = (n) => el('span.wf-bars', null, [1, 2, 3, 4].map((i) => el('i' + (i <= (n || 0) ? '.on' : ''))));
-    const cur = nets.filter((w) => w.connected), others = nets.filter((w) => !w.connected);
-    const body = el('div', null,
-      group(null, [row({ title: 'Wi-Fi', right: toggle(true, () => { G.phone.toast('관리자 네트워크는 끌 수 없습니다'); return false; }) })]),
-      group('현재 네트워크', cur.map((w) => row({ title: w.name, sub: typeof w.sub === 'function' ? w.sub() : w.sub, right: el('span.wf-r', null, w.lock ? el('i', { html: GL.lock }) : null, bars(w.signal)), onClick: () => wifiDetail(w) }))),
-      group('사용 가능한 네트워크', others.map((w) => row({ title: w.name, sub: typeof w.sub === 'function' ? w.sub() : w.sub, right: el('span.wf-r', null, w.lock ? el('i', { html: GL.lock }) : null, bars(w.signal)), onClick: () => G.phone.toast('비밀번호를 모르는 네트워크입니다') }))));
-    screen('Wi-Fi', body);
-    G.bus.emit('settings:wifi');
-  };
-  function wifiDetail(w) {
-    const free = G.flag('M6') || G.flag('netFree');
-    const body = el('div', null,
-      el('div.st-hero', null, el('span.st-ic.big', { style: { background: '#0a84ff' }, html: GL.wifi }), el('b', null, w.name), el('small', null, free ? '연결됨' : '연결됨 · 관리자 네트워크')),
-      group(null, [
-        row({ title: '관리', meta: '해솔홈 (관리자 계정)' }),
-        row({ title: '발신 제한', meta: free ? '없음' : '톡 메시지 · 보이스톡 · 외부 검색', cls: free ? '' : 'warn' }),
-        row({ title: 'IP 주소', meta: '192.168.0.104' }),
-        row({ title: '보안', meta: 'WPA2-PSK' }),
-      ]),
-      el('div.st-foot', null, free ? '네트워크 제한이 해제되었습니다.' : '이 네트워크는 관리자가 일부 서비스를 제한하고 있습니다.'));
-    screen('네트워크 정보', body);
-  }
-  OPEN.bt = function () {
-    const body = el('div', null,
-      group(null, [row({ title: '블루투스', right: toggle(true, () => { G.phone.toast('세아의 버즈를 찾을 수 없습니다'); return false; }) })]),
-      group('등록된 기기', [row({ icon: ic('#8e8e93', 'bt'), title: '세아의 버즈', sub: '연결 안 됨 · 마지막 연결 2025.11.23', onClick: () => G.phone.toast('기기를 찾을 수 없습니다. 근처에 있는지 확인하세요.') })]));
-    screen('블루투스', body);
-  };
-
-  /* ---------------- 알림 ---------------- */
-  OPEN.notif = function () {
-    const body = el('div', null,
-      group(null, [
-        row({ title: '알림 기록', sub: '사용 중 · 세아가 켬', onClick: () => OPEN.notifHistory(), id: 'nh' }),
-        row({ title: '방해 금지', right: toggle(false, () => { G.phone.toast('방해 금지 모드를 켤 수 없습니다 (관리자 설정)'); return false; }) }),
-        row({ title: '잠금화면 알림', meta: '내용 표시' }),
-      ]),
-      el('div.st-foot', null, '알림 기록을 켜 두면 삭제된 알림도 24시간 동안 볼 수 있습니다.'));
-    screen('알림', body);
-  };
-  OPEN.notifHistory = function () {
-    const story = (S().notifHistory || []).filter((n) => !n.show || n.show()).map((n) => Object.assign({}, n, { time: +G.chat.parseT(n.t) }));
-    const seen = new Set(story.map((n) => n.app + '|' + T(n.body || '')));
-    const live = (G.state.notifs || []).filter((n) => {
-      const k = n.app + '|' + T(n.body || '');
-      if (seen.has(k)) return false;
-      if (G.flag('managerSlip') && n.app === 'talk' && /관리실/.test(n.title || '') && /사진|삭제/.test(n.body || '')) return false;
-      seen.add(k);
-      return true;
-    }).map((n) => ({ app: n.app, title: n.title, body: n.body, time: n.time, appName: n.appName }));
-    const all = live.concat(story).sort((a, b) => b.time - a.time);
-    const today = new Date(G.clock.now()); today.setHours(0, 0, 0, 0);
-    const wrap = el('div.nh-list');
-    let lastSec = null;
-    all.forEach((n) => {
-      const d = new Date(n.time);
-      const sec = d >= today ? '오늘' : '어제';
-      if (sec !== lastSec) { wrap.appendChild(el('div.st-gh', null, sec)); lastSec = sec; }
-      const a = G.apps && G.apps[n.app];
-      const card = el('div.nh-item' + (n.slip ? '.slip' : '') + (n.sus ? '.sus' : ''), null,
-        el('div.nh-top', null, appIcon(n.app), el('span.nh-app', null, n.appName || (a ? a.name : n.app)), el('span.nh-t', null, G.util.fmtKTime(d))),
-        el('div.nh-title', null, T(n.title || '')),
-        el('div.nh-body', null, T(n.body || '')),
-        n.slip ? el('div.nh-del', null, '🗑 ' + T(n.deletedNote || '삭제된 메시지')) : null);
-      if (n.img) {
-        const img = el('div.nh-img');
-        SD.bg(img, n.img);
-        card.appendChild(img);
-        card.addEventListener('click', () => { card.classList.toggle('open'); G.audio.sfx.tap(); if (card.classList.contains('open')) G.bus.emit('settings:slipViewed'); });
-        card.appendChild(el('div.nh-more', null, '탭해서 크게 보기'));
+  APP.register('wifi', {
+    title: () => S().wifi.title,
+    right(api) {
+      const b = el('button.sh2-more', { 'aria-label': '⋮', html: GL.more });
+      b.addEventListener('click', (e) => {
+        e.stopPropagation(); sfx('tap');
+        const m = el('div.sh2-menu', null, row({ key: 'wifi.saved', title: S().wifi.saved, chev: false }));
+        const close = () => { m.remove(); document.removeEventListener('pointerdown', out, true); };
+        const out = (ev) => { if (!m.contains(ev.target)) close(); };
+        m.addEventListener('click', () => setTimeout(close, 0));
+        (api.scr || document.body).appendChild(m);
+        setTimeout(() => document.addEventListener('pointerdown', out, true), 0);
+      });
+      return [b];
+    },
+    render(api) {
+      const D = S().wifi; const W = PH().wifi;
+      api.on('wifi:change', api.refresh);
+      const on = W.on();
+      const tg = toggle(on, (v) => { W.setOn(v); }, { label: D.title, qa: 'wifi.toggle' });
+      const wrap = el('div', null, group(null, [row({ title: D.title, meta: on ? D.on : D.off, right: el('span.sh2-tgwrap', null, el('span.sh2-tgl', null, T(on ? D.on : D.off)), tg), cls: 'big' })]));
+      if (on) {
+        const saved = W.saved();
+        if (saved.includes('saemal_rooftop')) {
+          const gear = el('button.sh2-gear', { 'aria-label': '⚙', 'data-qa': 'wifi.gear:saemal_rooftop', html: GL.gear });
+          gear.addEventListener('click', (e) => { e.stopPropagation(); sfx('tap'); APP.open('wifi.saved.saemal_rooftop'); });
+          wrap.appendChild(group(D.current, [row({ title: 'saemal_rooftop', sub: D.connected, qa: 'wifi.net:saemal_rooftop', icon: el('span.sh2-wfic', { html: GL.wifiSm }),
+            onClick: () => APP.open('wifi.saved.saemal_rooftop'), right: gear })]));
+        }
+        const avail = ((G.STORY.security && G.STORY.security.available) || []).slice();
+        if (!saved.includes('saemal_rooftop')) avail.unshift('saemal_rooftop');
+        wrap.appendChild(group(D.available, avail.map((ssid) => row({ title: ssid, qa: 'wifi.net:' + ssid, icon: el('span.sh2-wfic', { html: GL.wifiSm }),
+          right: el('span.sh2-lockic', { html: GL.lockSm }), onClick: () => joinSheet(ssid) }))));
       }
-      wrap.appendChild(card);
-    });
-    const body = el('div', null,
-      el('div.nh-head', null, el('b', null, '알림 기록'), el('span', null, '최근 24시간 동안 받은 알림 · 삭제된 알림 포함'), el('div.nh-on', null, '사용 중', toggle(true, () => { G.phone.toast('알림 기록을 끄면 지금까지의 기록이 지워집니다. 끄지 않았습니다.'); return false; }))),
-      wrap);
-    screen('알림 기록', body, 'nh-screen');
-    G.bus.emit('settings:notifHistory');
-    if (G.flag('managerSlip')) G.flag('managerExposed', true);
-  };
-
-  /* ---------------- 소리 / 디스플레이 ---------------- */
-  OPEN.sound = function () {
-    const s = G.settings;
-    const body = el('div', null,
-      group(null, [
-        row({ title: '소리 모드', meta: '소리' }),
-        row({ title: '진동', right: toggle(s.vibration !== false, (on) => { s.vibration = on; G.saveSettings(); }) }),
-      ]),
-      group('음량', [
-        el('div.st-slrow', null, el('span', null, '미디어'), slider(s.volume != null ? s.volume : 0.9, (v) => { s.volume = v; try { G.audio.setVolume(v); } catch (e) {} }, { onEnd: () => G.saveSettings() })),
-        el('div.st-slrow', null, el('span', null, '알림'), slider(0.7, () => {})),
-      ]),
-      el('div.st-foot', null, '이 게임의 소리에는 방향이 있습니다. 이어폰을 권장합니다.'));
-    screen('소리 및 진동', body);
-  };
-  function textSizeControl() {
-    const opts = [[0.9, '90%'], [1, '100%'], [1.15, '115%'], [1.3, '130%']];
-    const cur = G.settings.textSize || 1;
-    const near = opts.reduce((a, o) => (Math.abs(o[0] - cur) < Math.abs(a - cur) ? o[0] : a), opts[0][0]);
-    const preview = el('div.ts-prev', null, '세아야 오늘로 1년이야.');
-    const seg = el('div.ts-seg', null, opts.map(([v, l], i) => {
-      const b = el('button' + (v === near ? '.on' : ''), { style: { fontSize: 12 + i * 3 + 'px' } }, '가', el('small', null, l));
-      b.addEventListener('click', () => { G.audio.sfx.tap(); G.settings.textSize = v; G.saveSettings(); seg.querySelectorAll('button').forEach((x) => x.classList.remove('on')); b.classList.add('on'); });
-      return b;
-    }));
-    return el('div.ts-box', null, preview, seg);
+      const at = toggle(W.auto(), (v) => { W.setAuto(v); }, { label: D.auto });
+      const ap = String(D.auto).split(' · ');   // 'Wi-Fi 자동으로 켜기' + '자주 쓰는 장소 근처에서' (§4.6.6)
+      wrap.appendChild(group(null, [row({ title: ap[0], sub: ap.slice(1).join(' · '), right: at, qa: 'wifi.auto' })]));
+      return wrap;
+    },
+  });
+  /** `비밀번호 입력` (STR.pwEnter) — in-game keyboard, password field (no predict bar) */
+  function joinSheet(ssid) {
+    const D = S().wifi;
+    let field = null;
+    const msg = el('div.sh2-pwmsg');
+    const body = el('div.sh2-pw', null, el('div.sh2-pw-ssid', null, ssid));
+    if (G.ui.field) {
+      field = G.ui.field({ placeholder: T(D.pwPh), mode: 'en', password: true, predict: false, ctx: 'wifiPw', qa: 'wifi.pw', submitLabel: T(D.join),
+        onSubmit: () => tryJoin() });
+      field.node.classList.add('sh2-pwfield');
+      body.appendChild(field.node);
+    }
+    body.appendChild(msg);
+    let close = null;
+    const tryJoin = () => {
+      const v = field ? field.value : '';
+      if (PH().wifi.join(ssid, v)) { G.ui.hideKeyboard && G.ui.hideKeyboard(); close && close('ok'); return; }
+      sfx('error'); body.classList.remove('shake'); void body.offsetWidth; body.classList.add('shake'); if (field) field.clear();
+    };
+    PH().sheet({ title: STR('pwEnter'), body, kind: 'sheet', qa: 'wifi.join', buttons: [], mount: (fin, box) => {
+      close = fin;
+      box.appendChild(el('div.sht-btns', null,
+        el('button.sht-btn', { 'data-qa': 'sheet.btn:cancel', onclick: () => { sfx('tap'); G.ui.hideKeyboard && G.ui.hideKeyboard(); fin('cancel'); } }, T(D.cancel)),
+        el('button.sht-btn.primary', { 'data-qa': 'sheet.btn:ok', onclick: () => { sfx('tap'); tryJoin(); } }, T(D.join))));
+      if (field) setTimeout(() => field.focus(), 200);
+    }, onClose: () => { G.ui.hideKeyboard && G.ui.hideKeyboard(); } });
   }
-  OPEN.display = function () {
-    const body = el('div', null,
-      group('글자 크기', [textSizeControl()]),
-      group(null, [
-        el('div.st-slrow', null, el('span', null, '밝기'), slider(0.35, () => {})),
-        row({ title: '다크 모드', right: toggle(false, () => { G.phone.toast('관리자 설정으로 변경할 수 없습니다'); return false; }) }),
-      ]),
-      el('div.st-foot', null, '글자 크기는 게임 전체(톡, 메모 등)에 적용됩니다.'));
-    screen('디스플레이', body);
-  };
+  APP.joinSheet = joinSheet;
+  APP.register('wifi.saved', {
+    title: () => S().wifi.saved,
+    render(api) {
+      const W = PH().wifi; api.on('wifi:change', api.refresh);
+      const saved = W.saved();
+      const nets = ((G.STORY.security && G.STORY.security.wifi) || []).filter((n) => saved.includes(n.id));
+      return el('div', null, group(null, nets.map((n) => {
+        const sub = n.id === 'saemal_rooftop' ? (W.connected() ? S().wifi.connected : S().wifi.savedShort) : T(n.line);
+        const k = n.id === 'saemal_rooftop' ? 'wifi.saved.saemal_rooftop' : 'wifi.net';
+        return row({ title: n.id, sub, key: k, params: { ssid: n.id }, qa: 'settings.row:' + (n.id === 'saemal_rooftop' ? k : 'wifi.saved.' + n.id) });
+      })));
+    },
+  });
+  /* saved network detail (hotspot · Haesol_404) — §4.6.6 */
+  APP.register('wifi.net', {
+    title: (api) => api.params.ssid || '',
+    render(api) {
+      const n = ((G.STORY.security && G.STORY.security.wifi) || []).find((x) => x.id === api.params.ssid) || { detail: [] };
+      const rows = (n.detail || []).map((d) => { const s = T(d); const i = s.indexOf('  '); return i > 0 ? row({ title: s.slice(0, i), meta: s.slice(i).trim() }) : row({ title: s }); });
+      return el('div', null, hero(api.params.ssid || ''), group(null, rows),
+        el('div.sh2-actions', null, btnRow(S().wifi.del, () => { PH().wifi.forget(api.params.ssid); api.back(); }, { qa: 'wifi.forget', danger: true })));
+    },
+  });
 
-  /* ---------------- 배터리 ---------------- */
-  OPEN.battery = function () {
-    const b = G.phone.battery ? G.phone.battery() : 23;
-    const mins = Math.max(4, Math.round(b * 2.6));
-    const list = S().battery || [];
-    const body = el('div', null,
-      el('div.bt-hero', null, el('div.bt-big', null, `${b}`, el('small', null, '%')), el('div.bt-bar', null, el('i', { style: { width: Math.max(3, b) + '%' } })), el('small', null, `남은 사용 시간 약 ${mins}분 · 충전기를 연결하세요`)),
-      group('마지막 완전 충전 이후 사용량', list.map((x) => el('div.bt-row' + (x.hot ? '.hot' : ''), null,
-        el('div.bt-rt', null, el('b', null, x.hot && !mirroring() ? '시스템 서비스 (화면 공유 · 연결 끊김)' : x.name), el('span', null, x.pct + '%')),
-        el('div.bt-rb', null, el('i', { style: { width: x.pct + '%' } }))))),
-      group(null, [row({ title: '절전 모드', right: toggle(b <= 1, () => { G.phone.toast(b <= 1 ? '배터리가 부족해 절전 모드를 끌 수 없습니다' : '관리자 설정으로 변경할 수 없습니다'); return false; }) })]));
-    screen('배터리', body);
-    G.bus.emit('settings:battery');
-  };
-
-  /* ---------------- 저장공간 (H3) ---------------- */
-  OPEN.storage = function () {
-    const st = S().storage || { cats: [], apps: [] };
-    const bar = el('div.sg-bar', null, st.cats.map(([n, gb, c]) => el('i', { style: { width: (gb / st.total) * 100 + '%', background: c }, title: n })));
-    const legend = el('div.sg-legend', null, st.cats.map(([n, gb, c]) => el('span', null, el('i', { style: { background: c } }), `${n} ${gb}GB`)));
-    const max = Math.max(...st.apps.map((a) => a.gb));
-    const apps = st.apps.map((a) => {
-      const r = el('button.sg-app' + (a.hot ? '.hot' : ''), null, appIcon(a.id),
-        el('div.sg-am', null, el('div.sg-at', null, el('b', null, a.name), el('span', null, a.size)), el('div.sg-ab', null, el('i', { style: { width: (a.gb / max) * 100 + '%' } })), a.sub ? el('small', null, a.sub) : null));
-      r.addEventListener('click', () => { G.audio.sfx.tap(); storageApp(a); });
-      return r;
-    });
-    const body = el('div', null,
-      el('div.sg-hero', null, el('div.sg-used', null, el('b', null, `${st.used}GB`), ` / ${st.total}GB 사용 중`), bar, legend),
-      group('앱 (크기순)', apps));
-    screen('저장공간', body);
-    G.bus.emit('settings:storage');
-  };
-  function storageApp(a) {
-    const hot = a.id === 'calculator';
-    const body = el('div', null,
-      el('div.st-hero', null, appIcon(a.id), el('b', null, a.name), el('small', null, `합계 ${a.size}`)),
-      group(null, hot ? [
-        row({ title: '앱', meta: '104MB' }),
-        row({ title: '사용자 데이터', meta: '2.0GB', sub: '이미지·동영상', cls: 'warn' }),
-        row({ title: '캐시', meta: '6MB' }),
-      ] : [row({ title: '앱', meta: a.size }), row({ title: '캐시', meta: '0B' })]),
-      group(null, [
-        row({ title: '데이터 삭제', onClick: () => { G.audio.sfx.error(); G.phone.toast(hot ? '기기 관리자가 이 작업을 차단했습니다' : '삭제할 데이터가 없습니다'); }, chev: false }),
-        row({ title: '캐시 삭제', onClick: () => { G.phone.toast('캐시를 삭제했습니다'); }, chev: false }),
-      ]),
-      hot ? el('div.st-foot', null, '마지막 사용: 오늘 오전 2:47') : null);
-    screen('저장공간', body);
-    if (hot) G.bus.emit('settings:calcStorage');
+  APP.register('bt', {
+    title: () => S().btScreen.title,
+    render(api) {
+      const D = S().btScreen;
+      api.on('bt:change', api.refresh); api.on('flag', api.refresh); api.on('flag:off', api.refresh);
+      const on = PH().btOn ? PH().btOn() : true;
+      const bt = G.media && G.media.bt;
+      const tg = toggle(on, (v) => { if (bt) safe(() => bt.setOn(v)); }, { label: D.title, qa: 'bt.toggle' });
+      const wrap = el('div', null,
+        group(null, [row({ title: D.title, right: el('span.sh2-tgwrap', null, el('span.sh2-tgl', null, T(on ? D.on : D.off)), tg), cls: 'big' })]),
+        group(null, [row({ title: D.phoneName, meta: D.name })]));
+      if (on) {
+        const st = btState();
+        const gear = el('button.sh2-gear', { 'aria-label': '⚙', 'data-qa': 'bt.gear', html: GL.gear });
+        gear.addEventListener('click', (e) => { e.stopPropagation(); sfx('tap'); APP.open('bt.device'); });
+        wrap.appendChild(group(D.saved, [row({ title: PH().btName(), sub: PH().btLabel(), qa: 'bt.device:2층_스피커', cls: st === 'connected' ? 'on' : '',
+          icon: el('span.sh2-wfic', { html: GL.speaker }), onClick: () => PH().btTap(), right: gear })]));
+        const scan = el('div.sh2-scan', null, T(api._searched ? (D.none || STR('noDevices')) : D.searching));
+        wrap.appendChild(group(D.available, [scan]));
+        if (!api._searched && !api._searchT) api._searchT = setTimeout(() => { api._searched = true; api.refresh(); }, 2500);
+      }
+      return wrap;
+    },
+    onOpen(api) { api.onClose(() => clearTimeout(api._searchT)); },
+  });
+  /* 2층_스피커 ⚙ (§3.16 · §4.6.7) — no [등록 해제] */
+  APP.register('bt.device', {
+    title: () => PH().btName(),
+    render(api) {
+      const D = S().btScreen.detail; const B = (G.STORY.security && G.STORY.security.bt) || {};
+      api.on('bt:change', api.refresh); api.on('flag', api.refresh);
+      const st = btState();
+      const ren = el('button.sh2-link', { 'data-qa': 'bt.rename' }, T(D.rename));
+      ren.addEventListener('click', (e) => { e.stopPropagation(); sfx('tap'); renameSheet({ title: D.rename, value: PH().btName(), ctx: 'btRename', key: 'btRename', after: api.refresh }); });
+      const volRow = PH().mediaVolumeRow ? PH().mediaVolumeRow({ target: 'bt', qa: 'bt.vol', title: D.vol, label: D.vol }) : el('div');
+      api.own(() => volRow.dispose && volRow.dispose());
+      const volHead = volRow.querySelector && volRow.querySelector('.vol-top');
+      if (volHead) { volHead.classList.add('tap'); volHead.addEventListener('click', () => { sfx('tap'); PH().volume && PH().volume({ focus: 'media' }); }); }
+      const rows = [
+        row({ title: D.name, meta: PH().btName(), right: el('span.sh2-tgwrap', null, el('span.sh2-meta', null, PH().btName()), ren) }),
+        row({ title: D.kind, meta: B.kind }),
+        row({ title: D.added, meta: B.added }),
+        row({ title: D.by }),
+        row({ title: D.last, meta: st === 'connected' ? D.connectedNow : B.last }),
+        el('div.sh2-volrow', null, volRow),
+        row({ title: D.call, meta: D.callOff }),
+      ];
+      const wrap = el('div', null, hero(PH().btName(), PH().btLabel(), el('span.sh2-ic.big', { style: { background: '#3e91ff' }, html: GL.bt })), group(null, rows));
+      if (st === 'connected') wrap.appendChild(el('div.sh2-actions', null, btnRow(D.disconnect, () => { const bt = G.media && G.media.bt; if (bt) safe(() => bt.disconnect()); }, { qa: 'bt.disconnect' })));
+      return wrap;
+    },
+  });
+  /** rename sheet — free text lives only in the session store (ARCH §9 G49) */
+  function renameSheet(o) {
+    let field = null;
+    const body = el('div.sh2-pw');
+    if (G.ui.field) {
+      field = G.ui.field({ placeholder: T(o.value || ''), mode: 'ko', predict: true, ctx: o.ctx, qa: 'rename.field', maxLength: 20, submitLabel: '확인', onSubmit: () => done() });
+      field.node.classList.add('sh2-pwfield');
+      body.appendChild(field.node);
+    }
+    let fin = null;
+    const done = () => {
+      const v = field ? String(field.value || '').trim() : '';
+      if (v && G.e2 && G.e2.session && G.e2.session.set) safe(() => G.e2.session.set(o.key, v));
+      G.ui.hideKeyboard && G.ui.hideKeyboard();
+      fin && fin('ok');
+      o.after && o.after();
+    };
+    PH().sheet({ title: o.title, body, kind: 'sheet', qa: 'rename', mount: (f, box) => {
+      fin = f;
+      box.appendChild(el('div.sht-btns', null,
+        el('button.sht-btn', { 'data-qa': 'sheet.btn:cancel', onclick: () => { sfx('tap'); G.ui.hideKeyboard && G.ui.hideKeyboard(); f('cancel'); } }, '취소'),
+        el('button.sht-btn.primary', { 'data-qa': 'sheet.btn:ok', onclick: () => { sfx('tap'); done(); } }, '확인')));
+      if (field) setTimeout(() => field.focus(), 200);
+    }, onClose: () => { G.ui.hideKeyboard && G.ui.hideKeyboard(); } });
   }
+  APP.renameSheet = renameSheet;
 
-  /* ---------------- 디지털 웰빙 (H3) ---------------- */
-  OPEN.wellbeing = function () {
-    const w = S().wellbeing || { week: [], apps: [] };
-    const maxD = Math.max(...w.week.map((x) => x[1]));
-    const chart = el('div.wb-week', null, w.week.map(([d, m], i) => el('div.wb-col' + (i === w.week.length - 1 ? '.today' : ''), null,
-      el('div.wb-bar', null, el('i', { style: { height: (m / maxD) * 100 + '%' } })), el('small', null, i === w.week.length - 1 ? '오늘' : d))));
-    const maxA = w.apps.length ? w.apps[0].min : 1;
-    const apps = w.apps.map((a) => {
-      const r = el('button.wb-app' + (a.hot ? '.hot' : ''), null, appIcon(a.id),
-        el('div.wb-am', null, el('div.wb-at', null, el('b', null, a.name), el('span', null, a.time)), el('div.wb-ab', null, el('i', { style: { width: Math.max(2, (a.min / maxA) * 100) + '%' } }))));
-      r.addEventListener('click', () => { G.audio.sfx.tap(); if (a.id === 'calculator') calcUsage(); else G.phone.toast(`${a.name} · 하루 평균 ${a.time}`); });
-      return r;
-    });
-    const top = w.apps[0];
-    const body = el('div', null,
-      el('div.wb-hero', null, el('small', null, '지난 7일 하루 평균'), el('b', null, w.avg), chart),
-      el('div.wb-top', null, el('small', null, '가장 많이 사용한 앱'), el('b', null, `${top.name} · 하루 평균 ${top.time}`)),
-      group('앱 사용 시간', apps));
-    screen('디지털 웰빙', body, 'wb-screen');
-    G.bus.emit('settings:wellbeing');
-  };
-  function calcUsage() {
-    const hrs = (S().wellbeing || {}).calcHours || [];
-    const max = Math.max(1, ...hrs);
-    const chart = el('div.wb-hours', { role: 'img', 'aria-label': '계산기 시간대별 사용: 새벽 2시~4시에 집중' },
-      hrs.map((m, h) => el('div.wb-h' + (m > 0 ? '.on' : ''), null, el('i', { style: { height: Math.max(2, (m / max) * 100) + '%' } }), el('small', null, h % 6 === 0 ? `${h}시` : ''))));
-    const body = el('div', null,
-      el('div.st-hero', null, appIcon('calculator'), el('b', null, '계산기'), el('small', null, '하루 평균 2시간 41분')),
-      el('div.wb-card', null, el('div.wb-ct', null, '시간대별 평균 사용 시간'), chart, el('div.wb-cap', null, '2025.11.25부터 매일 새벽 2시~4시에 사용됨')),
-      group(null, [
-        row({ title: '실행 횟수', meta: '하루 평균 3회' }),
-        row({ title: '화면 켜짐', meta: '0회', sub: '화면이 꺼진 상태(원격)에서 사용됨', cls: 'warn' }),
-        row({ title: '알림', meta: '0개' }),
-        row({ title: '앱 타이머', meta: '설정 안 함' }),
-      ]));
-    screen('앱 사용 시간', body, 'wb-screen');
-    G.bus.emit('settings:calcUsage');
-  }
-
-  /* ---------------- 손쉬운 사용 › 오디오 (H2) ---------------- */
-  OPEN.access = function () {
-    const body = el('div', null,
-      group('청각 보조', [row({ icon: ic('#ff9f0a', 'sound'), title: '오디오', sub: '모노 오디오 · 좌우 음향 밸런스', onClick: () => OPEN.audio() })]),
-      group('시인성 향상', [row({ icon: ic('#34c759', 'display'), title: '글자 크기', sub: '디스플레이', onClick: () => OPEN.display() })]),
-      group('상호작용 및 조작', [
-        row({ title: '길게 누르기 시간', meta: '보통 (0.5초)' }),
-        row({ title: '터치 후 반응 시간', meta: '사용 안 함' }),
-      ]));
-    screen('손쉬운 사용', body);
-    G.bus.emit('settings:access');
-  };
-  function flash(n) { setTimeout(() => { n.classList.add('hl'); n.scrollIntoView({ block: 'center', behavior: 'smooth' }); setTimeout(() => n.classList.remove('hl'), 1800); }, 380); }
-  OPEN.audio = function (o) {
-    const monoRow = row({ title: '모노 오디오', sub: '왼쪽·오른쪽 채널을 하나로 합쳐서 재생합니다.', right: toggle(isMono(), (on) => { setMono(on); G.flag('monoSeen', true); G.bus.emit('settings:mono', on); if (on) G.phone.toast('모노 오디오 켜짐'); }), id: 'mono' });
-    const bal = el('div.st-slrow.bal', null, el('span', null, '왼쪽'), slider(0.5, () => {}), el('span', null, '오른쪽'));
-    const body = el('div', null,
-      group('오디오', [monoRow, el('div.st-subh', null, '좌우 음향 밸런스'), bal]),
-      group(null, [row({ title: '자막 표시', sub: '소리에 자막을 함께 표시합니다.', right: toggle(true, () => { G.phone.toast('이 게임은 모든 소리에 자막을 표시합니다'); return false; }) })]),
-      el('div.st-foot', null, '모노 오디오를 켜면 이어폰의 두 채널이 같은 소리로 합쳐집니다. 방향이 있는 소리는 구분하기 어려워질 수 있어요.'));
-    const scr = screen('오디오', body);
-    G.flag('monoSeen', true);
-    G.bus.emit('settings:audio');
-    if (o && o.hl === 'mono') flash(monoRow);
-    const off = G.bus.on('settings', () => {});
-    void scr; void off;
-  };
-
-  /* ---------------- 휴대전화 정보 ---------------- */
-  OPEN.about = function () {
-    const rows = (S().about || []).map(([k, v]) => row({ title: k, meta: v }));
-    const body = el('div', null,
-      el('div.st-hero', null, el('span.ab-phone'), el('b', null, '세아의 Galaxy'), el('small', null, 'SM-S911N')),
-      group(null, rows),
-      el('div.st-foot', null, '이 기기는 해솔홈 기기 관리 서비스에 등록되어 있습니다.'));
-    screen('휴대전화 정보', body);
-    G.bus.emit('settings:about');
-  };
-  OPEN.sound = OPEN.sound;
-  OPEN.go = (id, p) => OPEN[id] && OPEN[id](p || {});
-
-  /* ---------------- 게임 설정 (kept from the engine) ---------------- */
-  function gameOptions() {
-    const s = G.settings;
-    const seg = (label, key, opts) => {
-      const box = el('div.seg', null, opts.map(([v, l]) => {
-        const b = el('button' + (s[key] === v ? '.on' : ''), null, l);
-        b.addEventListener('click', () => { G.audio.sfx.tap(); s[key] = v; G.saveSettings(); box.querySelectorAll('button').forEach((x) => x.classList.remove('on')); b.classList.add('on'); });
+  /* =========================================================
+   * 소리 및 진동 · 볼륨 · 알림 소리 · 대화별 알림음 (§3.11 · §4.6.7 · §4.6.8)
+   * ========================================================= */
+  const TONES_FB = [{ id: 'dash', label: '—', sub: '추가한 소리 · 2026.11.25' }, { id: 'water', label: '물방울' }, { id: 'toktok', label: '톡톡', sub: '(기본)' }, { id: 'bell', label: '종소리' }];
+  const toneList = () => (G.tones && G.tones.list) || TONES_FB;
+  const toneLabel = (id) => { const t = toneList().find((x) => x.id === id); return t ? t.label : '—'; };
+  const defTone = () => (isDash() ? (SH().dashTone || 'dash') : (G.tones && G.tones.getDefault ? safe(() => G.tones.getDefault(), 'dash') : vget('toneDefault', 'dash')));
+  APP.register('sound', {
+    title: () => S().sound.title,
+    render(api) {
+      const D = S().sound;
+      const mode = vget('soundMode', 'sound');
+      const seg = el('div.sh2-seg', null, D.modes.map(([v, l]) => {
+        const b = el('button' + (mode === v ? '.on' : ''), { 'data-qa': 'sound.mode:' + v }, T(l));
+        b.addEventListener('click', () => { sfx('tap'); vset('soundMode', v); api.refresh(); });
         return b;
       }));
-      return el('div.st-segrow', null, el('span', null, label), box);
-    };
-    const body = el('div', null,
-      group(null, [
-        seg('사운드', 'sound', [[true, '켜기'], [false, '끄기']]),
-        seg('진동', 'vibration', [[true, '켜기'], [false, '끄기']]),
-        seg('공포 연출', 'scares', [['full', '보통'], ['light', '덜 무섭게'], ['off', '없음']]),
-        seg('목소리', 'voice', [[true, '켜기'], [false, '끄기']]),
-      ]),
-      group('글자 크기', [textSizeControl()]),
-      group(null, [row({ title: '처음부터 다시 하기', cls: 'danger', chev: false, onClick: async () => {
-        const ok = await G.phone.dialog({ title: '정말 처음부터?', text: '모든 진행 상황이 삭제됩니다.', buttons: [{ label: '취소', value: false }, { label: '초기화', value: true, style: 'danger' }] });
-        if (ok) { G.resetSave(); location.reload(); }
-      } })]));
-    screen('게임 설정', body);
+      return el('div', null,
+        group(null, [el('div.sh2-segrow', null, el('span', null, T(D.mode)), seg)]),
+        group(null, [
+          row({ key: 'volume', title: D.volume }),
+          row({ key: 'sound.notif', title: D.notifTone, meta: toneLabel(defTone()) }),
+          row({ title: D.ringtone, meta: D.ringtoneMeta }),
+        ]));
+    },
+  });
+  APP.register('volume', {
+    title: () => S().volume.title,
+    render(api) {
+      const V = S().volume;
+      const media = PH().mediaVolumeRow ? PH().mediaVolumeRow({ qa: 'sound.vol:media' }) : el('div');
+      api.own(() => media.dispose && media.dispose());
+      const deco = (label, v) => el('div.vol-row', null, el('div.vol-top', null, el('span.vol-h', null, T(label))), slider(v, { label }));
+      return el('div', null, group(null, [el('div.sh2-volcard', null, media, deco(V.ring, 40), deco(V.notif, 30), deco(V.system, 30))]));
+    },
+    resume: false,
+  });
+  /** a tone radio list (default tone or a chat's tone) */
+  function toneRows(api, sel, choose) {
+    return toneList().map((t) => {
+      const on = sel === t.id;
+      const r = row({ title: t.label, sub: t.sub || '', qa: 'tone.opt:' + t.id, cls: 'radio' + (on ? ' sel' : ''), icon: el('span.sh2-radio' + (on ? '.on' : '')), chev: false,
+        onClick: () => choose(t.id) });
+      return r;
+    });
   }
+  function preview(id, screenKey) {
+    if (!G.tones) return;
+    if (G.tones.preview) safe(() => G.tones.preview(id, { screenKey }));
+    else if (G.tones.play) safe(() => G.tones.play(id, { ledger: id === 'dash' }));
+  }
+  APP.register('sound.notif', {
+    title: () => S().tone.title,
+    onOpen() { if (!isDash()) setFlag('soundSettingsOpened'); },
+    render(api) {
+      const D = S().tone;
+      const dash = isDash();
+      const choose = (id) => {
+        if (dash) { SH().dashTone = id; save(); preview(id, 'sound.notif.dash'); api.refresh(); return; }
+        if (G.tones && G.tones.setDefault) {
+          if (G.tones.preview) { safe(() => G.tones.setDefault(id, { preview: false })); preview(id, 'sound.notif'); }
+          else safe(() => G.tones.setDefault(id, { preview: true }));
+        } else vset('toneDefault', id);
+        api.refresh();
+      };
+      const wrap = el('div', null, group(null, toneRows(api, defTone(), choose)));
+      wrap.appendChild(el('div.sh2-actions', null, btnRow(D.reset, () => choose('toktok'), { qa: 'tone.reset' })));
+      if (!dash) wrap.appendChild(group(null, [row({ key: 'notif.perChat', title: D.perChat, meta: '2', qa: 'tone.perChat' })]));
+      return wrap;
+    },
+  });
+  APP.register('notif.perChat', {
+    title: () => S().tone.perChat,
+    onOpen() { if (!isDash()) setFlag('perChatSeen'); },
+    render() {
+      if (isDash()) return el('div.sh2-empty', null, '없음');
+      const getChat = (c) => (G.tones && G.tones.getChat ? safe(() => G.tones.getChat(c), 'dash') : (c === 'fake' ? vget('toneChatFake', 'dash') : 'dash'));
+      return el('div', null, group(null, (S().perChat || []).map((p) => {
+        const changed = p.chat === 'fake' && SH().perChatChanged;
+        const sub = el('span.sh2-pc', null, el('span', null, T(changed ? p.changedLine : p.line)), p.grey ? el('span.sh2-pc-g', null, T(p.grey)) : null);
+        return row({ title: p.label, sub, meta: toneLabel(getChat(p.chat)), qa: 'perchat.row:' + p.chat, grey: !!p.locked, key: p.locked ? null : 'notif.perChat.' + p.chat });
+      })));
+    },
+  });
+  APP.register('notif.perChat.fake', {
+    title: () => T('{MAKER_CONTACT}'),
+    render(api) {
+      const cur = G.tones && G.tones.getChat ? safe(() => G.tones.getChat('fake'), 'dash') : vget('toneChatFake', 'dash');
+      const choose = (id) => {
+        if (G.tones && G.tones.setChat) safe(() => G.tones.setChat('fake', id)); else vset('toneChatFake', id);
+        SH().perChatChanged = true; save();
+        preview(id, 'notif.perChat');
+        api.refresh();
+      };
+      return el('div', null, group(null, toneRows(api, cur, choose)));
+    },
+  });
+  APP.register('notif', {
+    title: () => S().notif.title,
+    render(api) {
+      const D = S().notif;
+      const dnd = toggle(!!vget('dnd', false), (v) => { vset('dnd', v); }, { label: D.dnd, qa: 'notif.dnd' });
+      void api;
+      return el('div', null, group(null, [row({ key: 'notif.apps', title: D.apps }), row({ title: D.dnd, right: dnd })]));
+    },
+  });
+  APP.register('notif.apps', {
+    title: () => S().notif.apps,
+    render() {
+      const home = (G.EP && G.EP.HOME && G.EP.HOME[user()]) || { apps: [], dock: [] };
+      const ids = (home.apps || []).concat(home.dock || []).filter((id) => G.apps && G.apps[id]);
+      return el('div', null, group(null, ids.map((id) => {
+        const a = G.apps[id];
+        const icon = el('span.sh2-appic', { style: { background: (a.icon && a.icon.bg) || '#888' }, html: (a.icon && a.icon.svg) || '' });
+        return id === 'moment' ? row({ key: 'notif.apps.moment', title: a.name, icon }) : row({ title: a.name, icon });
+      })));
+    },
+  });
+  APP.register('notif.apps.moment', {
+    title: () => S().notif.moment,
+    render() { return el('div', null, group(null, [row({ key: 'notif.perChat', title: S().tone.perChat, meta: isDash() ? '' : '2' })])); },
+  });
 
-  G.settingsApp = { open: (id, p) => { G.phone.openApp('settings', Object.assign({ screen: id }, p || {})); }, screens: OPEN, notifHistory: () => OPEN.notifHistory(), wellbeing: () => OPEN.wellbeing() };
+  /* =========================================================
+   * 디스플레이 · 배경화면 (§4.6.11 · §4.6.4)
+   * ========================================================= */
+  APP.register('display', {
+    title: () => S().display.title,
+    render(api) {
+      const D = S().display;
+      const cur = (G.settings && G.settings.textSize) || 1;
+      const near = D.sizes.reduce((a, o) => (Math.abs(o[0] - cur) < Math.abs(a - cur) ? o[0] : a), D.sizes[0][0]);
+      const seg = el('div.sh2-ts', null, D.sizes.map(([v, l], i) => {
+        const b = el('button' + (v === near ? '.on' : ''), { 'data-qa': 'display.textSize:' + v }, el('b', { style: { fontSize: 13 + i * 3 + 'px' } }, T(D.sample)), el('small', null, l));
+        b.addEventListener('click', () => {
+          sfx('tap');
+          if (G.settings) { G.settings.textSize = v; if (G.saveSettings) G.saveSettings(); }
+          const scr = document.getElementById('screen'); if (scr) scr.style.setProperty('--ts', String(v));
+          api.refresh();
+        });
+        return b;
+      }));
+      const dark = toggle(!!SH().darkMode, (v) => { SH().darkMode = v; save(); }, { label: D.dark });
+      return el('div', null,
+        group(null, [el('div.sh2-slrow', null, el('span', null, T(D.brightness)), slider(62, { label: D.brightness }))]),
+        group(D.textSize, [seg]),
+        group(null, [row({ title: D.dark, right: dark })]));
+    },
+  });
+  APP.register('wallpaper', {
+    title: () => S().wallpaper.title,
+    render() {
+      const D = S().wallpaper;
+      const u = user();
+      const US = (G.STORY && G.STORY.users) || {};
+      const U = US[u] || {};
+      const src = (k) => (G.e2 && G.e2.img ? G.e2.img(k) : (G.IMG && G.IMG[k])) || '';
+      const thumb = (k, cls) => { const t = el('div.sh2-wthumb' + (cls ? '.' + cls : '')); const s = src(k); if (s) { t.style.backgroundImage = `url("${s}")`; const im = new Image(); im.onerror = () => { t.style.backgroundImage = ''; t.classList.add('wall-' + k, 'wall-missing'); }; im.src = s; } else t.classList.add('wall-' + k, 'wall-missing'); return t; };
+      const prev = el('div.sh2-wprev', null, thumb(U.lock || (u === 'dash' ? 'old_room_lock' : 'n_wall'), 'lock'), thumb(U.wall || (u === 'dash' ? 'old_room' : 'n_wall'), 'home'));
+      const rows = [row({ title: D.home, meta: u === 'dash' ? D.dashMeta : '' })];
+      if (u === 'n') rows.push(row({ title: D.widget, sub: (US.n || {}).widget || '', onClick: () => { G.lock && G.lock.widgetPreview && G.lock.widgetPreview(); }, qa: 'settings.row:wallpaper.widget' }));
+      return el('div', null, prev, group(null, rows));
+    },
+  });
+
+  /* =========================================================
+   * 위치 · 계정 및 백업 · 배터리 · 휴대전화 정보 · 일반 (§4.6.11 · ARCH §4.22)
+   * ========================================================= */
+  APP.register('location', {
+    title: () => S().location.title,
+    render() {
+      const D = S().location;
+      const tg = toggle(SH().locOff !== true, (v) => { SH().locOff = !v; save(); }, { label: D.title });
+      return el('div', null,
+        group(null, [row({ title: D.title, right: el('span.sh2-tgwrap', null, el('span.sh2-tgl', null, T(D.on)), tg), cls: 'big' })]),
+        group(D.services, D.rows.map(([t, m]) => row({ title: t, meta: m }))),
+        group(D.recentHead, D.recent.map(([t, m]) => row({ title: t, meta: m }))));
+    },
+  });
+  APP.register('accounts', {
+    title: () => S().accounts.title,
+    render() { return el('div', null, group(null, [row({ key: 'accounts.manage', title: S().accounts.manage })])); },
+  });
+  APP.register('accounts.manage', {
+    title: () => S().accounts.manage,
+    render() {
+      const D = S().accounts;
+      return el('div', null, el('div.sh2-empty', null, T(isDash() ? S().dash.account : D.empty)),
+        el('div.sh2-actions', null, btnRow(D.add, () => APP.open('accounts.login'), { qa: 'accounts.add', primary: true })));
+    },
+  });
+  APP.register('accounts.login', {
+    title: () => S().accounts.loginTitle,
+    render(api) {
+      const D = S().accounts;
+      const mk = (ph, ctx, pw) => { if (!G.ui.field) return el('div'); const f = G.ui.field({ placeholder: T(ph), mode: 'en', password: !!pw, predict: false, ctx, qa: 'accounts.' + ctx }); f.node.classList.add('sh2-pwfield'); return f.node; };
+      const out = el('div.sh2-login-out');
+      const go = () => {
+        out.innerHTML = '';
+        out.append(el('div.sh2-login-msg', null, STR('newDeviceCode')), el('div.sh2-login-msg', null, STR('smsSent')), el('div.sh2-login-sim', null, T(D.sim)));
+      };
+      void api;
+      return el('div.sh2-login', null, el('div.sh2-fields', null, mk(D.id, 'daonId', false), mk(D.pw, 'daonPw', true)),
+        el('div.sh2-actions', null, btnRow(D.login, () => { G.ui.hideKeyboard && G.ui.hideKeyboard(); go(); }, { qa: 'accounts.login', primary: true })), out);
+    },
+  });
+  APP.register('battery', {
+    title: () => S().battery.title,
+    render(api) {
+      const D = S().battery;
+      const b = G.battery ? G.battery() : 67;
+      api.on('clock:min', api.refresh);
+      return el('div', null,
+        el('div.sh2-batt', null, el('div.sh2-batt-big', null, String(b), el('small', null, '%')), el('div.sh2-batt-bar', null, el('i', { style: { width: Math.max(3, b) + '%' } }))),
+        group(D.usageHead, [row({ title: D.usage, cls: 'wrap' })]));
+    },
+  });
+  function uptime() {
+    const d = now();
+    const from = new Date(2026, 11, 24, 18, 0, 0).getTime();
+    const s = Math.max(0, Math.floor((d.getTime() - from) / 1000));
+    return `${Math.floor(s / 3600)}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}`;
+  }
+  APP.register('about', {
+    title: () => S().about.title,
+    render(api) {
+      const D = S().about; const R = D.rows;
+      const up = el('span.sh2-meta.mono.sh2-uptime', null, uptime());
+      let last = '';
+      api.on('tick', () => { const u = uptime(); if (u === last) return; last = u; const n = api.scr && api.scr.querySelector('.sh2-uptime'); if (n) n.textContent = u; });
+      return el('div', null,
+        hero(D.name, D.model, el('span.sh2-phoneic')),
+        group(null, [row({ title: R.name, meta: D.name }), row({ title: R.model, meta: D.model }), row({ title: R.number, meta: D.number }),
+          row({ title: R.sim, meta: D.sim }), row({ title: R.uptime, right: up }), row({ title: R.sw })]));
+    },
+  });
+  APP.register('general', {
+    title: () => S().general.title,
+    render() {
+      const D = S().general;
+      return el('div', null, group(null, [row({ key: 'kbd', title: D.kbd }), row({ title: D.lang }), row({ title: D.date })]));
+    },
+  });
+
+  APP.ui.fmtUptime = uptime;
+  APP.toneLabel = toneLabel;
+  APP.isDash = isDash;
+  APP.flag = flag;
 })();

@@ -1,168 +1,132 @@
 /* =========================================================
- * Visual FX: glitch, static, shake, flash, vignette pulse, jumpscare,
- * subtitles, fade-to-black, tab title / favicon tricks.
+ * engine/core/fx.js — screen FX for episode 2 (core · ARCH_EP2 §4.23, §2.3 layer #fx-layer z 300 / .c2-black z 460)
+ *
+ * G.fx.init()
+ * G.fx.sub(text, ms=3200, {az, cls}) → Promise   bottom sound-subtitle channel (G.audio.sub decides when/what)
+ * G.fx.mono(text, ms=3200) → Promise             monologue channel (separate layer, no sound, no toast) — G.e2.mono, recap
+ * G.fx.dirArc(az, ms=1200)                       speaker-mode edge arc ◀ ▶ ▲ ▼ relative to G.audio.getYaw()
+ * G.fx.edgeShake(px=3, ms=300)                   no-op with G.settings.reduceShake or G.e2.less()
+ * G.fx.setVignette(v)                            sets --vig on #screen (+ #phone so #fx-layer inherits)
+ * G.fx.black(ms) → Promise                       full black cover (resolves after ms, then fades out 0.6 s)
+ * ep1 names: shake(ms, px) → edgeShake · vignette(s) → setVignette · setTitle blinkTitle stopTitle setFavicon glitch
+ *   jumpscare static cinema flash pulse → no-ops (forbidden ep1 tricks; DEBUG warns). Every text goes through G.T.
  * ========================================================= */
 (function () {
   'use strict';
   const G = (window.G = window.G || {});
-  const { el, sleep } = G.util;
-  const FX = (G.fx = {});
+  const FX = (G.fx = G.fx || {});
+  const T = (s) => (G.T ? G.T(s) : s);
+  const warned = {};
+  const dwarn = (k) => { if (G.DEBUG && !warned[k]) { warned[k] = 1; console.warn('[fx] ' + k + '() is a no-op in ep2'); } };
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const mk = (tag, cls, txt) => { const n = document.createElement(tag); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; };
 
-  let layer, staticCanvas, staticCtx, staticAlpha = 0, staticRAF = null;
+  let layer = null, subsBox = null, monoBox = null, arcBox = null, vigEl = null;
 
   FX.init = function () {
+    if (layer && layer.isConnected) return;
     layer = document.getElementById('fx-layer');
-    staticCanvas = el('canvas.fx-static');
-    staticCanvas.width = 160; staticCanvas.height = 284;
-    staticCtx = staticCanvas.getContext('2d');
-    layer.appendChild(staticCanvas);
-    layer.appendChild(el('div.fx-vignette'));
-    layer.appendChild(el('div.fx-scan'));
-    layer.appendChild(el('div.fx-flash'));
-    layer.appendChild(el('div.fx-subs'));
-    loopStatic();
-  };
-
-  function scaresOn() { return G.settings.scares !== 'off'; }
-  function scaresLight() { return G.settings.scares === 'light'; }
-
-  /* ---------- TV static ---------- */
-  function loopStatic() {
-    staticRAF = requestAnimationFrame(loopStatic);
-    if (staticAlpha <= 0.001) { if (staticCanvas.style.opacity !== '0') staticCanvas.style.opacity = '0'; return; }
-    const w = staticCanvas.width, h = staticCanvas.height;
-    const img = staticCtx.createImageData(w, h); const d = img.data;
-    for (let i = 0; i < d.length; i += 4) { const v = Math.random() * 255; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; }
-    staticCtx.putImageData(img, 0, 0);
-    staticCanvas.style.opacity = String(staticAlpha);
-  }
-  FX.static = function (alpha, ms) {
-    staticAlpha = alpha;
-    if (ms) setTimeout(() => { staticAlpha = 0; }, ms);
-  };
-
-  /* ---------- glitch (screen tearing + RGB split) ---------- */
-  FX.glitch = function (ms, strong) {
-    ms = ms || 450;
-    const root = document.getElementById('phone');
-    if (!root) return;
-    root.classList.remove('glitch', 'glitch-strong'); void root.offsetWidth;
-    root.classList.add(strong ? 'glitch-strong' : 'glitch');
-    FX.static(strong ? 0.35 : 0.18, ms);
-    if (G.audio) G.audio.sfx.glitch();
-    setTimeout(() => root.classList.remove('glitch', 'glitch-strong'), ms);
-  };
-
-  FX.shake = function (ms, px) {
-    const root = document.getElementById('stage');
-    root.style.setProperty('--shake', (px || 6) + 'px');
-    root.classList.remove('shake'); void root.offsetWidth; root.classList.add('shake');
-    setTimeout(() => root.classList.remove('shake'), ms || 500);
-  };
-
-  FX.flash = function (color, ms) {
-    const f = layer.querySelector('.fx-flash');
-    f.style.background = color || '#fff';
-    f.style.transition = 'none'; f.style.opacity = '0.85';
-    requestAnimationFrame(() => { f.style.transition = `opacity ${ms || 600}ms ease-out`; f.style.opacity = '0'; });
-  };
-
-  FX.vignette = function (strength) {
-    document.documentElement.style.setProperty('--vig', String(strength));
-  };
-  FX.pulse = function (times) {
-    const v = layer.querySelector('.fx-vignette');
-    v.classList.remove('pulse'); void v.offsetWidth; v.classList.add('pulse');
-    v.style.animationIterationCount = times || 3;
-  };
-
-  /* ---------- jumpscare ---------- */
-  FX.jumpscare = async function (imgSrc, opts) {
-    opts = opts || {};
-    if (!scaresOn()) { FX.glitch(300); return; }
-    const light = scaresLight();
-    const j = el('div.fx-jump', null, el('img', { src: imgSrc, alt: '' }));
-    if (light) j.classList.add('light');
-    layer.appendChild(j);
-    if (G.audio) {
-      // opts.sting: a function or the name of a G.audio.sfx cue (e.g. 'stingJS2')
-      const sting = typeof opts.sting === 'function' ? opts.sting : (typeof opts.sting === 'string' && G.audio.sfx[opts.sting]) || G.audio.sfx.stinger;
-      try { if (!light) sting(); else G.audio.sfx.glitch(); G.audio.sfx.buzz([60, 40, 200]); } catch (e) { console.warn('[fx] sting', e); }
+    if (!layer) {
+      layer = mk('div'); layer.id = 'fx-layer';
+      (document.getElementById('phone') || document.body).appendChild(layer);
     }
-    FX.shake(opts.shakeMs || 700, light ? 4 : 14);
-    FX.static(0.3, 500);
-    await sleep(opts.ms || (light ? 380 : 650));
-    j.classList.add('out');
-    await sleep(250);
-    j.remove();
+    vigEl = mk('div', 'c2-vignette');
+    arcBox = mk('div', 'c2-arcs');
+    subsBox = mk('div', 'c2-subs');
+    monoBox = mk('div', 'c2-mono');
+    subsBox.setAttribute('aria-live', 'polite');
+    monoBox.setAttribute('aria-live', 'polite');
+    layer.append(vigEl, arcBox, subsBox, monoBox);
   };
+  const ready = () => { if (!layer || !layer.isConnected) FX.init(); };
 
-  /* ---------- subtitles (used for calls / voices) ---------- */
+  /* ---------- sound subtitles ---------- */
   FX.sub = async function (text, ms, opts) {
     opts = opts || {};
-    const box = layer.querySelector('.fx-subs');
-    const line = el('div.sub' + (opts.cls ? '.' + opts.cls : ''), null, text);
-    box.appendChild(line);
+    ready();
+    const line = mk('div', 'c2-sub' + (opts.cls ? ' ' + opts.cls : ''), T(String(text == null ? '' : text)));
+    if (opts.az != null) line.dataset.az = String(Math.round(opts.az));
+    subsBox.appendChild(line);
+    while (subsBox.children.length > 3) subsBox.removeChild(subsBox.firstChild);
     requestAnimationFrame(() => line.classList.add('in'));
-    await sleep(ms || 2600);
+    await sleep(ms || 3200);
     line.classList.remove('in'); line.classList.add('out');
-    setTimeout(() => line.remove(), 500);
+    await sleep(450);
+    line.remove();
   };
 
-  /* ---------- full-screen black with typed text (cinematics) ---------- */
-  FX.cinema = function () {
-    const c = el('div.cinema');
-    document.getElementById('stage').appendChild(c);
-    requestAnimationFrame(() => c.classList.add('in'));
-    const api = {
-      node: c,
-      async type(text, opts) {
-        opts = opts || {};
-        const line = el('p.cine-line' + (opts.cls ? '.' + opts.cls : ''));
-        c.appendChild(line);
-        const speed = opts.speed || 55;
-        for (const ch of text) {
-          line.textContent += ch;
-          if (ch !== ' ' && G.audio && opts.sound !== false) G.audio.sfx.key();
-          await sleep(ch === '.' || ch === ',' || ch === '…' ? speed * 5 : speed);
-          if (api.skipTyping) { line.textContent = text; break; }
-        }
-        api.skipTyping = false;
-        await sleep(opts.hold || 900);
-        return line;
-      },
-      clear() { c.querySelectorAll('.cine-line').forEach((n) => n.classList.add('fade')); return sleep(700).then(() => c.querySelectorAll('.cine-line').forEach((n) => n.remove())); },
-      async close() { c.classList.remove('in'); await sleep(900); c.remove(); },
-      waitTap(label) {
-        return new Promise((res) => {
-          const b = el('button.cine-next', null, label || '계속');
-          c.appendChild(b);
-          requestAnimationFrame(() => b.classList.add('in'));
-          b.addEventListener('click', () => { if (G.audio) G.audio.sfx.tap(); b.remove(); res(); }, { once: true });
-        });
-      },
+  /* ---------- monologue (one line at a time) ---------- */
+  let monoChain = Promise.resolve();
+  FX.mono = function (text, ms) {
+    ready();
+    const run = async () => {
+      const line = mk('div', 'c2-mono-line', T(String(text == null ? '' : text)));
+      monoBox.appendChild(line);
+      requestAnimationFrame(() => requestAnimationFrame(() => line.classList.add('in')));
+      await sleep(ms || 3200);
+      line.classList.remove('in'); line.classList.add('out');
+      await sleep(700);
+      line.remove();
     };
-    c.addEventListener('click', () => { api.skipTyping = true; });
-    return api;
+    const p = monoChain.then(run, run);
+    monoChain = p.catch(() => {});
+    return p;
   };
 
-  /* ---------- browser tab title & favicon (meta trick) ---------- */
-  const baseTitle = document.title;
-  let titleTimer = null;
-  FX.setTitle = function (t) { document.title = t || baseTitle; };
-  FX.blinkTitle = function (msgs, interval) {
-    clearInterval(titleTimer); let i = 0;
-    titleTimer = setInterval(() => { document.title = msgs[i++ % msgs.length]; }, interval || 1200);
+  /* ---------- speaker-mode direction arc ---------- */
+  FX.dirArc = function (az, ms) {
+    ready();
+    const yaw = G.audio && G.audio.getYaw ? Number(G.audio.getYaw()) || 0 : 0;
+    const rel = ((((Number(az) || 0) - yaw) % 360) + 540) % 360 - 180;   // −180…180, 0 = in front
+    const side = Math.abs(rel) <= 45 ? 'top' : Math.abs(rel) >= 135 ? 'bottom' : rel > 0 ? 'right' : 'left';
+    const glyph = { top: '▲', bottom: '▼', left: '◀', right: '▶' }[side];
+    const arc = mk('div', 'c2-arc ' + side);
+    arc.appendChild(mk('i', null, glyph));
+    arc.setAttribute('aria-hidden', 'true');
+    arcBox.appendChild(arc);
+    requestAnimationFrame(() => arc.classList.add('in'));
+    setTimeout(() => { arc.classList.remove('in'); setTimeout(() => arc.remove(), 500); }, ms || 1200);
+    return side;
   };
-  FX.stopTitle = function () { clearInterval(titleTimer); document.title = baseTitle; };
-  FX.setFavicon = function (emojiOrColor) {
-    try {
-      const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
-      x.fillStyle = '#000'; x.fillRect(0, 0, 64, 64);
-      x.font = '48px serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(emojiOrColor, 32, 36);
-      let link = document.querySelector('link[rel="icon"]');
-      if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
-      link.href = c.toDataURL();
-    } catch (e) {}
+
+  /* ---------- edge shake ---------- */
+  FX.edgeShake = function (px, ms) {
+    if ((G.settings && G.settings.reduceShake) || (G.e2 && G.e2.less && G.e2.less())) return;
+    const root = document.getElementById('phone');
+    if (!root) return;
+    root.style.setProperty('--c2-shake', (px || 3) + 'px');
+    root.classList.remove('c2-shake'); void root.offsetWidth; root.classList.add('c2-shake');
+    clearTimeout(root._c2shake);
+    root._c2shake = setTimeout(() => root.classList.remove('c2-shake'), ms || 300);
+  };
+
+  /* ---------- vignette ---------- */
+  FX.setVignette = function (v) {
+    ready();
+    const val = Math.max(0, Math.min(1, Number(v) || 0));
+    ['screen', 'phone'].forEach((id) => { const n = document.getElementById(id); if (n) n.style.setProperty('--vig', String(val)); });
+    if (vigEl) vigEl.classList.toggle('on', val > 0.001);
+  };
+
+  /* ---------- black cover ---------- */
+  FX.black = async function (ms) {
+    const host = document.getElementById('phone') || document.body;
+    const b = mk('div', 'c2-black');
+    b.setAttribute('aria-hidden', 'true');
+    host.appendChild(b);
+    await sleep(Math.max(0, ms || 0));
+    b.classList.add('out');
+    setTimeout(() => b.remove(), 650);
+  };
+
+  /* ---------- ep1 names ---------- */
+  FX.shake = function (ms, px) { FX.edgeShake(px, ms); };
+  FX.vignette = function (s) { FX.setVignette(s); };
+  ['setTitle', 'blinkTitle', 'stopTitle', 'setFavicon', 'glitch', 'static', 'flash', 'pulse'].forEach((k) => { FX[k] = function () { dwarn(k); }; });
+  FX.jumpscare = function () { dwarn('jumpscare'); return Promise.resolve(); };
+  FX.cinema = function () {
+    dwarn('cinema');
+    const api = { node: mk('div'), skipTyping: false, type: () => Promise.resolve(null), clear: () => Promise.resolve(), close: () => Promise.resolve(), waitTap: () => Promise.resolve() };
+    return api;
   };
 })();
