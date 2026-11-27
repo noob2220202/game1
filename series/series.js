@@ -7,8 +7,7 @@
  *   window is lit when that episode is done / canon in haru-escape.series.v1, dark otherwise; ♪ on a lit window whose 세아
  *   signal was found (ep3: seen.e3_grey or sea has sig_name).
  *   The first released, unfinished episode gets a subtle row border (.rec, no label) — order is never enforced (gifts are not locked).
- *   Unreleased episodes (G.series.isReleased(n) false) are ordinary dark windows: no label, no date, no title.
- *   ?preview=1 (maker phone test) is honoured by isReleased and kept on every episode link.
+ *   Every episode is open (G.series.isReleased is true for 1-3).
  *   Footer (bible §7.1 · §7.7 · DESIGN_EP2 §9.2): '시리즈 기록 지우기' = haru-escape.series.v1 + .bak only (G.series.clearAll);
  *   '모든 기록 지우기' = that + every episode save (ep1 CONFIG.SAVE_KEY, haru-escape.ep<n>.save.v1, their backups, the
  *   ep<n> free-text session store). Settings (haru-escape.settings.v1) stay. Both behind a two-step in-page confirm;
@@ -24,8 +23,6 @@
   var S = G.series || null;
   var CFG = W.CONFIG || {};
   var FILE = L.protocol === 'file:';
-  var PREVIEW = /[?&]preview=1\b/.test(L.search || '');
-  var Q = PREVIEW ? '?preview=1' : '';
   var REDUCE = !!(W.matchMedia && W.matchMedia('(prefers-reduced-motion: reduce)').matches);
   var E1KEY = typeof CFG.SAVE_KEY === 'string' && CFG.SAVE_KEY ? CFG.SAVE_KEY : 'haru-escape.save.v1';   // ep1 js/core/base.js default
   var SKEY = S && S.KEY ? S.KEY : 'haru-escape.series.v1';
@@ -274,7 +271,7 @@
     var lit = [], rel = [], sig = [], rec = '';
     st.forEach(function (x, i) {
       if (!x.rel) return;                                         // unreleased: an ordinary dark window, nothing else
-      var e = x.e, r = WINS[e.room], href = e.href + Q;
+      var e = x.e, r = WINS[e.room], href = e.href;
       rel.push(e.n);
       if (x.done) lit.push(e.n);
       if (x.sig) sig.push(e.n);

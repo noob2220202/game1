@@ -1,8 +1,8 @@
 /* =========================================================
  * ep3/js/scenes.js (flow) — B00 · B01 · B02 and the out-of-world screens (DESIGN_EP3 §3.0 · §3.1 M0 · §4.0 · §4.1.1–§4.1.2 ·
  * §6.2 B00–B02 · §9.7 · ARCH_EP3 §3.2 flow · §5.14 · §8.2).
- *   title `{N를} 위한 방탈출! 3` · `엄마의 번호` · [시작] | [이어하기] [처음부터] · `약 45분 · 이어폰 권장` · `다른 이야기`
- *   (G.gate.titleLink) · `훅 다시 보기` (END) · `이번 선택을 이야기로 남기기` (replay) · in-app web-view card — no made-by line
+ *   title `{N를} 위한 방탈출! 3` · `엄마의 번호` · [시작] | [이어하기] [처음부터] · `다른 이야기`
+ *   (G.gate.titleLink) · `06:10 다시 보기` (END) · `이번 선택 남기기` (replay) · in-app web-view card — no made-by line
  *   → content warning [계속] (= G.audio.unlock()) → earphone test (bell.small 270° → 90°: [들려요] · [스피커예요] (audioMode
  *   'speaker') · [안 들려요] / 8 s → sound card [다시 듣기] [소리 없이 할게요]) → [시작] = unlock + G.audio.prepare() +
  *   introDone + G.e3.seriesStart() + G.clock.start() → '지난 이야기' (cb.E only — 4 lines on black, 3.2 s each, tap = next,
@@ -268,9 +268,9 @@
     // mid-game: [이어하기] [시작] (§4.0 — 시작 over a save = the 처음부터 confirm) · after the hook: [처음부터] (§9.2)
     if (has) btns.appendChild(el('button.fl3-btn' + (hooked ? '.primary' : ''), { 'data-qa': 'title.restart', onclick: () => restart() }, hooked ? (d.fresh || '처음부터') : (d.start || '시작')));
     else btns.appendChild(el('button.fl3-btn.primary', { 'data-qa': 'title.start', onclick: () => { sfxTap(); fresh(); } }, d.start || '시작'));
-    if (ended) smalls.appendChild(el('button.fl3-small', { 'data-qa': 'title.hookReplay', onclick: () => hookReplay() }, d.hookReplay || '훅 다시 보기'));
+    if (ended) smalls.appendChild(el('button.fl3-small', { 'data-qa': 'title.hookReplay', onclick: () => hookReplay() }, d.hookReplay || '06:10 다시 보기'));
     const recanonBtn = ended && replay && committed && !recanonDone
-      ? el('button.fl3-small', { 'data-qa': 'title.recanon', onclick: () => recanon() }, d.recanon || '이번 선택을 이야기로 남기기') : null;
+      ? el('button.fl3-small', { 'data-qa': 'title.recanon', onclick: () => recanon() }, d.recanon || '이번 선택 남기기') : null;
     const note = recanonBtn ? el('div.fl3-t-note', { role: 'status', 'aria-live': 'polite' }) : null;
     if (recanonBtn) smalls.append(recanonBtn, note);
     const bg = el('div.fl3-t-bg');
@@ -281,17 +281,15 @@
       nameNode,
       el('div.fl3-t-sub', null, d.sub || '엄마의 번호'),
       btns,
-      el('div.fl3-t-foot', null, d.small || '약 45분 · 이어폰 권장'),
       smalls));
-    // `다른 이야기` — the release gate owns the link (core gate.js · keeps ?preview=1); a stand-in only if it drew nothing
+    // `다른 이야기` — gate.js owns the link; a stand-in only if it drew nothing
     safe(() => { if (G.gate && typeof G.gate.titleLink === 'function') G.gate.titleLink(smalls); });
     requestAnimationFrame(() => {
       if (!titleEl || titleEl.querySelector('[data-qa="title.series"]')) return;
-      const q = /[?&]preview=1\b/.test(location.search || '') ? '?preview=1' : '';
-      smalls.appendChild(el('a.fl3-small', { 'data-qa': 'title.series', href: '../series/' + (location.protocol === 'file:' ? 'index.html' : '') + q }, d.series || '다른 이야기'));
+      smalls.appendChild(el('a.fl3-small', { 'data-qa': 'title.series', href: '../series/' + (location.protocol === 'file:' ? 'index.html' : '') }, d.series || '다른 이야기'));
     });
     const ua = String(navigator.userAgent || '');
-    if (/KAKAOTALK|Instagram|FBAN|FBAV|Line\//i.test(ua)) {
+    if (!G.APP && /KAKAOTALK|Instagram|FBAN|FBAV|Line\//i.test(ua)) {
       const ia = d.inapp || [];
       const txt = /KAKAOTALK/i.test(ua) ? String(ia[0] || '') : String(ia[0] || '').replace('카카오톡', '이 앱');
       const card = el('div.fl3-confirm.fl3-inapp', null, el('div.fl3-confirm-in', null, el('p', null, txt),
@@ -338,7 +336,7 @@
       safe(() => G.save && G.save(true));
       if (recanonBtn && recanonBtn.parentNode) recanonBtn.remove();
       if (!note) return;
-      note.textContent = d.recanonDone || '이번 선택으로 바꿨어요.';
+      note.textContent = d.recanonDone || '바꿨어요.';
       note.classList.add('in');
       setTimeout(() => { note.classList.add('fade'); setTimeout(() => { note.classList.remove('in', 'fade'); note.textContent = ''; }, 800); }, 3000);
     }
@@ -358,39 +356,40 @@
     const w = C().warn || [];
     preEl = scene('fl3-pre');
     preEl.appendChild(el('div.fl3-pre-in', null,
-      el('div.fl3-warn', null, el('p', null, w[0] || ''), el('p', null, w[1] || '')),
-      el('button.fl3-btn.primary.wide', { 'data-qa': 'warn.ok', onclick: () => { unlock(); sfxTap(); earTest(); } }, w[2] || '계속')));
+      el('div.fl3-warn', null, el('p', null, w[0] || '')),
+      el('button.fl3-btn.primary.wide', { 'data-qa': 'warn.ok', onclick: () => { unlock(); sfxTap(); earTest(); } }, w[w.length - 1] || '계속')));
   };
 
   function earTest() {
     if (!preEl) preEl = scene('fl3-pre');
     preEl.innerHTML = '';
     const d = C().ear || {};
-    const res = el('div.fl3-ear-res', { 'aria-live': 'polite' });
     const okB = el('button.fl3-ear-ok', { 'data-qa': 'ear.ok' }, d.ok || '들려요');
     const spk = el('button.fl3-small', { 'data-qa': 'ear.speaker' }, d.speaker || '스피커예요');
     const none = el('button.fl3-small', { 'data-qa': 'ear.none' }, d.none || '안 들려요');
     const start = el('button.fl3-btn.primary.wide', { 'data-qa': 'ear.start', disabled: true }, d.start || '시작');
     const wave = el('div.fl3-ear-wave', { 'aria-hidden': 'true' }, el('i.l'), el('i.c'), el('i.r'));
+    const guide = el('div.fl3-ear-guide', { 'aria-live': 'polite' }, d.line || '종소리를 들어 보세요.');
     const inner = el('div.fl3-pre-in.fl3-ear', null,
       el('div.fl3-ear-head', null, d.head || ''),
-      el('div.fl3-ear-guide', null, d.line || ''),
+      guide,
       wave, okB,
       el('div.fl3-ear-alt', null, spk, none),
-      res,
-      el('div.fl3-ear-foot', null, d.foot || ''),
       start);
     preEl.appendChild(inner);
 
     let done = false, timer = 0, card = null, ringT = 0;
     const cardUp = () => !!(card && card.isConnected);
     const s = G.settings || (G.settings = {});
-    const finish = (mode, line) => {
+    const finish = (mode) => {
       done = true; clearTimeout(timer); clearTimeout(ringT);
       s.audioMode = mode; saveSettings();
       okB.disabled = true;
       inner.classList.add('done');
-      res.textContent = line || '';
+      guide.style.minHeight = guide.offsetHeight + 'px';
+      guide.textContent = mode === 'ear' ? '✓ 이어폰' : '스피커';
+      guide.classList.add('res');
+      spk.disabled = true; none.disabled = true;
       start.disabled = false;
       requestAnimationFrame(() => start.classList.add('ready'));
     };
@@ -403,8 +402,8 @@
       ringT = setTimeout(() => { if (done || cardUp()) return; inner.dataset.ring = 'r'; cue('bell.small', { az: 90 }); }, 900);
       armSilence();
     };
-    okB.addEventListener('click', () => { if (done || cardUp()) return; sfxTap(); finish('ear', d.okLine || ''); });
-    spk.addEventListener('click', () => { if (done) return; sfxTap(); finish('speaker', d.speakerLine || ''); });
+    okB.addEventListener('click', () => { if (done || cardUp()) return; sfxTap(); finish('ear'); });
+    spk.addEventListener('click', () => { if (done) return; sfxTap(); finish('speaker'); });
     none.addEventListener('click', () => { if (done) return; sfxTap(); soundCard(); });
     start.addEventListener('click', () => { if (start.disabled) return; sfxTap(); begin(); });
     function soundCard() {
@@ -415,7 +414,7 @@
         el('p', null, T(d.soundCard || '{$soundCard}')),
         el('div.fl3-confirm-btns', null,
           el('button.fl3-btn', { 'data-qa': 'ear.retry', onclick: () => { sfxTap(); close(); unlock(); setTimeout(() => bell(), 500); } }, d.retry || '다시 듣기'),
-          el('button.fl3-btn', { 'data-qa': 'ear.silent', onclick: () => { sfxTap(); close(); s.subs = 'all'; finish('speaker', ''); } }, d.silent || '소리 없이 할게요'))));
+          el('button.fl3-btn', { 'data-qa': 'ear.silent', onclick: () => { sfxTap(); close(); s.subs = 'all'; finish('speaker'); } }, d.silent || '소리 없이 할게요'))));
       preEl.appendChild(card);
     }
     setTimeout(() => { if (!done) bell(); }, 700);
@@ -631,7 +630,7 @@
       return b;
     };
     const R = (i) => rows[i] || [];
-    const row = (label, ctl) => el('div.fl3-prow', null, el('span.fl3-plabel', null, label), ctl);
+    const row = (label, ctl, note) => el('div.fl3-prow', null, el('span.fl3-plabel', null, label), ctl, note ? el('p.fl3-pnote', null, note) : null);
     const resume = el('button.fl3-btn.primary.wide', { 'data-qa': 'pause.resume', onclick: () => { sfxTap(); SC.closePause(); } }, d.resume || '계속하기');
     const toTitle = el('button.fl3-btn.wide', { 'data-qa': 'pause.title', onclick: () => { sfxTap(); toTitleScreen(); } }, d.title || '처음 화면으로');
     pauseEl = scene('fl3-pause', { role: 'dialog' });
@@ -641,7 +640,7 @@
       el('div.fl3-prows', null,
         row(R(0)[0], seg('scares', [['full', R(0)[1]], ['light', R(0)[2]]])),
         row(R(1)[0], seg('textSize', [[0.9, R(1)[1]], [1, R(1)[2]], [1.15, R(1)[3]]], { nearest: true, dflt: 1 })),
-        row(R(2)[0], seg('audioMode', [['ear', R(2)[1]], ['speaker', R(2)[2]]])),
+        row(R(2)[0], seg('audioMode', [['ear', R(2)[1]], ['speaker', R(2)[2]]]), '목소리는 AI 음성입니다.'),
         row(R(3)[0], seg('subs', [['info', R(3)[1]], ['all', R(3)[2]]])),
         row(R(4)[0], seg('vibration', [[true, R(4)[1]], [false, R(4)[2]]])),
         row(R(5)[0], el('div.fl3-togs', null, toggle('reduceShake', R(5)[1]), toggle('reduceFlash', R(5)[2])))),

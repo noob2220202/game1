@@ -58,7 +58,7 @@
   E3.STR = Object.freeze({
     noResult: "'{q}'에 대한 검색 결과가 없습니다.",
     converting: '텍스트로 바꾸는 중…',
-    textNote: '자동 변환이에요. 흐린 글자는 정확하지 않을 수 있어요.',
+    textNote: '자동 변환 · 흐린 글자는 인식이 불확실한 부분입니다.',
     connecting: '연결 중…',
     callEnd: '통화 종료',
     noAnswer: '상대방이 응답하지 않습니다',
@@ -81,10 +81,10 @@
     easyDesc: '더 큰 글씨와 단순한 홈 화면, 단순한 앱 화면을 사용합니다.',
     repeatCall: '3분 안에 같은 번호로 다시 걸려 오면 울립니다.',
     loading: '불러오는 중…',
-    exitAgain: '한 번 더 누르면 게임을 나갑니다',
+    exitAgain: '한 번 더 누르면 종료됩니다',
     resume: '🔈 소리 다시 켜기',
-    restart3: '3편 진행이 지워집니다. 시리즈 기록은 남아요.',
-    recanonQ: '이번 플레이의 선택으로 바꿀까요? 다음 편은 바뀐 선택을 기억합니다.',
+    restart3: '진행 상황이 지워집니다.',
+    recanonQ: '이번 선택으로 바꿀까요?',
     soundCard: '소리가 들리지 않으면 무음 모드를 끄고 볼륨을 올려 주세요.',
   });
 
@@ -531,7 +531,7 @@
     bus.on('screen:push', () => retryCommit());
     bus.on('state:load', () => { scheduleM6(); retryCommit(); });
     bus.on('state:reset', () => { E3.session.clear(); });
-    if (G.clock && G.clock.onTick) G.clock.onTick(() => { runSched(); evaluate(); if (G.DEBUG) debugTick(); });
+    if (G.clock && G.clock.onTick) G.clock.onTick(() => { runSched(); evaluate(); if (G.DEBUG && !G.APP) debugTick(); });
     scheduleM6();
     if (G.DEBUG) { wrapVibrate(); debugUI(); }
   };
@@ -651,7 +651,7 @@
     try { walk(G.STORY || {}, 0); } catch (e) {}
     return n;
   }
-  E3.budget = function () {
+  if (!G.APP || G.DEBUG) E3.budget = function () {   // QA only: left out of the app build (G.APP && !G.DEBUG)
     const dir = V().dir || {}, fired = dir.fired || {};
     const recs = safe(() => ((G.BEATDATA3 || G.BEATDATA2 || {}).beats || []), []) || [];
     const jumps = recs.filter((b) => b && b.cls === 'jump' && fired[b.id] != null).length;
@@ -669,7 +669,7 @@
   };
   let dbgBox = null, dbgErr = null, dbgN = 0;
   function debugUI() {
-    if (!G.DEBUG || dbgBox || !document.body) return;
+    if (!G.DEBUG || G.APP || dbgBox || !document.body) return;
     const host = document.getElementById('phone') || document.body;
     dbgBox = document.createElement('div'); dbgBox.className = 'c2-debug-meter c3-debug-meter'; dbgBox.setAttribute('data-qa', 'debug.meter');
     dbgErr = document.createElement('div'); dbgErr.className = 'c2-debug-err';
@@ -687,7 +687,7 @@
     dbgBox.textContent = `his ${b.hisLines}/1 · jump ${b.jumps}/0 · sting ${b.stings}/1 · mono ${b.monos}/6 · vib ${b.vibrate} · ${G.clock ? G.clock.hm() : ''} · ${Math.round(pmNow() / 1000)}s`;
   }
   function debugError(msg) {
-    if (!G.DEBUG) return;
+    if (!G.DEBUG || G.APP) return;
     try {
       debugUI(); if (!dbgErr) return;
       const line = document.createElement('div'); line.textContent = String(msg).slice(0, 240);

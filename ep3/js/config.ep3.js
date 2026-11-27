@@ -46,5 +46,12 @@ window.G = window.G || {};
     eunpyeongOffice: '[은평구청]', mapoOffice: '[마포구청]', police: '서강경찰서', policeShort: '서강서', court: '서울서강지법',
     daejeon: '대전 서구' };                                          // ARCH §1.1 — verbatim (§9.1 · §0.1 #26)
 
-  G.DEBUG = !!window.CONFIG.DEBUG || (/[?&]debug=1\b/.test(location.search) && !/pengueverything\.cloud$/.test(location.hostname));
+  // G.APP — the app-store build (docs/APP_RELEASE.md), same rule as ep2/js/config.ep2.js: CONFIG.APP === true, or the ?app=1
+  // preview off the production host. Under G.APP no debug visual renders (meter, error lines, hotspot outlines, body.debug) and
+  // the credits are the same as on the web (title only). The real app build (CONFIG.APP === true) forces G.DEBUG off, so no
+  // window.haru helper, fixture or jump table is ever defined; the ep3-only QA probes are left out whenever G.APP && !G.DEBUG.
+  const offProd = !/pengueverything\.cloud$/.test(location.hostname);
+  const appBuild = window.CONFIG.APP === true;
+  G.APP = appBuild || (/[?&]app=1\b/.test(location.search) && offProd);
+  G.DEBUG = !appBuild && (!!window.CONFIG.DEBUG || (/[?&]debug=1\b/.test(location.search) && offProd));
 })(window.G);

@@ -795,7 +795,13 @@ async function N(browser) {
     H.check('[그대로 드리기] → stage.easyBack false', (await H.ev(() => G.state.stage.easyBack)) === false);
     await H.cards(120000).catch(() => {});
     await H.tap('end.next', { timeout: 90000, after: 1500 });
+    await H.waitFn(() => !!document.querySelector('[data-qa="credits.skip"]'), 30000, 'credits'); await H.sleep(1500);
+    const cr = await H.ev(() => { const n = document.querySelector('.fl3-credits .fl3-cred-in'); return { kids: n ? n.children.length : -1, body: document.body.innerText }; });
+    H.check('credits = the title block only · none of the removed lines', cr.kids === 1 && !/만든 사람|AI 음성|AI 생성|게임 속 단순화|아무 데이터도|플레이 \d+분|힌트 \d+회/.test(cr.body), { kids: cr.kids });
     await H.tap('credits.skip', { timeout: 30000, after: 1500 });
+    await H.waitFn(() => !!document.querySelector('[data-qa="check.continue"]'), 30000, 'check card');
+    const ck = await H.ev(() => { const n = document.querySelector('.fl3-check-in'); return n ? { lines: n.children.length, text: n.textContent } : null; });
+    H.check('check card = the help line only (112 · 1366)', !!ck && ck.lines === 1 && ck.text === '스토킹·디지털 성범죄 피해: 112 · 여성긴급전화 1366', ck);
     await H.tap('check.continue', { timeout: 30000, after: 1500 });
     await H.waitFlag('HOOK', 30000);
     await H.tap('hook.home', { timeout: 30000, after: 2000 });

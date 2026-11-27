@@ -203,21 +203,14 @@
   S.readOnly = function () { current(); return ro; };
   S.memory = function () { return memory; };
 
-  /* ---------------- release table (DESIGN_EP2 §12 MT-A · SERIES §4.1 운영 규칙) ----------------
-   * The ONE source of episode release instants (epoch ms, written as Date.UTC = KST − 9 h so no date / clock string
-   * ships in deployed files — §10 K). Never rendered: no page shows a release date (SERIES §4.1).
-   * isReleased(n): ep1 → always true · a listed episode → Date.now() ≥ its instant, or the page URL carries ?preview=1
-   * (the maker's phone test before release — no debug UI) · anything unlisted → false.
-   * Readers: series/series.js (picker windows) · ep2/js/gate.js (ep2 gate) · js/main.js (ep1 P-3 link). */
+  /* ---------------- release table: every episode is open, no dates, no gates ---------------- */
   var RELEASES = { 2: 0, 3: 0 };   // no release dates: every episode is open (client 2026-11-28)
   S.releases = RELEASES;
   S.isReleased = function (n) {
     n = n | 0;
     if (n === 1) return true;
     if (!has(RELEASES, String(n))) return false;
-    try { if (/[?&]preview=1\b/.test(W.location.search || '')) return true; } catch (e) {}
-    var t = Number(RELEASES[n]);
-    return isFinite(t) && Date.now() >= t;
+    return true;
   };
 
   S.stage = function (key, value) {

@@ -47,7 +47,7 @@ const VIEWS = [[360, 740], [390, 844], [430, 932]];
 const SIZES = [1, 1.3];
 const CENTRE_TOL = 4;
 
-/* ---------- per-episode data (ep3: add one entry) ---------- */
+/* ---------- per-episode data (one entry per episode) ---------- */
 const EPS = {
   2: {
     page: 'ep2/index.html',
@@ -75,6 +75,33 @@ const EPS = {
     roomProbe: () => { const a = window.haru.room('r2_door'); return !!a; },   // DEBUG helper: a camera view with hotspots
     // debug-only APIs that must not exist in the app build (G.APP ∧ ¬G.DEBUG)
     stripped: ['window.haru', 'G.series._fixture', 'G.ending.debugM8', 'G.clock._scale', 'G.audio.meter', 'G.fx.roomLook', 'G.e2.budget'],
+  },
+  3: {
+    page: 'ep3/index.html',
+    saveKey: 'haru-escape.ep3.save.v1',
+    // debug route: the END state, then the chain resumes after the 06:00 step (endStep e0600) → ending.resume → credits()
+    toCredits: async () => { window.haru.jump('END'); await new Promise((r) => setTimeout(r, 1500)); G.ending.abort(); G.vars('endStep', 'e0600'); if (G.save) G.save(true); G.ending.resume('e0600'); return true; },   // jump's own resume (END sequence tail) is given its 0.9 s to start, then gives way
+    sel: { scene: '.fl3-credits', inner: '.fl3-cred-in', title: '.fl3-cred-title', skip: 'credits.skip', next: 'check.continue', cont: 'title.continue', start: 'title.start', checkIn: '.fl3-check-in' },
+    webKids: ['fl3-cred-title'],
+    appClass: false,
+    // the lines removed from ep3/js/data/ending.js on 2026-11-28 (credits: maker · voice/photo/sound · simplification · data · stats;
+    // check card: the three advice lines) — kept as literals so their absence can be proven
+    lines: () => ({
+      maker: G.T('만든 사람 {MAKER} · {N}에게'),
+      voice: '목소리: AI 음성 · 사진: AI 생성 + 직접 편집 · 소리: 전부 직접 합성',
+      data: '이 게임은 아무 데이터도 보내지 않았어요.',
+      statsRe: '플레이 \\d+분 · 힌트 \\d+회',
+      extra: ['통화 녹음·텍스트 변환의 동작은 게임 속 단순화입니다.', '게임 속 단순화', '차단된 통화·메시지', '공유 앨범의 멤버 목록', '집 호수가 보이면'],
+    }),
+    checkText: '스토킹·디지털 성범죄 피해: 112 · 여성긴급전화 1366',
+    boot: [['title.start', 450], ['warn.ok', 1200], ['ear.ok', 1200], ['ear.start', 1500]],
+    afterBoot: 'recap.skip',
+    eyeView: 'room.eye',
+    debugUI: ['.c3-debug-meter', '.c2-debug-err', '[data-qa="debug.meter"]'],
+    meterRe: 'his \\d+/1 ',
+    outlineRoot: '.rm3-debug', spots: '.rm3-spot',
+    roomProbe: () => { const a = window.haru.room('r3_door'); if (a) window.haru.rects(true); return !!a; },
+    stripped: ['window.haru', 'G.series._fixture', 'G.e3.budget', 'G.clock._scale', 'G.audio.meter', 'G.fx.roomLook'],
   },
 };
 const E = EPS[EP];
@@ -170,6 +197,7 @@ async function bodyHits(H, L) {
     const out = [];
     ['maker', 'voice', 'data'].forEach((k) => { if (L[k] && txt.indexOf(L[k]) >= 0) out.push(k + ': ' + L[k]); });
     const m = new RegExp(L.statsRe).exec(txt); if (m) out.push('stats: ' + m[0]);
+    (L.extra || []).forEach((w) => { if (txt.indexOf(w) >= 0) out.push('extra: ' + w); });
     ['AI 음성', 'AI 생성', '만든 사람', '아무 데이터도'].forEach((w) => { if (txt.indexOf(w) >= 0) out.push('fragment: ' + w); });
     return out;
   }, L);
@@ -209,7 +237,7 @@ async function webRun(browser, root, tag) {
     await H.ev(() => window.dispatchEvent(new ErrorEvent('error', { message: 'app_mode.js overlay probe' })));
     await H.sleep(2500);
     const d1 = await H.debugState();
-    check('web shows the debug meter (probe sanity)', d1.ui[0].vis > 0 && /his \d+\/25/.test(d1.ui[0].text), d1.ui);
+    check('web shows the debug meter (probe sanity)', d1.ui[0].vis > 0 && new RegExp(E.meterRe || 'his \\d+/25').test(d1.ui[0].text), d1.ui);
     check('web shows the error overlay line (probe sanity)', d1.ui[1].n > 0 && /overlay probe/.test(d1.ui[1].text), d1.ui);
     await H.shot('credits');
   });

@@ -1,8 +1,8 @@
 /* =========================================================
  * ep3/js/main.js (flow) — boot + resume (DESIGN_EP3 §3.22 · §9.2 다시 열기 · §6.1.8 · §9.5-4 back/Esc · §9.7 wake lock ·
  * §9.8 preload · §10 A title auto-check · ARCH_EP3 §5.1 init order · §8.2 first boot · §8.3 resume).
- *   Release gate, second lock: before release (no ?debug=1 / ?preview=1) this file shuts the page even if gate.js never ran —
- *   no init, no storage write, location.replace('../series/').
+ *   Engine check, second lock (fail-closed): if the series engine did not open the page (gate.js never ran or G.gate.released()
+ *   is not true) this file shuts it — no init, no storage write, location.replace('../series/'). Episode 3 itself is open.
  *   boot(): load save → settings (--ts, body classes, body.ep3) → inits in ARCH §5.1 order (each optional) → G.e3.seriesBoot()
  *           → HOOK ∧ ¬patched ⇒ the boot patch (G.hook.bootPatch) → title (or the warning directly after a 처음부터 reload).
  *   resumeFrom(state, {fromTitle}): unlock (gesture) + G.clock.start() → the ARCH §8.3 row for the saved state.
@@ -24,10 +24,9 @@
 
   function safe(fn, d) { try { return fn(); } catch (e) { console.error('[main]', e); return d; } }
 
-  /* ---------- release gate, fail-closed (§9.9) — the second lock behind gate.js ---------- */
+  /* ---------- engine check, fail-closed (§9.9) — the second lock behind gate.js ---------- */
   function released() {
     try {
-      if (/[?&](debug|preview)=1\b/.test(location.search || '')) return true;
       // ARCH §5.5: only e3.js / gate.js read the series record — no gate module = closed
       return !!(G.gate && typeof G.gate.released === 'function' && G.gate.released());
     } catch (e) { return false; }
@@ -84,7 +83,7 @@
     preload(G.PRELOAD || []);
     if (G.PRELOAD_GROUPS && G.PRELOAD_GROUPS.start) { loadedGroups.start = true; preload(G.PRELOAD_GROUPS.start); }
   }
-  /** the title background first, alone — no <link rel=preload> (the gate must be able to bounce a pre-release visit first) */
+  /** the title background first, alone — no <link rel=preload> (the engine check must be able to bounce first) */
   const TITLE_WAIT_MS = 6000;
   function titleFirst() {
     const src = safe(() => { const e = E(); return e && e.img ? e.img('t3_title') : (G.IMG && G.IMG.t3_title) || ''; }, '');
@@ -210,7 +209,7 @@
     if (M._booted) return;
     if (!released()) { shutGate(); return; }     // fail closed: nothing below runs
     M._booted = true;
-    if (document.body) { document.body.classList.add('ep3'); if (G.DEBUG) document.body.classList.add('debug'); }
+    if (document.body) { document.body.classList.add('ep3'); if (G.DEBUG && !G.APP) document.body.classList.add('debug'); }
     safe(() => { if (G.hasSave && G.hasSave() && G.load) G.load(); });
     applySettings();
     if (G.bus) G.bus.on('settings', applySettings);

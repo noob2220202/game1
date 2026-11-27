@@ -64,14 +64,14 @@
 |---|---|
 | 1편 | **완료(커밋 전).** 문구 정리와 `G.APP` 스위치가 들어갔다. `tools/qa/ep1_regress.js`와 `tools/qa/app_mode_ep1.js`가 통과했다(1편 담당 보고, 2026-11-27). |
 | 2편 | **완료(커밋 전).** 문구 정리가 들어갔고, 디버그 차단은 77b1c8d에 있다. 확인할 드라이버: `tools/qa/app_mode.js --ep=2`(웹 run a도 이제 제목만), `ep2_branches.js`(G가 `credits.skip`을 기다린다), `ep2_speedrun.js`. |
-| 3편 | **제작·QA 때 한다.** 할 일은 다음과 같다. |
+| 3편 | **문구 정리 · 앱 스위치 완료(커밋 전, 2026-11-28).** 크레딧은 제목만, 점검 카드는 도움말 한 줄, 경고 · 타이틀 · 이어폰 테스트 · 목표 문구 정리, ⏸ `목소리는 AI 음성입니다.` 한 줄, `G.APP`(`ep3/js/config.ep3.js`) · `CONFIG.APP`이면 `G.DEBUG` 끔 · 화면 디버그 · `E3.budget` 없음 · 인앱 카드는 `!G.APP`. 공개 잠금 없음(`RELEASES = { 2: 0, 3: 0 }`). 목록은 `TEXT_CLEANUP.md` §6, 최종 변경은 §6.1. |
 
-3편 할 일:
-- TEXT_CLEANUP.md의 3편 목록을 적용한다.
-- 크레딧은 G.APP 분기 없이 제목만 남긴다.
-- G.APP이면 화면 디버그 표시를 그리지 않는다. CONFIG.APP이면 G.DEBUG를 끈다.
-- 인앱 카드 조건에 `!G.APP`를 더한다.
-- `app_mode.js`의 `EPS`에 3편 항목을 더한다: `webKids` = 제목 하나, `appClass: false`, 점검 카드 = 도움말 한 줄.
+3편에서 남은 일 (앱 포장 전):
+- `tools/qa/app_mode.js`의 3편 행과 부재 목록을 새 문구에 맞춘다(옛 `만든 사람 {MAKER} · {N}에게` 기대가 남아 있다). 3편 `webKids` = 제목 하나, `appClass: false`, 점검 카드 = 도움말 한 줄.
+- `tools/qa/ep3_root_regress.js`의 `?preview=1` 기대(공개 전 반환 · 링크의 `?preview=1` 유지)를 '잠금 없음'으로 고친다. `ep3_branches.js` · `ep3_speedrun.js`가 지운 크레딧 · 타이틀 글자를 기다리는지 확인하고, 글자 대신 data-qa를 기다리게 고친다(O10).
+- (끝남) `soup`의 힌트 셋은 `hints: []`로 지워졌고, 엔진 수첩 `shown()`이 빈 힌트 목표를 거른다.
+- 포장(아래 '포장'): HTML 주석 · `beats.js` `note:` · `ep3/assets/img/meta.json`(`_qa`)을 dist에서 뺀다. `<noscript>`는 스크립트로 숨길 수 없으니 앱 빌드에서는 파일에서 뺀다.
+- 의뢰인 확인: 손글씨 글꼴(Nanum Pen Script · Nanum Brush Script · Gamja Flower) 내려받기 승인, 엄마 목소리 최종 승인, 스토어 설명의 AI 음성 표기 · AI 기본법.
 
 ## AI 음성 고지
 

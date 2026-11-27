@@ -2219,7 +2219,7 @@
       ? { 'data-qa': 'room.eye', tabindex: '0', 'aria-label': '' }
       : { 'data-qa': 'room.camera' });
     root.dataset.status = 'light';
-    if (G.DEBUG && R._debugRects) root.classList.add('rm3-debug');
+    if (G.DEBUG && !G.APP && R._debugRects) root.classList.add('rm3-debug');
     const vp = el('div.rm3-vp');
     const turnWrap = el('div.rm3-turn');
     vp.appendChild(turnWrap);
@@ -2934,7 +2934,7 @@
     h.room = function (view) { const rid = (view && roomOfView(view)) || whereNow(); const a = R.open({ mode: 'camera', room: rid, view: view || undefined }); return a ? R.current() : null; };
     h.rects = function (on) {
       R._debugRects = on === undefined ? !R._debugRects : !!on;
-      insts.forEach((i) => { const r = i.api && i.api.root; if (r) r.classList.toggle('rm3-debug', !!R._debugRects); });
+      insts.forEach((i) => { const r = i.api && i.api.root; if (r) r.classList.toggle('rm3-debug', !!R._debugRects && !G.APP); });
       return R._debugRects;
     };
     h.roomFx = FX;

@@ -285,8 +285,16 @@ const WANT_CB = Object.assign({ A: EP1 === 'done', A1: EP1 === 'done' },
 
     /* 1 ─ title → cold open → 03:33 → handover → lock → gotPhone */
     await step('1 title → warning → earphone test', async () => {
+      // cleaned texts (2026-11-28): the removed title / warning / ear-test lines are absent, the kept ones present
+      const txt0 = () => ev(() => document.body.innerText);
+      let t0 = await txt0();
+      check('title: no 약 45분 / 이어폰 권장 small print', !/약 45분|이어폰 권장/.test(t0), t0.slice(0, 200));
       await tap('title.start');
+      t0 = await txt0();
+      check('warning: one line 실종·스토킹·감금·납치 소재가 나옵니다.', t0.includes('실종·스토킹·감금·납치 소재가 나옵니다.'), t0.slice(0, 200));
       await tap('warn.ok', { after: 1200 });
+      t0 = await txt0();
+      check('ear test: guide line 종소리를 들어 보세요. · no foot / result lines', t0.includes('종소리를 들어 보세요.') && !(await ev(() => !!document.querySelector('.fl3-ear-foot, .fl3-ear-res'))), t0.slice(0, 200));
       await tap('ear.ok', { after: 1200 });
       await tap('ear.start', { after: 1500 });
       const recap = await tapIf('recap.skip', 3000);
@@ -635,7 +643,16 @@ const WANT_CB = Object.assign({ A: EP1 === 'done', A1: EP1 === 'done' },
       await tap('chip.opt:big', { after: 900 });
       await cards(120000);
       await tap('end.next', { timeout: 60000, after: 1500 });
+      await loc('credits.skip').waitFor({ state: 'visible', timeout: 30000 });
+      await sleep(1500);
+      // credits = the title block only; none of the removed lines (maker / voice / simplification / data / stats) anywhere
+      const cr = await ev(() => { const s = document.querySelector('.fl3-credits .fl3-cred-in'); return { kids: s ? [...s.children].map((k) => k.className) : null, body: document.body.innerText }; });
+      check('credits = the title block only', !!cr.kids && cr.kids.length === 1 && /fl3-cred-title/.test(cr.kids[0]), cr.kids);
+      check('credits: none of the removed lines on screen', !/만든 사람|AI 음성|AI 생성|게임 속 단순화|아무 데이터도|플레이 \d+분|힌트 \d+회/.test(cr.body), cr.body.slice(0, 300));
       await tap('credits.skip', { timeout: 30000, after: 1500 });
+      await loc('check.continue').waitFor({ state: 'visible', timeout: 30000 });
+      const ck = await ev(() => { const n = document.querySelector('.fl3-check-in'); return n ? { lines: n.children.length, text: n.textContent } : null; });
+      check('check card = the help line only (112 · 1366)', !!ck && ck.lines === 1 && ck.text === '스토킹·디지털 성범죄 피해: 112 · 여성긴급전화 1366', ck);
       await tap('check.continue', { timeout: 30000, after: 1500 });
       await waitFlag('HOOK', 30000);
       await milestone('HOOK');
@@ -653,6 +670,7 @@ const WANT_CB = Object.assign({ A: EP1 === 'done', A1: EP1 === 'done' },
       });
       check('hook: blocked messages rendered by comms inside the ring close-up (positioned host · new line shown)', hk.has && !hk.fb && hk.rows > 0 && hk.pos !== 'static' && hk.newLine, hk);
       await shot('hook_line');
+      if (SERIES) await ev(() => { window.addEventListener('pagehide', () => { try { sessionStorage.setItem('__qa_series', JSON.stringify(G.series.get())); } catch (e) {} }); });   // fixture (memory) store dies with the hook's reload - keep a copy
       await tap('hook.home', { timeout: 20000, after: 2000 });
       await waitFlag('hookDone', 6000);
       check('vars.patched after the hook', await ev(() => G.state.vars.patched === true));
@@ -711,6 +729,7 @@ const WANT_CB = Object.assign({ A: EP1 === 'done', A1: EP1 === 'done' },
     });
     await step('series record + after-hook keys', async () => {
       series = await ev(() => { try { return G.series.get(); } catch (e) { return null; } });
+      if (SERIES) { const pre = await ev(() => { try { return JSON.parse(sessionStorage.getItem('__qa_series')); } catch (e) { return null; } }); check('series record captured at the hook reload (memory store)', !!(pre && pre.eps), pre); if (pre) series = pre; }
       if (!SERIES) check('record stored in localStorage', await ev(() => !!localStorage.getItem('haru-escape.series.v1')));
       const e3 = series && series.eps && series.eps['3'];
       check('eps.3 done/canon', e3 && e3.st === 'done' && e3.canon === true, e3);

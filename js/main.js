@@ -49,7 +49,7 @@
     try {
       const S = G.series;
       if (!S || !S.isReleased || !Object.keys(S.releases || {}).some((n) => +n > 1 && S.isReleased(+n))) return null;
-      const href = 'series/' + (location.protocol === 'file:' ? 'index.html' : '') + (/[?&]preview=1\b/.test(location.search) ? '?preview=1' : '');
+      const href = 'series/' + (location.protocol === 'file:' ? 'index.html' : '');
       return el('a', { href, 'data-qa': 'title.series', style: { display: 'inline-block', minHeight: '44px', lineHeight: '44px', fontSize: '12px', color: '#8a8a90', letterSpacing: '2px', textDecoration: 'none', padding: '0 14px' } }, '다른 이야기');
     } catch (e) { return null; }
   }

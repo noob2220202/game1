@@ -7,6 +7,8 @@ haru.pengueverything.cloud {
 	# /ep2/assets/img/meta.json = 이미지 측정값·QA 메모 (tools/post_ep2.py 산출물, 런타임은 ep2/js/data/assets.js 의
 	# G.IMGMETA 만 읽음) — 숨는 곳·연출 제작 메모가 들어 있어 공개하지 않음
 	# /ep3/assets/img/meta.json = 같은 성격(tools/post_ep3.py 산출물 · 런타임은 ep3/js/data/assets.js 의 G.IMGMETA 인라인 사본만)
+	# ep3/assets 에서 런타임이 아닌 파일은 meta.json 하나뿐이다(나머지는 jpg · png · wav — 2026-11-28 확인). 새 QA 메모 파일(*.md · *.json 산출물)이 생기면 여기에 더한다
+	# /ep1.html = 1편(루트 / 는 에피소드 선택 화면) — *.html 이라 아래 no-cache 규칙을 그대로 받는다
 	# /docs/* 에는 3편 설계·정답(DESIGN_EP3 · ARCH_EP3 · setC 원본)도 있다 — 이미 숨김
 	@hidden path /.git /.git/* /deploy /deploy/* /docs /docs/* /tools /tools/* /work /work/* /README.md /.gitignore /ep2/assets/img/meta.json /ep3/assets/img/meta.json
 	respond @hidden 404

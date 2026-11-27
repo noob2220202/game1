@@ -1,13 +1,13 @@
 /* =========================================================
- * ep3/js/gate.js — release gate + the title's one link back to the episode picker (core · ARCH_EP3 §5.5 · DESIGN_EP3 §9.9).
+ * ep3/js/gate.js — engine check + the title's one link back to the episode picker (core · ARCH_EP3 §5.5 · DESIGN_EP3 §9.9).
  *   = ep2/js/gate.js with isReleased(2) → isReleased(3) and fl2-title / fl2-t-smalls / fl2-small → fl3-*.
- *   Loaded in ep3/index.html right after ../engine/series.js and before any engine / flow script (the first executing code):
- *   before G.series.isReleased(3) (release table in engine/series.js — the one source) and without ?debug=1 / ?preview=1 the
- *   page hides its body, stops parsing (window.stop — no later <script> runs) and replaces itself with the picker
- *   (../series/ · file: → ../series/index.html). Then nothing boots: no ep3 save, no 'eps.3 started', no listener, no timer,
- *   no storage. If engine/series.js is missing the gate stays closed.
+ *   Loaded in ep3/index.html right after ../engine/series.js and before any engine / flow script (the first executing code).
+ *   Episode 3 opens by its direct URL with no parameters (RELEASES[3] = 0 in engine/series.js — the one source). The page stays
+ *   fail-closed for a broken series engine: if engine/series.js is missing or G.series.isReleased(3) is not true, the page hides
+ *   its body, stops parsing (window.stop — no later <script> runs) and replaces itself with the picker (../series/ · file: →
+ *   ../series/index.html). Then nothing boots: no ep3 save, no 'eps.3 started', no listener, no timer, no storage.
  * Exposes G.gate = { released() → bool, titleLink(node) → <a> | null }
- *   titleLink(node): puts the single quiet '다른 이야기' link (a.fl3-small · data-qa title.series · keeps ?preview=1) into node.
+ *   titleLink(node): puts the single quiet '다른 이야기' link (a.fl3-small · data-qa title.series) into node.
  *   Also automatic, like ep2: whenever a .fl3-title scene is added to #screen, the link is appended to its .fl3-t-smalls row
  *   unless the title already holds one (never two links — §10 K).
  * Player-facing text: '다른 이야기' only (DESIGN §4.0 · G.STORY.cards.title.series). No storage, no network, no timers.
@@ -15,13 +15,10 @@
 (function () {
   'use strict';
   var W = window, D = document, L = W.location;
-  var q = L.search || '';
-  var preview = /[?&]preview=1\b/.test(q);
-  var debug = /[?&]debug=1\b/.test(q);
   var picker = '../series/' + (L.protocol === 'file:' ? 'index.html' : '');
   var S = W.G && W.G.series;
-  var open = debug || preview;
-  if (!open) { try { open = !!(S && S.isReleased && S.isReleased(3)); } catch (e) { open = false; } }
+  var open = false;
+  try { open = !!(S && S.isReleased && S.isReleased(3)); } catch (e) { open = false; }
 
   if (!open) {
     try { if (D.body) D.body.style.visibility = 'hidden'; } catch (e) {}
@@ -31,7 +28,7 @@
   }
 
   /* ---------- the title link back to the picker ---------- */
-  var href = picker + (preview ? '?preview=1' : '');
+  var href = picker;
   var LABEL = '다른 이야기';
   function label() {
     try { var c = W.G && W.G.STORY && W.G.STORY.cards && W.G.STORY.cards.title; if (c && typeof c.series === 'string' && c.series) return c.series; } catch (e) {}
@@ -75,8 +72,6 @@
     }).observe(scr, { childList: true });
   }
   W.G = W.G || {};
-  // released(): the real release state (true also with ?preview=1, which isReleased honours) — ?debug=1 opens the page
-  // without making the episode 'released'
   W.G.gate = { released: function () { try { return !!(S && S.isReleased && S.isReleased(3)); } catch (e) { return false; } }, titleLink: titleLink };
   if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', watch); else watch();
 })();

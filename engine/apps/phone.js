@@ -460,7 +460,7 @@
     io.observe(node);
     return () => { done = true; clearTimeout(tmr); if (io) io.disconnect(); };
   }
-  PH.missedRowVisible = function () {
+  if (!G.APP || G.DEBUG) PH.missedRowVisible = function () {
     try {
       const top = G.phone && G.phone.top && G.phone.top(); if (!top || !top.node) return false;
       const r = top.node.querySelector('[data-row="sea-20251124-0331"]'); if (!r) return false;

@@ -39,9 +39,8 @@ body.ep3 { --hand: 'Gaegu', cursive; --fl3-warm: #d9a873; --fl3-btn: #7a5236; --
 .fl3-t-in { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; max-width: 340px; margin: 0 auto; text-align: center; }
 .fl3-t-name { margin: 0; font-family: var(--serif); font-weight: 700; font-size: calc(34px * var(--ts, 1)); line-height: 1.22; letter-spacing: -1px; color: #efe9e1; text-shadow: 0 0 30px rgba(217, 168, 115, .2); word-break: keep-all; }
 .fl3-t-name em { font-style: normal; color: var(--fl3-warm); }
-.fl3-t-sub { font-family: 'Nanum Brush Script', var(--hand); font-size: calc(32px * var(--ts, 1)); line-height: 1; color: #d8c9b4; margin-top: -2px; opacity: .94; }
+.fl3-t-sub { font-family: 'Nanum Pen Script', 'Gaegu', cursive; font-size: calc(30px * var(--ts, 1)); line-height: 1; color: #d8c9b4; transform: rotate(-2deg); margin-top: -2px; opacity: .94; }
 .fl3-t-btns { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 300px; margin-top: 24px; }
-.fl3-t-foot { font-size: calc(11.5px * var(--ts, 1)); color: #6c665f; margin-top: 8px; letter-spacing: .3px; word-break: keep-all; }
 .fl3-t-smalls { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 14px; min-height: 0; }
 .fl3-t-note { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .fl3-t-note.in { position: static; width: auto; height: auto; overflow: hidden; clip-path: none; white-space: normal; flex-basis: 100%; display: flex; align-items: center; justify-content: center;
@@ -67,8 +66,7 @@ body.ep3 { --hand: 'Gaegu', cursive; --fl3-warm: #d9a873; --fl3-btn: #7a5236; --
 .fl3-ear-ok:active { background: rgba(255, 248, 240, .09); }
 .fl3-ear-ok:disabled { opacity: .35; }
 .fl3-ear-alt { display: flex; justify-content: center; gap: 6px; }
-.fl3-ear-res { min-height: 46px; font-size: calc(14px * var(--ts, 1)); line-height: 1.6; color: #ddd7cf; word-break: keep-all; display: flex; align-items: center; justify-content: center; }
-.fl3-ear-foot { font-size: calc(11.5px * var(--ts, 1)); color: #625c55; word-break: keep-all; }
+.fl3-ear-guide.res { display: flex; align-items: center; justify-content: center; color: #ddd7cf; font-weight: 600; letter-spacing: .3px; }
 .fl3-ear .fl3-btn.primary.ready { box-shadow: 0 0 0 1px rgba(217, 168, 115, .35), 0 8px 30px rgba(122, 82, 54, .35); }
 
 /* ---------------- '지난 이야기' (notebook hand on black) ---------------- */
@@ -83,6 +81,7 @@ body.ep3 { --hand: 'Gaegu', cursive; --fl3-warm: #d9a873; --fl3-btn: #7a5236; --
 .fl3-pause-head { font-family: var(--serif); font-size: calc(22px * var(--ts, 1)); color: #efe9e1; text-align: center; letter-spacing: 2px; margin-bottom: 2px; }
 .fl3-prows { display: flex; flex-direction: column; border-top: 1px solid #211e1b; }
 .fl3-prow { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; min-height: 52px; padding: 4px 0; border-bottom: 1px solid #211e1b; }
+.fl3-prow .fl3-pnote { flex-basis: 100%; margin: -2px 0 6px; font-size: calc(11.5px * var(--ts, 1)); line-height: 1.6; color: #6c665f; word-break: keep-all; }
 .fl3-plabel { font-size: calc(14px * var(--ts, 1)); color: #bbb4ab; white-space: nowrap; }
 .fl3-seg { display: flex; border: 1px solid #36322e; border-radius: 10px; overflow: hidden; margin-left: auto; }
 .fl3-seg button { min-height: 44px; min-width: 44px; padding: 0 11px; font-size: calc(12.5px * var(--ts, 1)); color: #8f8880; border-left: 1px solid #2c2925; white-space: nowrap; }
@@ -102,16 +101,11 @@ body.ep3 { --hand: 'Gaegu', cursive; --fl3-warm: #d9a873; --fl3-btn: #7a5236; --
 .fl3-credits { display: flex; align-items: center; justify-content: center; padding: 30px 26px; background: #000; transition: opacity 1.2s ease; cursor: pointer; }
 .fl3-cred-bg { position: absolute; inset: -20px; background: #050608 center / cover no-repeat; filter: blur(7px) brightness(.42) saturate(.8); opacity: .9; }
 .fl3-cred-in { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; max-width: 340px; }
-.fl3-cred-title { font-family: var(--serif); font-size: calc(22px * var(--ts, 1)); font-weight: 700; color: #efe9e1; line-height: 1.5; margin-bottom: 14px; word-break: keep-all; }
+.fl3-cred-title { font-family: var(--serif); font-size: calc(22px * var(--ts, 1)); font-weight: 700; color: #efe9e1; line-height: 1.5; word-break: keep-all; }
 .fl3-cred-l1, .fl3-cred-l2 { display: block; }
 .fl3-cred-l2 { margin-top: 4px; font-size: .82em; font-weight: 400; letter-spacing: 1px; color: #d8c9b4; }
 .fl3-credits p { margin: 0; font-size: calc(14.5px * var(--ts, 1)); color: #c2bbb2; line-height: 1.7; word-break: keep-all; }
-.fl3-credits p.dim { font-size: calc(12px * var(--ts, 1)); color: #7d766e; margin-top: 4px; }
-.fl3-credits p.small { font-size: calc(11.5px * var(--ts, 1)); color: #625c55; margin-top: 8px; font-variant-numeric: tabular-nums; }
 .fl3-credits .fl3-cred-in > * { animation: fl3Rise 2.4s ease both; }
-.fl3-credits .fl3-cred-in > :nth-child(2) { animation-delay: 1.2s; } .fl3-credits .fl3-cred-in > :nth-child(3) { animation-delay: 2.4s; }
-.fl3-credits .fl3-cred-in > :nth-child(4) { animation-delay: 3.4s; } .fl3-credits .fl3-cred-in > :nth-child(5) { animation-delay: 4.2s; }
-.fl3-credits .fl3-cred-in > :nth-child(6) { animation-delay: 5s; }
 @keyframes fl3Rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .fl3-check { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; padding: 30px 26px calc(var(--safe-bot, 0px) + 30px); background: #060505; transition: opacity .8s ease, background 1s; }
 .fl3-check-in { max-width: 360px; display: flex; flex-direction: column; gap: 10px; }
@@ -138,8 +132,6 @@ body.ep3 { --hand: 'Gaegu', cursive; --fl3-warm: #d9a873; --fl3-btn: #7a5236; --
   .fl3-deskpause:hover { color: #ddd; border-color: #47423d; }
   #stage:has(> .fl3-deskpause.on) .sb-pause { visibility: hidden; pointer-events: none; }
 }
-@media (max-width: 699px) { .fl3-desk { display: none; } }
-.desk-hint { word-break: keep-all; }   /* Korean wraps between words ('휴대폰으 / 로' was split mid-word) */
 
 /* =====================================================================
  * stand-ins for partial builds (core cards · room eye · shell E9 · comms blocked list) — same layers, quiet looks

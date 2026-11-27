@@ -59,7 +59,7 @@
   function titleOf(o) { return T(typeof o.title === 'function' ? safe(o.title, '') : o.title); }
 
   /* ---------- objectives ---------- */
-  function shown() { return (G.OBJECTIVES || []).filter((o) => safe(() => !o.show || !!o.show(), false)); }
+  function shown() { return (G.OBJECTIVES || []).filter((o) => !(Array.isArray(o.hints) && !o.hints.length)).filter((o) => safe(() => !o.show || !!o.show(), false)); }
   function isDone(o) { return safe(() => !!(o.done && o.done()), false); }
   function checked(o) { return safe(() => !!(o.doneMark ? o.doneMark() : o.done && o.done()), false); }
   // ep2: grayAfterM7 · ep3: greyAfter:'<flag>' (DESIGN_EP3 §2.4 — block · dnd · album turn grey after 'M8'); a card left

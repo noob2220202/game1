@@ -303,33 +303,20 @@
     safe(() => G.notebook && G.notebook.close && G.notebook.close());
     safe(() => G.notebook && G.notebook.show && G.notebook.show(false));
     HOUSE.forEach((id) => amb(id, true, { gainDb: -6, fade: 3 }));
-    const mins = Math.round(((G.state && G.state.playMs) || 0) / 60000);
-    const hints = (G.state && G.state.hintsUsed) || 0;
     const ttl = String(T(lines[0] || ''));
     const cut = ttl.lastIndexOf(' · ');
     const glue = (s) => s.replace(/ (\S{1,3})$/, ' $1');
     const titleNode = cut > 0
       ? el('div.fl3-cred-title', null, el('span.fl3-cred-l1', null, glue(ttl.slice(0, cut))), el('span.fl3-cred-l2', null, ttl.slice(cut + 3)))
       : el('div.fl3-cred-title', null, glue(ttl));
-    const voiceNode = checkLine(T(lines[2] || '')); voiceNode.classList.add('dim');
-    const stats = T(String(lines[5] || '').replace('{m}', String(mins)).replace('{n}', String(hints)));
     const bg = el('div.fl3-cred-bg');
     const src = safe(() => (F().img ? F().img('c3_window') : ''), '');
     if (src) bg.style.backgroundImage = `url("${src}")`;
     const scene = el('div.fl3-scene.fl3-credits', { 'data-qa': 'credits.skip', role: 'button' }, bg,
       el('div.fl3-cred-in', null,
-        titleNode,
-        el('p.fl3-cred-maker', null, T(lines[1] || '')),
-        voiceNode,
-        el('p.dim', null, T(lines[3] || '')),
-        el('p.dim', null, T(lines[4] || '')),
-        el('p.small', null, stats)));
+        titleNode));
     (scr() || document.body).appendChild(scene);
     requestAnimationFrame(() => scene.classList.add('in'));
-    const fitV = () => fitCheckLine(voiceNode);
-    requestAnimationFrame(() => requestAnimationFrame(fitV));
-    safe(() => { if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => requestAnimationFrame(fitV)); });
-    window.addEventListener('resize', fitV);
     const rb = safe(() => (G.phone && G.phone.pushBack ? G.phone.pushBack(() => true) : null), null);
     // the eye view (c3_window) under the credits is no longer needed
     setTimeout(() => { if (eye) closeEye(0); }, 1200);
@@ -341,7 +328,6 @@
       wait(20000).then(fin);
     });
     setStep('cred');
-    window.removeEventListener('resize', fitV);
     if (typeof rb === 'function') safe(rb);
     scene.classList.remove('in'); scene.classList.add('out');
     setTimeout(() => scene.remove(), 800);
