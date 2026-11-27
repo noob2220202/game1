@@ -64,7 +64,7 @@
     G.audio.sfx.castEnd();
     G.fx.glitch(120);
     G.phone.toast('화면 공유가 중지되었습니다');
-    G.notebook && G.notebook.note && G.notebook.note('화면 공유를 끊었다. 이제 그 사람은 화면을 못 본다.');
+    G.notebook && G.notebook.note && G.notebook.note('화면 공유를 끊었다.');
     await sleep(1500);
     const burst = BD().cutBurst;
     G.flag('haruThread', true);

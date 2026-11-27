@@ -26,7 +26,7 @@
       .replace(/\{N\}/g, NAME);
   };
 
-  if (window.CONFIG && window.CONFIG.DEBUG) document.body.classList.add('debug');
+  if (G.DEBUG && !G.APP) document.body.classList.add('debug');   // hotspot outlines — never under G.APP (app build / ?app=1)
 
   function applySettings() {
     document.documentElement.style.setProperty('--ts', G.settings.textSize);
@@ -68,12 +68,11 @@
         has ? el('button.title-btn.primary', { onclick: () => start(true) }, ended ? '엔딩 다시 보기' : '이어하기') : null,
         el('button.title-btn' + (has ? '' : '.primary'), { onclick: () => (has ? confirmNew() : warn()) }, has ? '처음부터' : '시작하기'),
         el('button.title-btn', { onclick: options }, '설정')),
-      seriesLink(),
-      el('div.title-foot', null, '🎧 이어폰 필수 · 어두운 곳 · 약 40분\n진행 상황은 자동 저장됩니다'));
+      seriesLink());
     scr.append(bg, inner);
     document.getElementById('screen').appendChild(scr);
     G._title = scr;
-    if (/KAKAOTALK|Instagram|FBAN|FBAV|Line\/|NAVER|DaumApps/i.test(navigator.userAgent)) {
+    if (!G.APP && /KAKAOTALK|Instagram|FBAN|FBAV|Line\/|NAVER|DaumApps/i.test(navigator.userAgent)) {   // in-app browser card — web only, never under G.APP (O2)
       const card = el('div.title-screen', { style: { justifyContent: 'center', zIndex: 330 } }, el('div.title-inner', { style: { maxWidth: '320px' } },
         el('div.warn-box', { html: '카카오톡 안에서는 <b>소리·진동</b>이 제대로 동작하지 않아요.<br>오른쪽 위 <b>⋯</b> → <b>\'다른 브라우저로 열기\'</b>를 눌러 주세요.' }),
         el('button.title-btn', { style: { width: '100%', marginTop: '14px' }, onclick: () => card.remove() }, '그냥 할래요')));
@@ -99,7 +98,7 @@
       el('div.opt-row', null, el('span', null, '사운드'), seg('sound', [[true, '켜기'], [false, '끄기']])),
       el('div.opt-row', null, el('span', null, '진동'), seg('vibration', [[true, '켜기'], [false, '끄기']])),
       el('div.opt-row', null, el('span', null, '공포 연출'), seg('scares', [['full', '보통'], ['light', '덜 무섭게'], ['off', '없음']])),
-      el('div.opt-row', null, el('span', null, '목소리(TTS)'), seg('voice', [[true, '켜기'], [false, '끄기']])),
+      el('div.opt-row', null, el('span', null, '목소리', el('small.opt-note', null, '목소리는 AI 음성입니다.')), seg('voice', [[true, '켜기'], [false, '끄기']])),
       el('div.opt-row', null, el('span', null, '글자 크기'), seg('textSize', [[0.92, '작게'], [1, '보통'], [1.1, '크게']])));
     const ov = el('div.title-screen', { style: { justifyContent: 'center', zIndex: 320 } },
       el('div.title-inner', { style: { maxWidth: '340px' } }, el('div.title-kicker', null, 'SETTINGS'), body,
@@ -113,12 +112,7 @@
     const ov = el('div.title-screen', { style: { justifyContent: 'center', zIndex: 320 } },
       el('div.title-inner', { style: { maxWidth: '340px' } },
         el('div.title-kicker', null, 'WARNING'),
-        el('div.warn-box', { html:
-          '이 게임에는 <b>공포 연출(갑작스러운 소리, 어두운 장면), 스토킹·실종</b>을 다루는 내용이 있습니다. 언제든 설정에서 \'공포 연출: 덜 무섭게\'로 바꿀 수 있어요.<br><br>' +
-          '🎧 <b>이어폰</b>을 끼고 플레이해 주세요.<br>' +
-          '🔦 방은 어둡습니다. 화면 밝기를 올려주세요.<br>' +
-          '📓 막히면 오른쪽 위 <b>수첩</b>에서 힌트를 볼 수 있어요.<br>' +
-          '📱 카메라·마이크·센서 권한은 전혀 쓰지 않아요. 화면 터치만으로 플레이합니다.' }),
+        el('div.warn-box', { html: '공포 연출과 스토킹·실종 소재가 있습니다.<br>📓 힌트는 오른쪽 위 <b>수첩</b>에 있어요.' }),
         el('button.title-btn.primary', { style: { width: '100%', marginTop: '18px' }, onclick: () => { ov.remove(); G.scenes.immersion(() => start(false)); } }, '알겠어요'),
         el('button.title-btn', { style: { width: '100%', marginTop: '8px' }, onclick: () => ov.remove() }, '돌아가기')));
     document.getElementById('screen').appendChild(ov);
@@ -141,8 +135,8 @@
     if (/Android/i.test(navigator.userAgent) && de.requestFullscreen) { de.requestFullscreen({ navigationUI: 'hide' }).catch(() => {}); }
   }
 
-  /* ---------- debug helpers ---------- */
-  window.haru = {
+  /* ---------- debug helpers (web only — never in the app build, CONFIG.APP === true) ---------- */
+  if (!G.APP_BUILD) window.haru = {
     flags: () => G.state.flags,
     set: (f) => G.flag(f, true),
     skip: (ms) => { G.state.playMs += ms || 60000; },

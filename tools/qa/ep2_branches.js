@@ -343,7 +343,12 @@ const SCEN = {
     if (!(letter.lines >= 2)) throw new Error('letter line break lost: ' + JSON.stringify(letter));
     res.notes.push('letter card ok');
     await H.tap('card.continue', { timeout: 10000, after: 1500 });
-    await H.waitText('만든 사람 민지', 10000);
+    // credits = the title block only (client 2026-11-27): no maker line — the filled MAKER_NAME never shows there
+    await H.loc('credits.skip').waitFor({ state: 'visible', timeout: 10000 });
+    await H.sleep(2600);
+    const cred = await H.ev(() => { const c = document.querySelector('.fl2-credits'); return c ? { text: c.innerText, kids: c.querySelector('.fl2-cred-in').children.length } : null; });
+    if (!cred || cred.kids !== 1 || cred.text.indexOf('하루를 위한 방탈출!') < 0 || /민지|만든 사람/.test(cred.text)) throw new Error('credits not the title block only: ' + JSON.stringify(cred));
+    res.notes.push('credits title only');
     await H.shot('credits');
     await H.tap('credits.skip', { timeout: 30000, after: 1500 });
     await H.tap('check.continue', { timeout: 20000, after: 1500 });

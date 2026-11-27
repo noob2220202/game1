@@ -68,7 +68,7 @@
     { id: 'H5', title: '관리실', optional: true, show: () => (hub() || !!(vars().fired || {}).B08) && !f('M7'), done: () => f('managerExposed'),
       hints: ['관리실 번호, 진짜 맞을까?', "현관문 쪽을 카메라로 확대해 봐. 스티커가 있어. 그리고 연락처 '관리실'의 수정 날짜.", '스티커 02-338-5120 ≠ 연락처 010-8817-3302. 세아가 사라진 다음 날 누가 번호를 바꿨어.'] },
     { id: 'H6', title: '내 폰', optional: true, show: () => f('F2') && !f('M7'), done: () => f('ringHeard'),
-      hints: ['폰 잃어버리면 제일 먼저 뭘 하지?', '"{N}" 대화방, 그거 네 계정이잖아. 전화 걸어 봐.', '톡 › {N} › 📞 그리고 카메라를 켜서 소리 나는 쪽을 봐. (이어폰 추천)'] },
+      hints: ['폰 잃어버리면 제일 먼저 뭘 하지?', '"{N}" 대화방, 그거 네 계정이잖아. 전화 걸어 봐.', '톡 › {N} › 📞 그리고 카메라를 켜서 소리 나는 쪽을 봐.'] },
   ];
 
   /** hub leads: none. (Client: no unsolicited pointers — the player finds the places from 세아's letter.) */

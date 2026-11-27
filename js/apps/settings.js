@@ -281,7 +281,7 @@
       wrap.appendChild(card);
     });
     const body = el('div', null,
-      el('div.nh-head', null, el('b', null, '알림 기록'), el('span', null, '최근 24시간 동안 받은 알림 · 삭제된 알림 포함'), el('div.nh-on', null, '사용 중', toggle(true, () => { G.phone.toast('알림 기록을 끄면 지금까지의 기록이 지워집니다. 끄지 않았습니다.'); return false; }))),
+      el('div.nh-head', null, el('b', null, '알림 기록'), el('span', null, '최근 24시간 동안 받은 알림 · 삭제된 알림 포함'), el('div.nh-on', null, '사용 중', toggle(true, () => { G.phone.toast('알림 기록을 끄면 지금까지의 기록이 지워집니다.'); return false; }))),
       wrap);
     screen('알림 기록', body, 'nh-screen');
     G.bus.emit('settings:notifHistory');
@@ -299,8 +299,7 @@
       group('음량', [
         el('div.st-slrow', null, el('span', null, '미디어'), slider(s.volume != null ? s.volume : 0.9, (v) => { s.volume = v; try { G.audio.setVolume(v); } catch (e) {} }, { onEnd: () => G.saveSettings() })),
         el('div.st-slrow', null, el('span', null, '알림'), slider(0.7, () => {})),
-      ]),
-      el('div.st-foot', null, '이 게임의 소리에는 방향이 있습니다. 이어폰을 권장합니다.'));
+      ]));
     screen('소리 및 진동', body);
   };
   function textSizeControl() {
@@ -321,8 +320,7 @@
       group(null, [
         el('div.st-slrow', null, el('span', null, '밝기'), slider(0.35, () => {})),
         row({ title: '다크 모드', right: toggle(false, () => { G.phone.toast('관리자 설정으로 변경할 수 없습니다'); return false; }) }),
-      ]),
-      el('div.st-foot', null, '글자 크기는 게임 전체(톡, 메모 등)에 적용됩니다.'));
+      ]));
     screen('디스플레이', body);
   };
 
@@ -434,8 +432,8 @@
     const bal = el('div.st-slrow.bal', null, el('span', null, '왼쪽'), slider(0.5, () => {}), el('span', null, '오른쪽'));
     const body = el('div', null,
       group('오디오', [monoRow, el('div.st-subh', null, '좌우 음향 밸런스'), bal]),
-      group(null, [row({ title: '자막 표시', sub: '소리에 자막을 함께 표시합니다.', right: toggle(true, () => { G.phone.toast('이 게임은 모든 소리에 자막을 표시합니다'); return false; }) })]),
-      el('div.st-foot', null, '모노 오디오를 켜면 이어폰의 두 채널이 같은 소리로 합쳐집니다. 방향이 있는 소리는 구분하기 어려워질 수 있어요.'));
+      group(null, [row({ title: '자막 표시', sub: '소리에 자막을 함께 표시합니다.', right: toggle(true, () => false) })]),
+      el('div.st-foot', null, '모노 오디오를 켜면 이어폰의 두 채널이 같은 소리로 합쳐집니다.'));
     const scr = screen('오디오', body);
     G.flag('monoSeen', true);
     G.bus.emit('settings:audio');

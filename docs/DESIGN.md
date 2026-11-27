@@ -167,13 +167,14 @@ P8 needs: P7 done (remoteAdmin = none) AND notebook fragments 47+29+06 (or playe
 Format: **Where** = app › screen › element. **Accept** = normalized answer set (normalize: trim, remove spaces/punctuation/emoji, lowercase, NFC). **Unlock** = state flags set.
 
 ### P0 — 콜드오픈 (0–3 min)
-1. **Title** (`하루를 위한 방탈출!`, credit `made by {MAKER} for {NAME}`). Buttons: `시작하기` / `이어하기` (if save). Small line: `🎧 이어폰 권장 · 어두운 곳에서 · 약 40분`. In-app webview detected (KAKAOTALK / Instagram / FBAN / Line UA) → card: `카카오톡 안에서는 소리·센서가 제대로 동작하지 않아요. 오른쪽 위 ⋯ → '다른 브라우저로 열기'를 눌러 주세요.` + `그냥 할래요`.
-2. **콘텐츠 안내** card: `이 게임에는 공포 연출(갑작스러운 소리, 어두운 장면, 스토킹 소재)이 있습니다. 언제든 ⏸ 메뉴에서 '덜 무섭게'를 켤 수 있어요.` [확인]
+1. **Title** (`하루를 위한 방탈출!`, credit `made by {MAKER} for {NAME}`). Buttons: `시작하기` / `이어하기` (if save). Small line: `🎧 이어폰 권장 · 어두운 곳에서 · 약 40분`. In-app webview detected (KAKAOTALK / Instagram / FBAN / Line UA) → card: `카카오톡 안에서는 소리·센서가 제대로 동작하지 않아요. 오른쪽 위 ⋯ → '다른 브라우저로 열기'를 눌러 주세요.` + `그냥 할래요`. *(2026-11-27 text cleanup: the title credit and the small line (shipped as `🎧 이어폰 필수 · 어두운 곳 · 약 40분` + `진행 상황은 자동 저장됩니다`) are gone, and so is the desktop `desk-hint`. The in-app card stays, web only. See `docs/TEXT_CLEANUP.md` §3.)*
+2. **콘텐츠 안내** card: `이 게임에는 공포 연출(갑작스러운 소리, 어두운 장면, 스토킹 소재)이 있습니다. 언제든 ⏸ 메뉴에서 '덜 무섭게'를 켤 수 있어요.` [확인] *(2026-11-27 text cleanup: the card now reads `공포 연출과 스토킹·실종 소재가 있습니다.` / `📓 힌트는 오른쪽 위 수첩에 있어요.`. The earphone, brightness and permission lines are gone. See `docs/TEXT_CLEANUP.md` §3.)*
 3. **몰입 설정** (one screen, each toggle = its own tap so iOS transient activation is fresh):
    - `🎧 이어폰 테스트` → L knock → `왼쪽` tap → R knock → `오른쪽` tap → `좋아요. 이 게임의 소리에는 방향이 있습니다.` (Wrong/`스피커예요` → `audioMode='speaker'`.)
    - `📱 기울기·흔들기 센서 (권장)` → `DeviceMotionEvent.requestPermission()` + `DeviceOrientationEvent.requestPermission()` on this tap.
    - `📷 카메라 (선택)` → *no prompt now*; just sets `cameraOptIn=true`. Text: `카메라는 게임 속 한 장면에서만 켜지고, 사진은 이 기기 밖으로 절대 나가지 않아요. 엔딩에서 자동 삭제.`
    - Footer: `이 게임은 어떤 데이터도 서버로 보내지 않습니다.` → [시작]
+   - *(2026-11-27 text cleanup: the earphone row text is now `이어폰을 끼고 눌러 주세요`, the only earphone recommendation left in ep1. Removed: the `좋아요. 이 게임의 소리에는 방향이 있습니다.` toast, the speaker-mode toast, the brightness line and this footer. See `docs/TEXT_CLEANUP.md` §3.)*
    - The [시작] tap: `A.unlock()` (resume ctx, `navigator.audioSession.type='playback'`, start silent looping `<audio playsinline>`), `navigator.wakeLock.request('screen')`, Android `requestFullscreen()`.
 4. **Third knock lie**: fade to black; 1.4 s later ONE knock from directly behind (HRTF az 180°, LP 1.6 kHz, closet IR). 2 s silence → tiny subtitle `(…똑.)`.
 5. Black, 4 s rain + room tone. Then muffled ringtone + buzz from below-front (LP 900 Hz "under the mattress"): **mom's 톡 voice-call ring**. Subtitle: `침대 밑에서 무언가가 울린다.` Dim button `손을 뻗는다` — **0.6 s long-press**. Desktop: click-hold.
@@ -426,9 +427,9 @@ Independent proofs (any one sets `managerExposed`, notebook `관리실 = 그 사
    그 남자는 아직 잡히지 않았다.
    ```
    Variant lines: `jiminTold` → `지민의 신고로 경찰은 04시 51분에 도착했다.` · `managerExposed` → `해솔빌 관리사무소는 '관리실' 사칭 번호를 신고했다.` · `momRead` → `그날 아침, 세아 엄마는 1년 만에 처음으로 전화를 걸지 않았다.`
-5. Credits (short, over dawn): `기획·제작 {MAKER}` / `주인공 {NAME}` / `목소리: AI 음성(OpenAI TTS)` / `사진: AI 생성 + 직접 편집` / `소리: 전부 직접 합성` / `이 게임은 아무 데이터도 보내지 않았어요. 카메라 사진은 방금 지워졌어요.`
+5. Credits (short, over dawn): `기획·제작 {MAKER}` / `주인공 {NAME}` / `목소리: AI 음성(OpenAI TTS)` / `사진: AI 생성 + 직접 편집` / `소리: 전부 직접 합성` / `이 게임은 아무 데이터도 보내지 않았어요. 카메라 사진은 방금 지워졌어요.` *(2026-11-27 text cleanup: the credits are the title (`ecr-title`) alone, centred, on web and app. The maker, name, voice/photo/sound, play stats and data lines are gone. The AI-voice disclosure moved to the title settings panel as one line, `목소리는 AI 음성입니다.`. See `docs/TEXT_CLEANUP.md` §3.)*
 6. **JS3 sting** (3 s black): his notification tone only (no loud hit) + `vibrate([120,80,120])`. Banner `{NAME} · 지금`. Tap → chat `{NAME}` (empty) → one bubble with the **real local time** `HH:MM`: `재밌었어? 다음 집에서 봐 🙂` → typing dots… stop. Never a second message. If camera permission is already `granted` (permissions.query) AND `cameraOptIn` AND not '덜 무섭게': 1.5 s later 2.5 s "CCTV" overlay from the **rear camera** (`facingMode:'environment'`): monochrome, CSS fisheye, scanlines, `실내 카메라 2 · REC ●`, real timestamp → static → black. If state is `prompt`/unknown → skip silently.
-7. **Friend's letter** (`CONFIG.ENDING_LETTER`, handwriting font, paper texture). Suggested first line for the maker: `마지막 거 놀랐지? ㅋㅋ`. Buttons: `진짜로 보내기` (navigator.share `{title:'하루를 위한 방탈출!', text:'나 404호에서 탈출했어. 비번은 472906이었어. · {NAME}', url}`; fallback clipboard + toast `복사했어요. 친구에게 붙여넣어 보내 주세요.`), `처음부터`, `사진 지우기 ✓(자동 완료)`.
+7. **Friend's letter** (`CONFIG.ENDING_LETTER`, handwriting font, paper texture). Suggested first line for the maker: `마지막 거 놀랐지? ㅋㅋ`. Buttons: `진짜로 보내기` (navigator.share `{title:'하루를 위한 방탈출!', text:'나 404호에서 탈출했어. 비번은 472906이었어. · {NAME}', url}`; fallback clipboard + toast `복사했어요. 친구에게 붙여넣어 보내 주세요.` — *2026-11-27: the toast is now `복사했어요.`; the message and URL are unchanged*), `처음부터`, `사진 지우기 ✓(자동 완료)`.
 8. **Post-game revisit** (`save.ending=true`): title screen subtly changed — wallpaper = wardrobe slightly open, `부재중 보이스톡 1 · {NAME}`, earphone test plays **4** knocks, tab title `(1) {NAME}야` + red-dot favicon until first tap. Plus calm `엔딩 다시 보기` and `처음부터`.
 
 ---
@@ -733,6 +734,7 @@ If `PLAYER_NAME==='하루'`: after 1.5 s the words `하루에 한 번만` get a 
 - **녹음** extras: `콩이 그림` (spectrum view shows 콩이's face) · `콩이 코골이ㅋㅋ` · `음향학 실습 - 방 IR 측정`. Every file: `파형 | 주파수` toggle, `0.75×` speed, `텍스트 보기` transcript chip.
 
 ### 4.8 설정 (screens that matter)
+> *2026-11-27 text cleanup:* settings copy that talks about "이 게임" is gone: the 소리 및 진동 footer `이 게임의 소리에는 방향이 있습니다. 이어폰을 권장합니다.`, the 디스플레이 footer `글자 크기는 게임 전체(톡, 메모 등)에 적용됩니다.` and the 자막 toast `이 게임은 모든 소리에 자막을 표시합니다`. The mono footer keeps only its first sentence, and the 알림 기록 toast loses `끄지 않았습니다.`. The 화면 공유 footer `화면 공유는 화면만 전송합니다. 소리는 이 휴대폰에서만 재생됩니다.` stays, because it states the world rule. The title settings panel (`js/main.js`) row `목소리(TTS)` became `목소리`, plus the one line `목소리는 AI 음성입니다.`. Full list in `docs/TEXT_CLEANUP.md` §3.
 - Search bar (keywords → result rows).
 - `연결` › `Wi-Fi: Haesol_404 (관리자 네트워크)` · `화면 공유(스마트뷰): 연결됨 · sagongsa의 Galaxy · 04:2x:xx` [연결 끊기] (P6) · `블루투스: 세아의 버즈 (연결 안 됨)`.
 - `알림` › `알림 기록` (ON; "세아가 켬"): grouped list (newest first):
@@ -767,7 +769,7 @@ If `PLAYER_NAME==='하루'`: after 1.5 s the words `하루에 한 번만` get a 
 | `v_pa` | calm female PA, building speaker reverb | `404호에서 비상 호출이 접수되었습니다. 경비원이 올라갑니다.` |
 | `v_police` | firm male, through steel door | `경찰입니다. 문 열어주세요.` |
 | `v_neighbor` | startled male, muffled through wall | `뭐야?!` |
-Credit: `목소리: AI 음성(OpenAI TTS)`. Fallback if a WAV fails: subtitle-only + `speechSynthesis` for PA/police/poweroff only (never for whispers).
+Credit: `목소리: AI 음성(OpenAI TTS)` *(2026-11-27: no credit line any more. The disclosure is the one settings-panel line `목소리는 AI 음성입니다.`; see `docs/TEXT_CLEANUP.md`)*. Fallback if a WAV fails: subtitle-only + `speechSynthesis` for PA/police/poweroff only (never for whispers).
 
 ---
 
@@ -1024,7 +1026,7 @@ Composites only (0 gen): `patch_duvet_dent`, `patch_glass_{full,half,empty}`, `g
 - Vibration: Android `navigator.vibrate`; iOS → paired audio buzz + 2-px screen jitter. Never information-only.
 - Fullscreen: Android `requestFullscreen()` on start tap; iOS: 100dvh layout + one-time `홈 화면에 추가하면 전체 화면으로 즐길 수 있어요` sheet (dismissible).
 - In-app browsers (KAKAOTALK/Instagram/FBAN/Line/NAVER UA): show `다른 브라우저로 열기` card on title (Android: try `intent://` to Chrome; iOS: instructions) + `그냥 할래요`.
-- **Zero runtime network** besides static assets/fonts; QR page is static; no analytics. Stated in onboarding and credits.
+- **Zero runtime network** besides static assets/fonts; QR page is static; no analytics. Stated in onboarding and credits. *(2026-11-27: no longer stated on screen. The privacy-reassurance lines were removed as meta copy, and the rule itself is unchanged. See `docs/TEXT_CLEANUP.md`.)*
 
 ### 9.4 Layout
 - Phones: full-bleed, no fake bezel (the player's phone IS 세아's phone); safe-area insets; status bar drawn by the game. Desktop/tablet: centered phone frame 390×844 with soft shadow + `desk-hint`.
@@ -1038,6 +1040,7 @@ Composites only (0 gen): `patch_duvet_dent`, `patch_glass_{full,half,empty}`, `g
 ---
 
 ## 10. Store-worthy polish checklist
+> *2026-11-27 text cleanup (client rule; web and app):* the items below that put meta copy on screen are superseded. Onboarding no longer says "no data sent". The title carries no headphones recommendation, since the earphone-test row is the one place for it. The credits are the title only, and AI voices are disclosed by one settings line (`목소리는 AI 음성입니다.`), not in the credits. See `docs/TEXT_CLEANUP.md`; for the app build see `docs/APP_RELEASE.md`.
 - [ ] **Onboarding**: title → content warning → 몰입 설정 (earphone L/R test doubling as calibration, motion toggle, camera opt-in explained, "no data sent") → cold open. Total ≤ 60 s, skippable on replay.
 - [ ] **Headphones recommendation** on title + speaker-mode remix if the test says speaker.
 - [ ] **Save/continue** with `이어하기` showing `03:5x · 조각 2/3 · 플레이 21분`.

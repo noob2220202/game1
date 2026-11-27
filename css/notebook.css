@@ -41,7 +41,6 @@
 .nbk-box { flex: none; width: 18px; height: 18px; border: 2px solid #6b5640; border-radius: 3px; transform: rotate(-3deg); display: flex; align-items: center; justify-content: center; color: #b23b2a; }
 .nbk-box.on svg { width: 22px; height: 22px; margin: -6px -4px 0 0; }
 .nbk-obj-t { flex: 1; min-width: 0; word-break: keep-all; }
-.nbk-tag { flex: none; font-family: var(--font); font-size: 10.5px; color: #8f7b62; border: 1px solid #c9b18d; border-radius: 8px; padding: 1px 6px; }
 .nbk-new { flex: none; font-family: var(--font); font-size: 10.5px; font-weight: 700; color: #fff; background: #d6362a; border-radius: 9px; padding: 2px 7px; animation: nbkPing 1s ease-out; }
 .nbk-obj-go { flex: none; width: 18px; color: #b9a183; }
 .nbk-obj-go svg { width: 16px; height: 16px; }
@@ -51,7 +50,6 @@
 .nbk-lead { display: flex; gap: 8px; font-family: var(--hand); font-size: 21px; line-height: 34px; color: #4a3a28; word-break: keep-all; }
 .nbk-lead i { font-style: normal; color: #b23b2a; flex: none; width: 14px; }
 .nbk-lead.done { color: #a39077; text-decoration: line-through; text-decoration-color: rgba(120, 90, 55, .5); }
-.nbk-stats { font-size: 11.5px; color: #a08a6c; margin-top: 22px; }
 
 /* fragments */
 .nbk-slots { display: flex; gap: 8px; margin: 10px 0 6px; }
@@ -103,7 +101,6 @@
 .nbk-ring .bg { stroke: rgba(120, 90, 55, .25); }
 .nbk-ring .fg { stroke: #b23b2a; stroke-dasharray: 94.3; stroke-dashoffset: 94.3; stroke-linecap: round; transition: stroke-dashoffset .2s; }
 .nbk-hint.holding .nbk-ring .fg { stroke-dashoffset: 0; transition: stroke-dashoffset 2s linear; }
-.nbk-warn { position: relative; font-size: 11.5px; color: #b23b2a; }
 .nbk-hint.done { opacity: .5; }
 
 /* notes */
@@ -366,7 +363,6 @@
 .rc-offer { position: absolute; z-index: 89; left: 14px; right: 14px; bottom: calc(var(--safe-bot) + 92px); display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 16px; border-radius: 18px; background: rgba(36, 36, 40, .96); color: #fff; box-shadow: 0 10px 30px rgba(0, 0, 0, .5); opacity: 0; transform: translateY(14px); transition: opacity .25s, transform .3s cubic-bezier(.2, .9, .3, 1); }
 .rc-offer.in { opacity: 1; transform: none; }
 .rc-offer-t { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 14.5px; font-weight: 600; }
-.rc-offer-t small { font-size: 12px; font-weight: 400; color: #aeaeb2; }
 .rc-offer-b { flex: none; min-height: 40px; padding: 0 16px; border-radius: 20px; background: #0a84ff; color: #fff; font-weight: 700; font-size: 14px; }
 
 @media (prefers-reduced-motion: reduce) {

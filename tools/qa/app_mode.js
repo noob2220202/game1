@@ -6,14 +6,16 @@
  * Plays file:///…/<episode page> in Chromium with the 'iPhone 13' profile (same launch / ROOT rules as ep2_speedrun.js).
  * The credits are reached through the episode's debug route (EPS[ep].toCredits — ep2: haru.jump('END') with the 02:20
  * step marked done, so ending.resume runs credits() at once).
- *   a  web          ?debug=1        credits = title + maker + voice + stats + data, texts as shipped; the debug meter,
- *                                   error lines and hotspot outlines DO show (proves the b/c probes can see them).
+ *   a  web          ?debug=1        credits = the title block only on the web too (ep2 since the 2026-11-27 cleanup —
+ *                                   EPS webKids of length 1): centred, none of the removed lines in the page; an episode
+ *                                   whose webKids list small print checks each line's text as shipped instead. The debug
+ *                                   meter, error lines and hotspot outlines DO show (proves the b/c probes can see them).
  *                                   --baseline=<checkout> also compares the credits scene's HTML with that checkout's.
  *   b  app preview  ?app=1&debug=1  credits = the title block only; none of the four lines (names substituted) anywhere in
  *                                   document.body.innerText; no debug meter / error lines / hotspot outlines / body.debug;
  *                                   title block centred in the scene (|dx|, |dy| ≤ 4 px) at 360×740 · 390×844 · 430×932,
  *                                   each at text size 1 and 1.3 (G.settings.textSize → G.saveSettings() → --ts);
- *                                   tap → check card as before.
+ *                                   tap → check card (ep2: the help line only, EPS checkText).
  *   c  app build    js/config.js served with APP: true (route-fulfil of the real file, the key flipped), ?debug=1:
  *                   c1  G.DEBUG false · no window.haru · no series _fixture / skipTo / debugM8 / _scale / meter / roomLook
  *                       / budget · ?jump= and ?series= ignored · title → warning → ear test → cold open → eye view without
@@ -52,15 +54,19 @@ const EPS = {
     saveKey: 'haru-escape.ep2.save.v1',
     // debug route: the END state with the 02:20 letter step done → G.main.resumeFrom → G.ending.resume('l0220') → credits()
     toCredits: () => { G.vars('endStep', 'l0220'); return window.haru.jump('END'); },
-    sel: { scene: '.fl2-credits', inner: '.fl2-cred-in', title: '.fl2-cred-title', skip: 'credits.skip', next: 'check.continue', cont: 'title.continue', start: 'title.start' },
-    webKids: ['fl2-cred-title', 'fl2-cred-maker', 'fl2-check-help', 'small', 'dim'],   // class of each credits child, in order
-    // the four circled lines as the page renders them (ep2/js/ending.js credits()) — evaluated in the page
-    lines: () => {
-      const c = (G.STORY && G.STORY.ending && G.STORY.ending.credits) || {};
-      const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      return { maker: G.T(c.maker || '만든 사람 {MAKER} · {N}에게'), voice: c.voice || '', data: c.data || '',
-        statsRe: esc(String(c.stats || '플레이 {m}분 · 힌트 {n}회')).replace('\\{m\\}', '\\d+').replace('\\{n\\}', '\\d+') };
-    },
+    sel: { scene: '.fl2-credits', inner: '.fl2-cred-in', title: '.fl2-cred-title', skip: 'credits.skip', next: 'check.continue', cont: 'title.continue', start: 'title.start', checkIn: '.fl2-check-in' },
+    // class of each credits child, in order — web and app alike since the 2026-11-27 cleanup (the title block only)
+    webKids: ['fl2-cred-title'],
+    appClass: false,                         // one layout for web and app: the scene never carries .app
+    // the four circled lines (removed from ep2/js/data/ending.js and ending.js on 2026-11-27) as the page used to render
+    // them — kept here as literals so their absence can be proven — evaluated in the page
+    lines: () => ({
+      maker: G.T('만든 사람 {MAKER} · {N}에게'),
+      voice: '목소리: AI 음성 · 사진: AI 생성 + 직접 편집 · 소리: 전부 직접 합성',
+      data: '이 게임은 아무 데이터도 보내지 않았어요. 카메라도, 마이크도 쓰지 않았어요.',
+      statsRe: '플레이 \\d+분 · 힌트 \\d+회',
+    }),
+    checkText: '스토킹·디지털 성범죄 피해: 112 · 여성긴급전화 1366',   // the check card keeps the help line only
     boot: [['title.start', 450], ['warn.ok', 1200], ['ear.left', 1200], ['ear.right', 900], ['ear.start', 1500]],
     afterBoot: 'recap.skip',                 // optional tap (shown without an ep1 save)
     eyeView: 'room.spot:door',               // first eye view after the cold open
@@ -188,7 +194,13 @@ async function webRun(browser, root, tag) {
     html = s.html;
     check('credits children = ' + E.webKids.join(' · '), s.kids.length === E.webKids.length && E.webKids.every((c, i) => s.kids[i].cls.split(/\s+/).includes(c)), s.kids.map((k) => k.cls));
     check('scene class unchanged (no .app)', !/\bapp\b/.test(s.cls), s.cls);
-    if (s.kids.length === E.webKids.length) {
+    if (E.webKids.length === 1) {
+      // the title block only on the web too: centred like the app build, none of the removed lines anywhere
+      check('title block centred 390x844 ts 1 (dx ' + (s.dx != null ? s.dx.toFixed(2) : '?') + ', dy ' + (s.dy != null ? s.dy.toFixed(2) : '?') + ')',
+        s.dx != null && Math.abs(s.dx) <= CENTRE_TOL && Math.abs(s.dy) <= CENTRE_TOL, { dx: s.dx, dy: s.dy, scene: s.scene, title: s.titleBox });
+      const hits = await bodyHits(H, L);
+      check('none of the four lines in document.body.innerText', hits.length === 0, hits);
+    } else if (s.kids.length === E.webKids.length) {
       check('maker line', s.kids[1].text === L.maker, s.kids[1].text);
       check('voice line', s.kids[2].text === L.voice, s.kids[2].text);
       check('stats line', new RegExp('^' + L.statsRe + '$').test(s.kids[3].text), s.kids[3].text);
@@ -241,7 +253,8 @@ async function appPreviewRun(browser) {
     await H.ev(() => { G.settings.textSize = 1; G.saveSettings(); });
     const s = await H.scene();
     check('credits = the title block only', s.kids.length === 1 && s.kids[0].cls.split(/\s+/).includes(E.webKids[0]), s.kids.map((k) => k.cls));
-    check('scene carries the .app class', /\bapp\b/.test(s.cls), s.cls);
+    if (E.appClass === false) check('scene class has no .app (one layout for web and app)', !/\bapp\b/.test(s.cls), s.cls);
+    else check('scene carries the .app class', /\bapp\b/.test(s.cls), s.cls);
     const hits = await bodyHits(H, L);
     check('none of the four lines in document.body.innerText', hits.length === 0, hits);
     await H.ev(() => window.dispatchEvent(new ErrorEvent('error', { message: 'app_mode.js overlay probe' })));
@@ -252,6 +265,10 @@ async function appPreviewRun(browser) {
     await H.tap(E.sel.skip, { after: 900 });
     await H.loc(E.sel.next).waitFor({ state: 'visible', timeout: 8000 });
     check('tap → check card (endStep cred)', await H.ev(() => G.state.vars.endStep === 'cred'), await H.ev(() => G.state.vars.endStep));
+    if (E.checkText) {
+      const ck = await H.ev((q) => { const n = document.querySelector(q); return n ? { lines: n.children.length, text: n.textContent } : null; }, E.sel.checkIn);
+      check('check card = the help line only', !!ck && ck.lines === 1 && ck.text === E.checkText, ck);
+    }
     await H.shot('check_card');
   });
   return { r, save };

@@ -4,7 +4,7 @@
  *   Visit: G.series.ensure() → backfillEp1() (bible §7.4) → read-only status per episode. Nothing else is written.
  *   A night building drawn in SVG: one window per released episode home (404 = ep1, 601 = ep2 옥탑). A window is lit when
  *   that episode is done / canon in haru-escape.series.v1, dark otherwise; ♪ on a lit window whose 세아 signal was found.
- *   '권장' marks the first released, unfinished episode — order is never enforced (gifts are not locked).
+ *   The first released, unfinished episode gets a subtle row border (.rec, no label) — order is never enforced (gifts are not locked).
  *   Unreleased episodes (G.series.isReleased(n) false) are ordinary dark windows: no label, no date, no title.
  *   ?preview=1 (maker phone test) is honoured by isReleased and kept on every episode link.
  *   Footer (bible §7.1 · §7.7 · DESIGN_EP2 §9.2): '시리즈 기록 지우기' = haru-escape.series.v1 + .bak only (G.series.clearAll);
@@ -222,7 +222,6 @@
   function build() {
     root.textContent = '';
     var head = el('header', 'pk-head');
-    head.appendChild(el('div', 'pk-kicker', 'AN ESCAPE ROOM FOR ' + (NAME === '하루' ? 'HARU' : NAME)));
     var h1 = el('h1', 'pk-name', NREUL + ' 위한 ');
     h1.appendChild(el('em', null, '방탈출!'));
     head.appendChild(h1);
@@ -265,7 +264,6 @@
       a.tabIndex = -1;
       a.style.left = pct(r.x, VW); a.style.top = pct(r.y, VH); a.style.width = pct(r.w, VW); a.style.height = pct(r.h, VH);
       a.appendChild(el('span', 'pk-num', e.room));
-      if (x.rec) a.appendChild(el('span', 'pk-rec ' + e.rec, '권장'));
       if (x.sig) a.appendChild(el('span', 'pk-sig', '♪'));
       a.addEventListener('click', go);
       bldg.appendChild(a);
@@ -273,7 +271,7 @@
       var row = el('a', 'pk-row' + (x.done ? ' lit' : '') + (x.rec ? ' rec' : ''));
       row.href = href;
       row.setAttribute('data-qa', 'picker.ep:' + e.n);
-      row.setAttribute('aria-label', e.room + ' · ' + e.title + (e.sub ? ' · ' + e.sub : '') + (x.rec ? ' · 권장' : ''));
+      row.setAttribute('aria-label', e.room + ' · ' + e.title + (e.sub ? ' · ' + e.sub : ''));
       row.appendChild(el('span', 'pk-glyph'));
       row.appendChild(el('span', 'pk-room', e.room));
       var t = el('span', 'pk-titles');
@@ -281,7 +279,6 @@
       if (e.sub) t.appendChild(el('span', 'pk-sub', e.sub));
       row.appendChild(t);
       if (x.sig) row.appendChild(el('span', 'pk-note', '♪'));
-      if (x.rec) row.appendChild(el('span', 'pk-chip', '권장'));
       row.appendChild(el('span', 'pk-chev', '›'));
       row.addEventListener('click', go);
       list.appendChild(row);

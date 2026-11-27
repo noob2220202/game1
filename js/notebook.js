@@ -223,8 +223,6 @@
     else if (tab === 'frag') renderFrag();
     else if (tab === 'hint') renderHint();
     else renderNotes();
-    const mins = Math.floor((G.state.playMs || 0) / 60000);
-    body.appendChild(el('div.nbk-stats', null, `플레이 ${mins}분 · 힌트 ${G.state.hintsUsed || 0}회${easy() ? ' · 쉬움' : ''}`));
   }
 
   function renderTodo() {
@@ -238,7 +236,6 @@
       const row = el('button.nbk-obj' + (o.optional ? '.opt' : ''), { 'aria-label': T(o.title) + ' — 힌트 보기' },
         el('span.nbk-box'),
         el('span.nbk-obj-t', null, T(o.title)),
-        o.optional ? el('span.nbk-tag', null, '선택') : null,
         !seen[o.id] ? el('span.nbk-new', null, '새 단서') : null,
         el('span.nbk-obj-go', { html: svg('<path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>') }));
       row.addEventListener('click', () => { sfx('pageTurn'); selObj = o.id; tab = 'hint'; render(); });
@@ -372,15 +369,13 @@
       list.appendChild(holdCard(o, n));
     });
     body.appendChild(list);
-    body.appendChild(el('div.nbk-line.small', null, easy() ? '쉬움 모드: 힌트를 바로 볼 수 있어요.' : '힌트는 1분 간격으로 하나씩 열려요. 봐도 불이익은 없어요.'));
   }
   function countdown(ms) { const s = Math.ceil(ms / 1000); return `${Math.floor(s / 60)}:${pad(s % 60)} 뒤에 볼 수 있어`; }
   function holdCard(o, n) {
     const ring = el('span.nbk-ring', { html: '<svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" class="bg"/><circle cx="18" cy="18" r="15" class="fg"/></svg>' });
     const card = el('button.nbk-hint.hold', { 'aria-label': `힌트 ${n} 보기 — 2초간 길게 누르세요` },
       el('span.nbk-hn', null, `힌트 ${n}`),
-      el('span.nbk-hold', null, ring, el('span', null, n === 3 ? '꾹 눌러서 정답 보기' : '꾹 눌러서 보기')),
-      n === 3 ? el('span.nbk-warn', null, '정답이 바로 나와요') : null);
+      el('span.nbk-hold', null, ring, el('span', null, n === 3 ? '꾹 눌러서 정답 보기' : '꾹 눌러서 보기')));
     let t = 0, holding = false;
     const start = (e) => {
       if (holding) return; holding = true;

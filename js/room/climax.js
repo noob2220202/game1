@@ -132,7 +132,7 @@
       if (G.audio && G.audio.isMono && G.audio.isMono()) { G.audio.setMono(false); G.phone.toast('모노 오디오가 꺼졌습니다'); }
       if (G.room && G.room.isOpen() && G.room.current().flash) G.room.current().setFlash(false, true);
       G.state.vars.flash = false; G.save();
-      setTimeout(() => G.phone.toast('배터리 부족으로 플래시를 끌게요.', 2600), 900);
+      setTimeout(() => G.phone.toast('배터리 부족 · 플래시가 꺼졌습니다', 2600), 900);
     }
     C.start('handle');
   };
@@ -500,7 +500,7 @@
     const holdBtn = el('button.cx-hold', { 'aria-label': '꾹 눌러 숨기' }, el('i'), el('i'), el('span.cx-hold-ic', { html: '<svg viewBox="0 0 24 24"><path d="M9 11V5.5a1.5 1.5 0 013 0V10m0-1.5a1.5 1.5 0 013 0V11m0-1a1.5 1.5 0 013 0v4.5c0 3.6-2.4 6-6 6h-1c-2.4 0-3.7-1.2-5-3.2L4.6 14a1.5 1.5 0 012.5-1.6L9 14.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>' }));
     const hideBox = el('div.cx-hide' + (big ? '.big' : ''), null,
       el('div.cx-hide-t', null, from === 'creak' ? '화면을 꾹 눌러 빛을 가리세요' : '다시 꾹 눌러 빛을 가리세요'),
-      el('div.cx-hide-s', null, '아무 곳이나 누르고 있으면 화면이 꺼져요 · 손을 떼면 빛이 새어 나가요 (PC: 마우스 또는 Space)'),
+      el('div.cx-hide-s', null, '아무 곳이나 누르고 있으면 화면이 꺼져요 · 손을 떼면 빛이 새어 나가요' + (G.APP ? '' : ' (PC: 마우스 또는 Space)')),
       holdBtn);
     r.stage.appendChild(el('div.cx-scene.dark'));
     r.stage.appendChild(hideBox);
@@ -976,7 +976,7 @@
   }
 
   /* ---------------- debug ---------------- */
-  C.debug = {
+  if (!G.APP_BUILD) C.debug = {   // QA only: not in the app build (CONFIG.APP === true)
     jump(step) { C.start(step); },
     hide(on) { if (run && run.hideCtl) run.hideCtl.setHidden(!!on, 'key'); },
     state() { return { running: C.running, step: C.step, fails: fails(), assist: assist() }; },
