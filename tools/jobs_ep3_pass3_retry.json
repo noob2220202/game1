@@ -1,0 +1,20 @@
+[
+ {
+  "id": "G31",
+  "name": "g_x3_mom_hall",
+  "pass": 3,
+  "tier": 4,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material, light and colour identical unless the instruction below changes it. Using the second image only as the reference for the woman's hair and clothes: in the first photograph, add the woman standing in the entrance hallway about four metres from the camera, slightly right of centre, just before the step down to the tiled entrance floor, her back to the camera, facing the closed front door; one hand held at her chest, the other hanging at her side; she does not touch the door. The doormat and the floor right in front of the door stay clear. The woman is a Korean woman in her late fifties seen only from behind: shoulder-length black hair streaked with grey, loosely tied low at the nape with a plain black hair tie; a muted plum-coloured knitted cardigan over a light grey long-sleeved top; loose dark grey trousers; ivory socks. Her face is never visible. Nothing else in the photograph changes. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described. Important for scale and placement: she is far down the hallway, about four metres from the camera, so her whole figure is small in the photograph - about one third of the frame height - standing on the light-oak hallway floor just before the step down to the tiled entrance, to the right of the doormat. The doormat, the empty dog cushion, the lower half of the front door and the floor right in front of the door stay fully visible to her left. Keep the camera position, the hallway and every object exactly as in the first photograph.",
+  "ref": [
+   "work/gen_ep3/g_r3_door.png",
+   "work/gen_ep3/ref_mom.png"
+  ],
+  "fidelity_doc": "high",
+  "force": true,
+  "retry": 1,
+  "retry_note": "take t1 kept as g_x3_mom_hall.t1.png: she stood about 2 m from the camera, ~55 % of the frame height, hiding the door and the mat"
+ }
+]

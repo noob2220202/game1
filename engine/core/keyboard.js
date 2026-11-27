@@ -13,6 +13,9 @@
  * A word drawn ≥ 250 ms continuously → bus 'kbd:shown' {user, ctx, words:[{w,his,seed}]} (once per word per focus).
  * Tap a cell (or desktop Ctrl+1/2/3) → token replaced by the word + ' '. Esc is NOT handled here (main.js owns it).
  * Bus: 'keyboard' (true|false) · 'kbd:shown'. Back: registers G.phone.pushBack(close) while open.
+ * ep3 switches (ARCH_EP3 §4.2 keyboard — ep2 defines neither): G.EP.KBD.predict === false forces the predict bar off for every
+ *   field, even an explicit predict:true (DESIGN_EP3 §9.5-1 · §0.3 D38) · G.EP.VIB set → no 5 ms key-press haptic (ARCH §1: only
+ *   two vibration patterns exist in ep3).
  * Outside tap closes it (like a real phone): a tap (≤ 10 px travel) on #screen outside the keyboard, outside every field and
  *   outside the focused field's own row / editor box (its parent: composer + send, search box, memo paper, code box + 확인) —
  *   and, when the field sits in a sheet/dialog, outside that sheet — hides the keyboard. Chips row (.so2-chips) and any
@@ -90,12 +93,16 @@
   /* ---------------- helpers ---------------- */
   const curUser = () => { try { if (G.users && G.users.current) return G.users.current(); } catch (e) {} return (G.state && G.state.vars && G.state.vars.user) || 'n'; };
   function predictOn(f) {
+    if (G.EP && G.EP.KBD && G.EP.KBD.predict === false) return false;   // ep3: no predict bar anywhere
     if (!f || f.opts.password || f.opts.predict === false) return false;
     const off = (G.vars && G.vars('kbdPredictOff')) || [];
     return !(Array.isArray(off) && off.indexOf(curUser()) >= 0);
   }
   const lastBreak = (t) => Math.max(t.lastIndexOf(' '), t.lastIndexOf('\n'));
-  function vib(ms) { if (navigator.vibrate && G.settings && G.settings.vibration) { try { navigator.vibrate(ms); } catch (e) {} } }
+  function vib(ms) {
+    if (G.EP && G.EP.VIB) return;                                         // ep3 vibration allow-list: no key haptic
+    if (navigator.vibrate && G.settings && G.settings.vibration) { try { navigator.vibrate(ms); } catch (e) {} }
+  }
 
   /* ---------------- keyboard singleton ---------------- */
   let kb = null, active = null, shift = false, mode = 'ko', sym = false;

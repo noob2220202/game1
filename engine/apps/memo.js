@@ -12,6 +12,10 @@
  * Public API : G.memo = { open(user, id) }
  * Flags set  : dashMemo
  * data-qa    : memo.new · memo.item:<id> · memo.editor
+ *
+ * ---- ep3 (G.STORY.memos.v === 3 — ep2 data has no `v` · ARCH_EP3 §3.3) ----
+ * DESIGN_EP3 §4.8.4 폴더 › 메모 · §0.3 D45: the list is empty — `메모 없음` ({$memoEmpty}) — and there is NO new-memo
+ * button (no editor, no keyboard, nothing saved). data-scr memo.list.
  * ========================================================= */
 (function () {
   'use strict';
@@ -21,6 +25,7 @@
   const el = MU.el, T = MU.T;
   const MD = () => (G.STORY && G.STORY.memos) || { n: { empty: '', newLabel: '', placeholder: '' }, dash: [] };
   const MM = (G.memo = G.memo || {});
+  const isV3 = () => MD().v === 3;   // ep3 data marker (ARCH_EP3 §4.1-3)
   const NOTE = '<svg viewBox="0 0 24 24"><path d="M6 3.5h9l4 4V20a.5.5 0 01-.5.5h-12A.5.5 0 016 20z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 10h7M9 13.5h7M9 17h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
 
   /* ---------------- {N}'s own memos (ids in the save, text in the session store) ---------------- */
@@ -45,6 +50,7 @@
     badge: () => 0,
     open(p) {
       p = p || {};
+      if (isV3()) { emptyList3(); return; }
       const user = p.user || MU.user();
       listScreen(user);
       if (p.id) MM.open(user, p.id, true);
@@ -134,7 +140,19 @@
     if (f && !id) setTimeout(() => { if (scr.isConnected) f.focus(); }, 320);
   }
 
+  /* ep3: `메모 없음` only (no ＋ 새 메모 — §0.3 D45) */
+  function emptyList3() {
+    const raw = MD().empty || '';
+    const txt = T(String(raw).replace(/\{\$([a-zA-Z0-9_]+)\}/g, (m, k) => MU.STR(k) || (k === 'memoEmpty' ? '메모 없음' : m)));
+    const body = el('div.md2-memo-list', null, el('div.md2-empty.tall', null, el('span.md2-empty-ic', { html: NOTE }), el('b', null, txt)));
+    const scr = MU.screen({ title: T(MD().title || '메모'), cls: 'md2-memo', body });
+    scr.dataset.scr = 'memo.list';
+    MU.noMenu(scr);
+    MU.push(scr);
+  }
+
   MM.open = function (user, id) {
+    if (isV3()) { if (G.phone && G.phone.openApp) G.phone.openApp('memo', {}); else emptyList3(); return; }
     user = user || MU.user();
     if (user === 'dash') { const m = (MD().dash || []).find((x) => x.id === id) || (MD().dash || [])[0]; if (m) readView(m); return; }
     if (id && textOf(id)) editor(id);

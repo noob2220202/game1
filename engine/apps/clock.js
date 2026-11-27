@@ -14,6 +14,12 @@
  * Bus        : emits 'alarm:ringing' {id}; listens 'tick' / 'clock:min' (display only)
  * Vars       : vars.md.alarmOn {id: bool} · vars.md.alarmDel {id: true}
  * data-qa    : clock.alarm:<id> clock.toggle:<id> alarm.slide (+ clock.tab:<id>, clock.delete)
+ *
+ * ---- ep3 (G.STORY.alarms.v === 3 — ep2 data has no `v` · ARCH_EP3 §3.3: data only, ring screen unused) ----
+ * DESIGN_EP3 §4.8.3 · §5.0-3 · §5.6: one alarm `오전 6:30 · 월–금 · 꺼짐` (toggle moves, nothing rings · progress 0) ·
+ * NO long-press `삭제` (the only long-press in ep3 is the notebook hint) · `세계 시각` = one `서울` row (data `world`) ·
+ * data-scr clock.<tab> · clock.alarm.detail. 타이머 runs like a real one (timerTabV3 — wheels 시·분·초, countdown, silent end ·
+ * data-qa clock.timer.start · clock.timer.reset · clock.timer.col:h|m|s).
  * ========================================================= */
 (function () {
   'use strict';
@@ -22,7 +28,9 @@
   if (!MU) { console.error('[clock] media helpers missing (engine/apps/phone.js)'); return; }
   const el = MU.el, T = MU.T, pad = MU.pad;
   const AD = () => (G.STORY && G.STORY.alarms) || { n: [], dash: [], tabs: [['alarm', '알람']] };
+  const isV3 = () => AD().v === 3;   // ep3 data marker (ARCH_EP3 §4.1-3)
   const CA = (G.clockApp = G.clockApp || {});
+  CA.open = function (o) { if (G.phone && G.phone.openApp) G.phone.openApp('clock', o || {}); };   // ARCH_EP3 §5.11 (additive)
   const IC = {
     alarm: '<svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="7.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 9.5V13l2.5 1.8M4.5 5.5l3-2.5M19.5 5.5l-3-2.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
     world: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 12h17M12 3.5c2.6 2.4 3.6 5.3 3.6 8.5s-1 6.1-3.6 8.5M12 3.5C9.4 5.9 8.4 8.8 8.4 12s1 6.1 3.6 8.5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>',
@@ -56,6 +64,7 @@
           tabs.appendChild(b);
         });
         MU.setTitle(scr, T(((AD().tabs || []).find((t) => t[0] === tab) || [])[1] || ''));
+        if (isV3()) { scr.dataset.scr = 'clock.' + tab; const top = G.phone && G.phone.top && G.phone.top(); if (top && top.node === scr) top.scr = scr.dataset.scr; }
         if (tab === 'alarm') alarmTab(wrap, user, render);
         else if (tab === 'world') stopTab = worldTab(wrap);
         else if (tab === 'sw') stopTab = swTab(wrap);
@@ -85,7 +94,8 @@
       MU.qa(card, 'clock.alarm:' + a.id);
       card.addEventListener('click', () => { MU.sfx('tap'); detail(a); });
       card.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); detail(a); } });
-      longPress(card, () => askDelete(a, rerender));
+      if (isV3()) card.addEventListener('contextmenu', (e) => e.preventDefault());   // ep3: no long-press menu (§5.0-3)
+      else longPress(card, () => askDelete(a, rerender));
       box.appendChild(card);
     });
     wrap.appendChild(box);
@@ -116,6 +126,7 @@
     const body = el('div.md2-al-detail', null, el('div.md2-al-big', null, ap ? el('small', null, ap) : null, hm), rows);
     const scr = MU.screen({ title: '', theme: 'dark', cls: 'md2-clk md2-al-view', body });
     MU.noMenu(scr);
+    if (isV3()) scr.dataset.scr = 'clock.alarm.detail';
     MU.push(scr);
   }
 
@@ -123,7 +134,8 @@
   function worldTab(wrap) {
     const face = el('div.md2-wt-face', null, el('i.h'), el('i.m'), el('i.s'), el('b'));
     const big = el('div.md2-wt-time'), date = el('div.md2-wt-date');
-    wrap.append(el('div.md2-wt', null, face, big, date));
+    const city = AD().world ? el('div.md3-wt-city', null, T(AD().world)) : null;   // ep3 `서울` row (absent in ep2 data)
+    wrap.append(el('div.md2-wt', null, face, city, big, date));
     function upd() {
       const d = MU.now();
       big.textContent = `${MU.fmtK(d)}:${pad(d.getSeconds())}`;
@@ -154,7 +166,82 @@
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
   }
+  /* ep3 (v3 data only): the 타이머 runs like a real one (DESIGN_EP3 §4.8.3 — '스톱워치·타이머는 실제처럼 돈다', progress 0):
+   * three snap wheels 시 · 분 · 초 → ▶ → a real-time countdown (like the stopwatch) with ‖ / ▶ and 초기화. At 0 the display
+   * blinks for 3 s and the wheels come back — silent (no tone, no vibration: ARCH_EP3 §1 vibrate allow-list). The state lives
+   * in this module, so it survives tab switches and closing the app (a real timer keeps running). ep2 keeps the static screen. */
+  const TM = { setMs: 0, end: 0, left: 0, run: false, on: false, vals: [0, 0, 0] };
+  function timerTabV3(wrap) {
+    const ROW = 52, MAX = [99, 59, 59], LBL = ['시', '분', '초'];
+    const fmt = (t) => { const s = Math.ceil(t / 1000); return `${pad(Math.floor(s / 3600))}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}`; };
+    const msLeft = () => (TM.run ? Math.max(0, TM.end - performance.now()) : TM.left);
+    const chosen = () => ((TM.vals[0] * 60 + TM.vals[1]) * 60 + TM.vals[2]) * 1000;
+    const box = el('div.md3-tm');
+    const disp = el('div.md2-sw.md3-tm-disp');
+    const wheels = el('div.md3-tm-wheels');
+    const start = el('button.md2-sw-btn', { type: 'button', 'aria-label': '시작' });
+    const reset = el('button.md2-sw-btn.sec', { type: 'button', 'aria-label': '초기화', html: '<svg viewBox="0 0 24 24"><path d="M5 12a7 7 0 102.1-5M5 4v4h4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>' });
+    MU.qa(start, 'clock.timer.start'); MU.qa(reset, 'clock.timer.reset');
+    let blinkT = null;
+    const cols = MAX.map((mx, i) => {
+      const list = el('div.md3-tm-list');
+      for (let v = 0; v <= mx; v++) list.appendChild(el('div.md3-tm-n', null, pad(v)));
+      const col = el('div.md3-tm-col', { tabindex: 0, role: 'spinbutton', 'aria-label': LBL[i], 'aria-valuemin': 0, 'aria-valuemax': mx, 'aria-valuenow': TM.vals[i] }, list);
+      MU.qa(col, 'clock.timer.col:' + 'hms'[i]);
+      let st = null;
+      const read = () => { const v = Math.max(0, Math.min(mx, Math.round(col.scrollTop / ROW))); if (v !== TM.vals[i]) { TM.vals[i] = v; col.setAttribute('aria-valuenow', v); sync(); } };
+      col.addEventListener('scroll', () => { clearTimeout(st); st = setTimeout(read, 90); }, { passive: true });
+      col.addEventListener('keydown', (e) => {
+        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+        e.preventDefault(); e.stopPropagation();
+        const v = Math.max(0, Math.min(mx, TM.vals[i] + (e.key === 'ArrowDown' ? 1 : -1)));
+        col.scrollTop = v * ROW; TM.vals[i] = v; col.setAttribute('aria-valuenow', v); sync();
+      });
+      return el('div.md3-tm-unit', null, el('span.md3-tm-lbl', null, LBL[i]), col);
+    });
+    cols.forEach((c) => wheels.appendChild(c));
+    function sync() {
+      const setup = !TM.on;
+      wheels.style.display = setup ? '' : 'none';
+      disp.style.display = setup ? 'none' : '';
+      reset.style.visibility = setup ? 'hidden' : 'visible';
+      start.innerHTML = TM.run ? MU.ICON.pause : MU.ICON.play;
+      start.classList.toggle('run', TM.run);
+      start.setAttribute('aria-label', TM.run ? '일시정지' : '시작');
+      start.disabled = setup && !chosen();
+      if (!setup) disp.textContent = fmt(msLeft());
+    }
+    function finish() {
+      TM.run = false; TM.left = 0; disp.textContent = fmt(0); disp.classList.add('md3-tm-done');
+      clearTimeout(blinkT);
+      blinkT = setTimeout(() => { disp.classList.remove('md3-tm-done'); TM.on = false; sync(); }, 3000);
+      sync();
+    }
+    start.addEventListener('click', () => {
+      MU.sfx('tap');
+      if (!TM.on) { TM.setMs = chosen(); if (!TM.setMs) return; TM.on = true; TM.run = true; TM.end = performance.now() + TM.setMs; }
+      else if (TM.run) { TM.left = msLeft(); TM.run = false; }
+      else if (TM.left > 0) { TM.run = true; TM.end = performance.now() + TM.left; }
+      sync();
+    });
+    reset.addEventListener('click', () => { MU.sfx('tap'); clearTimeout(blinkT); disp.classList.remove('md3-tm-done'); TM.on = false; TM.run = false; TM.left = 0; sync(); });
+    box.append(wheels, disp, el('div.md2-sw-btns', null, reset, start));
+    wrap.append(el('div.md2-sw-wrap.md3-tm-wrap', null, box));
+    if (TM.on && TM.run && msLeft() <= 0) { TM.on = false; TM.run = false; TM.left = 0; }   // ran out while the tab was away
+    sync();
+    requestAnimationFrame(() => cols.forEach((c, i) => { const col = c.querySelector('.md3-tm-col'); if (col) col.scrollTop = TM.vals[i] * ROW; }));
+    let raf = 0;
+    const loop = () => {
+      raf = requestAnimationFrame(loop);
+      if (document.hidden || !TM.run) return;
+      const t = msLeft();
+      if (t <= 0) finish(); else disp.textContent = fmt(t);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => { cancelAnimationFrame(raf); clearTimeout(blinkT); if (disp.classList.contains('md3-tm-done')) TM.on = false; };
+  }
   function timerTab(wrap) {
+    if (isV3()) return timerTabV3(wrap);
     const btn = el('button.md2-sw-btn', { type: 'button', 'aria-label': '시작', html: MU.ICON.play, disabled: true });
     wrap.append(el('div.md2-sw-wrap', null, el('div.md2-sw', null, '00:00:00'), el('div.md2-sw-btns', null, btn)));
     return null;

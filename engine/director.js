@@ -17,6 +17,22 @@
  *                     T() → number, hold(name, on), run(id) (debug skipTo) }
  * Bus out: 'dir:beat' {id}. Flags set here: tankGlow (B09), b09Cue (B09′). Vars: vars.dir {fired, jsSpent, himTone, T, dropped}.
  * Sched ids: 'dir:B07', 'dir:b09cue'.
+ *
+ * Episode-3 data options (ARCH_EP3 §4.2 · §5.16 — each is read from BD() only when present; absent ⇒ the ep2 path above,
+ * byte-for-byte the same behaviour — ep2's beats.js defines none of them):
+ *   zones(base) → {S1…S10}         the safe-zone table is data (base = the ep2 computation; H = holds is kept)
+ *   safeKinds {kind:[zones]}       replaces BOTH safe(kind) and the hard-coded zoneBlocks() used for show beats: a kind
+ *                                  blocks while any listed zone or a hold is on (no ep2 M6–M7 climax exception)
+ *   ambience {drone, gsm, endWind} only the listed true ones run (ep3: all false) · midnight:false → no 00:00 compensation
+ *   targetT(s) → T | {T, ms}       replaces the tension map and the ep2 M7 fast curve (ms = convergence time, default 20 s)
+ *   vignette(T) → v                replaces .30 + .40T
+ *   microActive(s) · microGap(T)   replace M1→M6 and (120 − 75T)(0.7–1.3) s · micro records gain where:'lv'|'sr'|'any' ·
+ *                                  when(s) · once (vars.dir.fired) · run({az, s}); safeKinds.micro zones skip the turn;
+ *                                  microForbidden applies to non-'sr' rows only (sr rows are in the LS frame)
+ *   loops [{id, when(s, z), gapMs(), run()}]   repeating world loops (W01 · W03): first due = now + gapMs(); mark(id) on the
+ *                                  first run only; when() false drops the timer. In memory only (restart on resume).
+ *   beat where:'lv'|'sr' (= (G.ep||G.e2).where()) · beat delayMs may be a function (s) → ms · snapshot s.lastJump
+ *   {from, to, skipped, pm} (the last clock:jump) · vars.dir.dropped stays an object {id: pm} (an array is converted).
  * ========================================================= */
 (function () {
   'use strict';
@@ -39,6 +55,12 @@
   let prevMin = null;
   let endApplied = false, m8Applied = false, droneOn = false;
   let tCur = 0;
+  let lastJump = null;       // the last 'clock:jump' payload + pm (snapshot s.lastJump — ep3 data reads it)
+  const loopNext = {};       // loop id → pm of its next run (in memory only)
+  const opt = (k) => { const bd = BD(); return bd && bd[k] != null ? bd[k] : null; };
+  function curWhere() {
+    return safeCall(() => { const e = G.ep || G.e2; if (e && e.where) return e.where(); return (G.state && G.state.vars && G.state.vars.where) || 'lv'; }, 'lv');
+  }
 
   /* ---------- guarded access ---------- */
   function safeCall(fn, dflt) { try { return fn(); } catch (e) { return dflt; } }
@@ -56,7 +78,8 @@
     if (!d.fired || Array.isArray(d.fired)) d.fired = {};
     if (!d.jsSpent) d.jsSpent = { b09: false, b14: false };
     if (typeof d.himTone !== 'number') d.himTone = 0;
-    if (!d.dropped) d.dropped = {};
+    if (Array.isArray(d.dropped)) { const o = {}; d.dropped.forEach((id) => { if (typeof id === 'string') o[id] = pm(); }); d.dropped = o; }   // JSON would drop string keys of an array
+    if (!d.dropped || typeof d.dropped !== 'object') d.dropped = {};
     return d;
   }
   function save() { safeCall(() => G.save && G.save()); }
@@ -119,12 +142,27 @@
     z.S9 = safeCall(() => !!(G.phone && G.phone.modalOpen && G.phone.modalOpen()), false);
     z.S10 = flag('M8') && !flag('HOOK');
     z.H = holds.size > 0;
+    const zf = opt('zones');
+    if (typeof zf === 'function') {                                    // ep3: the table is data (ARCH_EP3 §5.16)
+      const r = safeCall(() => zf(z), null);
+      if (r && typeof r === 'object') { const out = Object.assign({}, r); out.H = z.H; return out; }
+    }
     return z;
   };
   function climaxNow() { return flag('M6') && !flag('M7'); }
+  /** ep3 safeKinds: does `kind` block now? (any listed zone or a hold) — null when the option is absent (ep2 path) */
+  function kindBlocks(kind, z) {
+    const sk = opt('safeKinds');
+    if (!sk || typeof sk !== 'object') return null;
+    const list = sk[kind] || sk.show || [];
+    if (z.H) return true;
+    return list.some((k) => !!z[k]);
+  }
   D.safe = function (kind) {
     const z = D.zones();
     kind = kind || 'show';
+    const kb = kindBlocks(kind, z);
+    if (kb !== null) return !kb;
     if (kind === 'world') return !z.S1 && !z.S2;                      // decorations (shake / vignette pulse) allowed
     if (kind === 'jump') return !z.S1 && !z.S2;
     if (kind === 'mono') return !(z.S1 || z.S2 || z.S3 || z.S4 || z.S5 || z.S6 || z.S8 || z.H);   // ignores S10 (mono4)
@@ -136,6 +174,8 @@
   function zoneBlocks(z, onlyS1S2) {
     if (z.S1 || z.S2 || z.H) return true;
     if (onlyS1S2) return false;
+    const kb = kindBlocks('show', z);
+    if (kb !== null) return kb;
     if (z.S9 || z.S10) return true;
     if (climaxNow()) return false;
     return z.S3 || z.S4 || z.S5 || z.S6 || z.S7 || z.S8;
@@ -148,11 +188,13 @@
       clock: () => safeCall(() => G.clock.now(), new Date()), passed,
       user: user(), room: roomSnap(), app: topApp(),
       firedAt: (id) => D.fired(id), vars: (G.state && G.state.vars) || {},
+      lastJump,
     };
   }
   function whereOk(b, s) {
     const w = b.where || 'any';
     if (w === 'any') return true;
+    if (w === 'lv' || w === 'sr') return curWhere() === w;              // ep3: {N}'s space (vars.where)
     if (w.startsWith('room:')) { const list = w.slice(5).split(','); return s.room.open && (list.includes(s.room.view) || list.includes(s.room.sub)); }
     if (w.startsWith('user:')) return s.user === w.slice(5);
     if (w.startsWith('app:')) return s.app === w.slice(4);
@@ -212,7 +254,8 @@
       const ok = safeCall(() => !!(b.when && b.when(s)), false) && whereOk(b, s);
       if (!ok) { readySince[b.id] = null; waitSince[b.id] = null; continue; }
       if (readySince[b.id] == null) readySince[b.id] = p;
-      if (b.delayMs && p - readySince[b.id] < b.delayMs) continue;
+      const dly = typeof b.delayMs === 'function' ? safeCall(() => +b.delayMs(s) || 0, 0) : b.delayMs;
+      if (dly && p - readySince[b.id] < dly) continue;
       if (b.kind === 'world' || b.defer === 'world') { due.push(b); continue; }
       // show beats
       if (showDone) continue;
@@ -247,7 +290,18 @@
   }
 
   /* ---------- tension (§6.1.5) ---------- */
+  /** ep3: data targetT(s) → number | {T, ms} — null when the option is absent (ep2 path) */
+  function dataTarget() {
+    const bd = BD();
+    if (!bd || typeof bd.targetT !== 'function') return null;
+    const r = safeCall(() => bd.targetT(snap()), null);
+    if (r == null) return { T: 0, ms: 20000 };
+    if (typeof r === 'number') return { T: r, ms: 20000 };
+    return { T: +r.T || 0, ms: r.ms > 0 ? +r.ms : 20000 };
+  }
   function targetT() {
+    const dt = dataTarget();
+    if (dt) return dt.T;
     const tt = BD().tension || {};
     if (flag('END')) return tt.END != null ? tt.END : 0;
     if (flag('M8')) return tt.M8 != null ? tt.M8 : 0.2;
@@ -262,6 +316,14 @@
   }
   D.T = function () { return tCur; };
   function stepTension(dtMs) {
+    const dt = dataTarget();
+    if (dt) {                                                          // ep3: data target + its own convergence time (≈ 95 % in ms)
+      tCur += (dt.T - tCur) * (1 - Math.exp(-dtMs / Math.max(300, dt.ms / 3)));
+      if (Math.abs(dt.T - tCur) < 0.002) tCur = dt.T;
+      dir().T = Math.round(tCur * 1000) / 1000;
+      applyTension();
+      return;
+    }
     const target = targetT();
     if (flag('M7') && !flag('M8')) {
       // the M7 curve is itself the 40 s fall — follow it closely (fast attack to 1.0)
@@ -275,7 +337,8 @@
   }
   function applyTension() {
     safeCall(() => { if (G.audio && G.audio.tension) G.audio.tension(tCur); });
-    const vig = 0.30 + 0.40 * tCur;
+    const vf = opt('vignette');
+    const vig = typeof vf === 'function' ? safeCall(() => Math.max(0, Math.min(1, +vf(tCur) || 0)), 0) : 0.30 + 0.40 * tCur;
     safeCall(() => {
       if (G.fx && G.fx.setVignette) G.fx.setVignette(vig);
       else { const scr = document.getElementById('screen'); if (scr) scr.style.setProperty('--vig', String(vig)); }
@@ -285,6 +348,20 @@
   /* ---------- ambience driven by state (drone, '—' detune, M8, END) ---------- */
   function amb(id, on, o) { safeCall(() => { if (G.audio && G.audio.amb) G.audio.amb(id, on, o || {}); }); }
   function syncAmbience() {
+    const am = opt('ambience');
+    if (am && typeof am === 'object') {                                // ep3: only what the data turns on (ep3: nothing)
+      if (am.drone) {
+        const want = flag('M1') && !flag('M8');
+        if (want && !droneOn) { droneOn = true; amb('drone', true, { fade: 4 }); }
+        if (!want && droneOn) { droneOn = false; amb('drone', false, { fade: 8 }); }
+      }
+      if (flag('END') && !endApplied) {
+        endApplied = true;
+        if (am.endWind) amb('roofWind', true, { gainDb: -9, fade: 6 });
+        if (am.gsm) safeCall(() => { const g = G.audio && G.audio.gsmTank; if (g && g.fadeTo) g.fadeTo(0, 3000); });
+      }
+      return;
+    }
     const wantDrone = flag('M1') && !flag('M8');
     if (wantDrone && !droneOn) { droneOn = true; amb('drone', true, { fade: 4 }); }
     if (flag('M8') && !m8Applied) { m8Applied = true; droneOn = false; amb('drone', false, { fade: 8 }); }
@@ -307,6 +384,7 @@
   /* ---------- 00:00 compensation (§6.1.7) ---------- */
   function sched() { return G.e2 && G.e2.sched ? G.e2.sched : null; }
   function checkMidnight() {
+    if (opt('midnight') === false) return;                             // ep3: the night never crosses 00:00
     const m = clockMin();
     if (m == null) return;
     const MID = 1440;
@@ -324,8 +402,16 @@
 
   /* ---------- micro ambience (§6.1.6) ---------- */
   function inForbidden(az) { return (BD().microForbidden || [[50, 80], [105, 125]]).some(([a, b]) => az >= a && az <= b); }
-  function pickMicro() {
-    const list = (BD().micro || []).filter((x) => x && x.id);
+  /** ep3 record fields (where · when · once) filter the list; ep2 records carry none of them → the same list */
+  function microEligible(x, s) {
+    if (!x || !x.id) return false;
+    if (x.where && x.where !== 'any' && x.where !== curWhere()) return false;
+    if (x.when && !safeCall(() => !!x.when(s), false)) return false;
+    if (x.once && D.fired(x.key || x.id) != null) return false;
+    return true;
+  }
+  function pickMicro(s) {
+    const list = (BD().micro || []).filter((x) => microEligible(x, s));
     if (!list.length) return null;
     const tot = list.reduce((a, x) => a + (x.weight || 1), 0);
     let r = Math.random() * tot;
@@ -333,25 +419,52 @@
     return list[list.length - 1];
   }
   function microTick() {
-    const active = flag('M1') && !flag('M6');
+    const ma = opt('microActive');
+    const s = typeof ma === 'function' ? snap() : null;
+    const active = typeof ma === 'function' ? safeCall(() => !!ma(s), false) : flag('M1') && !flag('M6');
     if (!active) { nextMicroPm = null; return; }
     const p = pm();
-    const gapMs = () => (120 - 75 * tCur) * 1000 * (0.7 + Math.random() * 0.6);
+    const mg = opt('microGap');
+    const gapMs = typeof mg === 'function'
+      ? () => Math.max(1000, safeCall(() => +mg(tCur) || 120000, 120000))
+      : () => (120 - 75 * tCur) * 1000 * (0.7 + Math.random() * 0.6);
     if (nextMicroPm == null) { nextMicroPm = p + gapMs(); return; }
     if (p < nextMicroPm) return;
     nextMicroPm = p + gapMs();
-    const m = pickMicro();
+    if (kindBlocks('micro', D.zones()) === true) return;              // ep3: a turn that falls in S1–S10 is skipped (§6.1.6)
+    const m = pickMicro(s || snap());
     if (!m) return;
+    const sr = m.where === 'sr';                                       // sr rows are in the LS frame — the front-door rule is L0's
     let az = 0;
     for (let tries = 0; tries < 6; tries++) {
       const ranges = m.az || [[0, 360]];
       const [a, b] = ranges[Math.floor(Math.random() * ranges.length)];
       az = Math.round(a + Math.random() * (b - a)) % 360;
-      if (!inForbidden(az)) break;
+      if (sr || !inForbidden(az)) break;
     }
-    if (inForbidden(az)) return;
-    safeCall(() => { if (G.audio && G.audio.cue) G.audio.cue(m.id, { az, el: m.el }); });
+    if (!sr && inForbidden(az)) return;
+    if (m.once) D.mark(m.key || m.id);
+    if (typeof m.run === 'function') safeCall(() => m.run({ az, s: s || snap() }));
+    else safeCall(() => { if (G.audio && G.audio.cue) G.audio.cue(m.id, { az, el: m.el }); });
     if (m.sub) safeCall(() => { if (G.audio && G.audio.sub) G.audio.sub(m.sub, { az }); });
+  }
+
+  /* ---------- ep3 world loops (BD().loops — W01 · W03) ---------- */
+  function loopTick() {
+    const loops = opt('loops');
+    if (!Array.isArray(loops) || !loops.length) return;
+    const p = pm(), s = snap(), z = D.zones();
+    loops.forEach((L) => {
+      if (!L || !L.id) return;
+      const on = safeCall(() => !!(L.when && L.when(s, z)), false);
+      if (!on) { loopNext[L.id] = null; return; }
+      const gap = () => Math.max(1000, safeCall(() => +L.gapMs() || 30000, 30000));
+      if (loopNext[L.id] == null) { loopNext[L.id] = p + gap(); return; }
+      if (p < loopNext[L.id]) return;
+      loopNext[L.id] = p + gap();
+      if (D.fired(L.id) == null) D.mark(L.id);
+      safeCall(() => L.run && L.run({ s, zones: z }));
+    });
   }
 
   /* ---------- tick ---------- */
@@ -368,6 +481,7 @@
     syncAmbience();
     checkMidnight();
     microTick();
+    loopTick();
     evaluate();
   }
 
@@ -400,7 +514,7 @@
     G.bus.on('mono:show', () => { monoShowing = true; });
     G.bus.on('mono:hide', () => { monoShowing = false; schedEval(); });
     G.bus.on('users:switched', onSwitched);
-    G.bus.on('clock:jump', () => { checkMidnight(); schedEval(); });
+    G.bus.on('clock:jump', (j) => { if (j && typeof j === 'object') lastJump = { from: j.from, to: j.to, skipped: j.skipped || [], pm: pm() }; checkMidnight(); schedEval(); });
     G.bus.on('flag:M4', () => { ensureB09Cue(); });
     G.bus.on('visibility', (v) => { if (v && !v.hidden) { accMs = 0; schedEval(); } });
   };
@@ -430,7 +544,10 @@
       if (D.run(id)) return true;
       // runners owned by other flow files
       const map = { B20: () => G.ending && G.ending.debugM8 && G.ending.debugM8(), B23: () => G.hook && G.hook.start && G.hook.start(),
-        B01: () => G.scenes && G.scenes.coldOpen && G.scenes.coldOpen() };
+        B01: () => G.scenes && G.scenes.coldOpen && G.scenes.coldOpen(),
+        // ep3 runners (records that are documentation-only in ep3's beats.js — inert on ep2, whose B04 has its own run)
+        B04: () => G.call && G.call.startNow && G.call.startNow(), B18: () => G.ending && G.ending.start && G.ending.start({ by: 'played' }),
+        B21: () => G.hook && G.hook.start && G.hook.start() };
       if (map[id]) { map[id](); D.mark(id); return true; }
       console.warn('[director] skipTo: no runnable record for', id);
       return false;

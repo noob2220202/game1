@@ -20,7 +20,7 @@ sudo git clone -b ccr-a2c62b80-3ar5vk https://github.com/noob2220202/game1.git /
 ```bash
 cd /var/www/haru && sudo git pull
 ```
-(빌드 과정 없음 — 정적 파일 그대로 서비스. 1편 = `/`, 2편 = `/ep2/`)
+(빌드 과정 없음 — 정적 파일 그대로 서비스. 1편 = `/`, 2편 = `/ep2/`, 3편 = `/ep3/`, 에피소드 선택 = `/series/`)
 
 ## 3. Caddy
 `deploy/Caddyfile` 내용을 `/etc/caddy/Caddyfile` 에 추가(또는 교체)한 뒤:
@@ -31,19 +31,23 @@ sudo systemctl reload caddy
 처음 접속 시 Caddy가 HTTPS 인증서를 자동 발급합니다 (몇 초~1분).
 
 이 설정이 하는 일:
-- `/.git` `/deploy/*` `/docs/*` `/tools/*` **`/work/*`** `/README.md` `/.gitignore` `/ep2/assets/img/meta.json` → 404 (정답·설계 문서 비공개)
-- `/assets/*` · `/ep2/assets/*` → 1주 캐시, HTML·JS·CSS(`engine/`·`ep2/` 포함) → `no-cache`
+- `/.git` `/deploy/*` `/docs/*` `/tools/*` **`/work/*`** `/README.md` `/.gitignore` `/ep2/assets/img/meta.json` `/ep3/assets/img/meta.json` → 404 (정답·설계 문서 비공개 — 3편 설계·정답 `docs/DESIGN_EP3.md` · `docs/ARCH_EP3.md` 포함)
+- `/assets/*` · `/ep2/assets/*` · `/ep3/assets/*` → 1주 캐시, HTML·JS·CSS(`engine/`·`ep2/`·`ep3/`·`series/` 포함) → `no-cache`
 - `Permissions-Policy`: 카메라·마이크·위치·블루투스·가속도·자이로·자기장·클립보드 읽기 전부 끔 (게임은 이 권한을 하나도 요청하지 않습니다)
-- `/ep2/` 는 디렉터리 인덱스(`ep2/index.html`)로 열립니다. 루트 `404.html`은 그대로.
+- `/ep2/` · `/ep3/` 는 디렉터리 인덱스(`ep2/index.html` · `ep3/index.html`)로 열립니다. 루트 `404.html`은 그대로.
 
 ## 확인
 - https://haru.pengueverything.cloud 접속 → 1편 타이틀 화면
 - https://haru.pengueverything.cloud/ep2/ 접속 → 2편 타이틀 화면
+- https://haru.pengueverything.cloud/ep3/ 접속 → 3편 공개 전이면 에피소드 선택 화면(`/series/`)으로 돌아가고, 공개 뒤엔 3편 타이틀 화면
+  (`?preview=1` 을 붙이면 공개 전에도 열립니다 — 만든 사람의 실기기 시험용)
 - 카톡에 링크 보내서 미리보기 카드가 뜨는지 확인 (2편 OG 이미지 `ep2/assets/img/og_ep2.jpg`)
 - 막혀야 하는 경로가 404인지 확인:
   - https://haru.pengueverything.cloud/.git/config
   - https://haru.pengueverything.cloud/work/ (작업 폴더 — 반드시 404)
   - https://haru.pengueverything.cloud/docs/DESIGN_EP2.md
+  - https://haru.pengueverything.cloud/docs/DESIGN_EP3.md
+  - https://haru.pengueverything.cloud/ep3/assets/img/meta.json
 - 응답 헤더 확인: `curl -sI https://haru.pengueverything.cloud/ep2/ | grep -i permissions-policy`
 - 배포 주소에서는 `?debug=1` 이 무시됩니다(`*.pengueverything.cloud` 호스트 규칙). QA 도구는 로컬(`file://` 또는 localhost)에서만.
 
@@ -57,3 +61,12 @@ sudo systemctl reload caddy
 - [ ] 1편 엔딩까지 가면 시리즈 기록(`haru-escape.series.v1`)이 남는지 — 1편 '처음부터'를 눌러도 지워지지 않아야 합니다
 - [ ] 1편을 다시 처음부터 하려면: 게임 속 설정 앱 › 게임 설정 › 처음부터 다시 하기
 - [ ] 2편을 다시 처음부터 하려면: 2편 타이틀 › `처음부터` (2편 진행만 지워지고 시리즈 기록은 남습니다)
+
+## 3편 공개 (「엄마의 번호」)
+공개 시각은 `engine/series.js` 의 `RELEASES[3]` 한 곳이 정합니다(배포 파일에 공개일 · 시각 문자열 0 — 화면에도 나오지 않습니다).
+게이트는 **기기 시계 기준 화면 게이트**일 뿐 파일을 숨기지 않습니다 — 줄거리 비밀이 중요하면 순서대로:
+1. 엔진 키 · `RELEASES` 먼저 배포(무해 — 1·2편은 그대로 동작)
+2. 공개 시각에 `ep3/` 폴더와 `series/` 의 3편 줄(702 창)을 배포
+- [ ] 공개 전: `/ep3/` → 에피소드 선택 화면으로 돌아가는지 · 선택 화면의 702 창이 평범한 어두운 창인지(번호 · 제목 0)
+- [ ] 공개 뒤: 702 창 + 목록 줄 `3` · 3편을 끝내면 창에 불 · `?preview=1` 은 언제든 열림
+- [ ] 3편을 다시 처음부터 하려면: 3편 타이틀 › `처음부터` (3편 진행만 지워지고 시리즈 기록은 남습니다)

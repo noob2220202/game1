@@ -1,10 +1,13 @@
 /* =========================================================
  * 하루를 위한 방탈출! 2 — 카메라 app = 방 보기 (engine/apps/camera.js · owner: room)
  * DESIGN §2.6 ② (방 보기 = the phone's camera app, {N}'s user only) · §4.7.6 · §9.5-4 · ARCH §3.2 room · §4.19 open params.
+ * Episode 3 (ARCH_EP3 §4.2 · §5.12 · DESIGN_EP3 §2.6 ② · §4.9): the same app opens the two-room renderer of engine/room/room.js
+ *   (G.ROOM.v === 3) — open params gain { room:'lv'|'sr', closeup } next to { view, flash }; nothing else changes for ep2.
  * The camera chrome (close · flashlight · 1×/2×/8× pill · shutter → vars.shots · direction dots · turn arrows) is drawn by
  * engine/room/room.js in camera mode; this file only registers the app and routes its open params.
  *
  *   G.app('camera', { name:'카메라', icon, open({ view, sub, flash }) })        open params (ARCH §4.19): camera { view, flash }
+ *   ep3 adds: open({ room, view, closeup, flash, fromLock }) — room/closeup are passed through only when given (ep2 never gives them)
  *   G.camera = { open(params) → room api | null, rear(params) (ep1 alias), stop() (no-op), isLive() → false }
  * No camera stream API, no permission prompt, no front camera (ARCH §1 — the ep1 simulated selfie view is gone in ep2).
  * Load order: after engine/room/room.js and engine/core/phone.js (G.app) — registration is guarded for partial builds.
@@ -21,6 +24,8 @@
     try { if (G.users && G.users.current && G.users.current() === 'dash') return null; } catch (e) {}
     const o = { mode: 'camera', view: p.view, sub: p.sub, fromLock: !!p.fromLock };
     if (p.flash != null) o.flash = !!p.flash;
+    if (p.room != null) o.room = p.room;            // ep3 (ARCH_EP3 §4.2): 'lv' | 'sr'
+    if (p.closeup != null) o.closeup = p.closeup;   // ep3: open straight onto a close-up
     return G.room.open(o);
   };
   CAM.rear = CAM.open;                       // ep1 name (shell's QS tile may still call it)

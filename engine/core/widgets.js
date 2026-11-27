@@ -18,7 +18,10 @@
  *     → { node, play(), pause(), playing(), pos() }      🎤 · ▶/❚❚ · waveform · 0:00 / 0:14 · no speed button, no transcript
  * G.ui.framePlayer({ id, frames:[{key,t0,t1}], dur, getBuffer, subs:[{t0,t1,text,kind}], from:'gallery', onReach:{'10.0':fn},
  *                    onTime, onEnd, qa='video' }) → { node, play(), pause(), seek(t), pos() }   (no video element)
- * G.ui.inputActive() → bool   keyboard open ∨ a mounted, visible pinPad
+ * G.ui.inputActive() → bool   keyboard open ∨ a mounted, visible pinPad ∨ any registered input source returns true
+ * G.ui.inputSource(fn) → remove()   ep3 (ARCH_EP3 §4.2 widgets): extra S1 predicates — the comms / easymode dial pads register
+ *     () => padNode.isConnected && padVisible && digits.length > 0 (DESIGN_EP3 §6.1.3 S1 '키패드 숫자 · 차단할 번호 입력').
+ *     ep2 registers nothing ⇒ inputActive() is unchanged there.
  * ep1 kept: G.ui.zoomViewer · G.ui.patternLock · G.ui.waveform · G.ui.typing · G.ui.onLongPress   (ep1 spectrogram removed)
  * All playback goes through G.media.play (core media.js). Strings: G.e2.STR (unplayed / loading) + DESIGN player text.
  * ========================================================= */
@@ -123,9 +126,17 @@
     else if (e.key === 'Backspace') { e.preventDefault(); p._press('⌫'); }
     else if (e.key === 'Enter' && p._free) { e.preventDefault(); p._submit(); }
   });
+  const inputSources = [];
+  UI.inputSource = function (fn) {
+    if (typeof fn !== 'function') return function () {};
+    inputSources.push(fn);
+    return function remove() { const i = inputSources.indexOf(fn); if (i >= 0) inputSources.splice(i, 1); };
+  };
   UI.inputActive = function () {
     if (UI.keyboardOpen && UI.keyboardOpen()) return true;
-    return !!topPad();
+    if (topPad()) return true;
+    for (let i = 0; i < inputSources.length; i++) { try { if (inputSources[i]()) return true; } catch (e) {} }
+    return false;
   };
 
   /* =========================================================

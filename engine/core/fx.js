@@ -5,9 +5,13 @@
  * G.fx.sub(text, ms=3200, {az, cls, replace}) → Promise   bottom sound-subtitle channel (G.audio.sub decides when/what);
  *                                                replace = a class name: lines carrying it are swapped out, not stacked
  * G.fx.subScope({cls, replace}, fn)              opts for every G.fx.sub rendered synchronously inside fn (via G.audio.sub)
- * G.fx.mono(text, ms=3200) → Promise             monologue channel (separate layer, no sound, no toast) — G.e2.mono, recap
+ * G.fx.mono(text, ms=3200, {cls}?) → Promise    monologue channel (separate layer, no sound, no toast) — G.e2.mono, recap.
+ *                                                ep3 additions (inert unless called): opts.cls (extra class on the line, e.g. the
+ *                                                ep3 recap hand) · G.fx.monoNext() ends the line on screen now (recap tap) ·
+ *                                                G.fx.monoClear() fades the line on screen and drops the queued ones ([건너뛰기])
  * G.fx.dirArc(az, ms=1200)                       speaker-mode edge arc ◀ ▶ ▲ ▼ relative to G.audio.getYaw()
- * G.fx.edgeShake(px=3, ms=300)                   no-op with G.settings.reduceShake or G.e2.less()
+ * G.fx.edgeShake(px=3, ms=300)                   no-op with G.settings.reduceShake or G.e2.less() — and always with G.EP.noShake
+ *                                                (ep3: no shake class anywhere, ARCH §1 · DESIGN_EP3 §9.7 V10; ep2 never sets it)
  * G.fx.setVignette(v)                            sets --vig on #screen (+ #phone so #fx-layer inherits). The value law is the
  *                                                director's (§6.1: .30 + .40·T); the look depends on the visible surface:
  *                                                #phone.c2-room (room / eye / camera view on top) = radial falloff, else an
@@ -80,13 +84,16 @@
 
   /* ---------- monologue (one line at a time) ---------- */
   let monoChain = Promise.resolve();
-  FX.mono = function (text, ms) {
+  let monoGen = 0, monoCut = null;                 // ep3: monoNext / monoClear (never called on the ep2 page)
+  FX.mono = function (text, ms, opts) {
     ready();
+    const gen = monoGen;
     const run = async () => {
-      const line = mk('div', 'c2-mono-line', T(String(text == null ? '' : text)));
+      if (gen !== monoGen) return;                 // cleared while queued
+      const line = mk('div', 'c2-mono-line' + (opts && opts.cls ? ' ' + opts.cls : ''), T(String(text == null ? '' : text)));
       monoBox.appendChild(line);
       requestAnimationFrame(() => requestAnimationFrame(() => line.classList.add('in')));
-      await sleep(ms || 3200);
+      await new Promise((res) => { const t = setTimeout(done, ms || 3200); function done() { clearTimeout(t); if (monoCut === done) monoCut = null; res(); } monoCut = done; });
       line.classList.remove('in'); line.classList.add('out');
       await sleep(700);
       line.remove();
@@ -95,6 +102,10 @@
     monoChain = p.catch(() => {});
     return p;
   };
+  /** ep3 — end the monologue line on screen now (it still fades out 0.7 s) */
+  FX.monoNext = function () { if (monoCut) monoCut(); };
+  /** ep3 — fade the line on screen and drop every queued line (their promises resolve at once) */
+  FX.monoClear = function () { monoGen++; if (monoCut) monoCut(); };
 
   /* ---------- speaker-mode direction arc ---------- */
   FX.dirArc = function (az, ms) {
@@ -114,6 +125,7 @@
 
   /* ---------- edge shake ---------- */
   FX.edgeShake = function (px, ms) {
+    if (G.EP && G.EP.noShake) return;              // ep3 (ARCH §4.2 fx.js) — ep2 never defines G.EP.noShake
     if ((G.settings && G.settings.reduceShake) || (G.e2 && G.e2.less && G.e2.less())) return;
     const root = document.getElementById('phone');
     if (!root) return;
@@ -139,8 +151,12 @@
       if (!(G.room && G.room.isOpen && G.room.isOpen())) return false;
       const scr = document.getElementById('screen');
       if (scr && scr.querySelector(':scope > .rm2-eye')) return true;
+      // ep3 room (ARCH §5.12): eye views .rm3-eye / data-qa room.eye (z 45) · camera mode root data-qa room.camera — absent on ep2
+      if (scr && scr.querySelector(':scope > .rm3-eye, :scope > [data-qa="room.eye"]')) return true;
       const top = G.phone && G.phone.top ? G.phone.top() : null;
       const n = top && top.node;
+      if (n && n.isConnected && n.classList && n.classList.contains('rm3-room')) return true;
+      if (n && n.isConnected && n.matches && (n.matches('[data-qa="room.camera"]') || n.querySelector('[data-qa="room.camera"]'))) return true;
       return !!(n && n.classList && n.classList.contains('rm2-room') && n.isConnected);
     } catch (e) { return false; }
   }

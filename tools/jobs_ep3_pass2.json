@@ -1,0 +1,242 @@
+[
+ {
+  "id": "G16",
+  "name": "g_c3_drawing",
+  "pass": 2,
+  "tier": 2,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Using the reference image only for the desk and the warm light: a sharp photograph from directly above of a single sheet of Korean 8-jeol drawing paper, portrait, lying on a light-wood desk; the paper is yellowed with age, with soft worn edges, faint crayon smudges near the margins and a gently curled lower right corner lifting off the desk; otherwise the paper is completely blank. Warm desk-lamp light from the left. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep3/ref_paper.png",
+  "fidelity_doc": "low"
+ },
+ {
+  "id": "G15",
+  "name": "g_c3_manual",
+  "pass": 2,
+  "tier": 2,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Using the reference image only for the paper colour and the desk: a sharp close photograph from directly above of a small cream-coloured paper leaflet unfolded flat on a light-wood desk at night — the instruction leaflet of a small music box, printed in one dark colour, its whole printed side completely blank except for thin printed border lines: a wide empty band across the middle where a short line of music would be, and an empty band near the top. Soft fold creases, slightly yellowed edges, warm desk-lamp light. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep3/ref_manual.png",
+  "fidelity_doc": "low"
+ },
+ {
+  "id": "G17",
+  "name": "g_c3_doorframe",
+  "pass": 2,
+  "tier": 2,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Recreate this exact door frame as a sharp close photograph from about sixty centimetres away: the inside face of the white-painted wooden door casing fills the frame vertically, covering the part from about one metre to about one point eight metres above the floor; old glossy white paint with tiny chips, faint finger smudges near the edge, otherwise completely clean of any marks or writing. Warm desk-lamp light from the right grazing the paint. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep3/ref_frame.png",
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G14",
+  "name": "g_c3_orgel_spot",
+  "pass": 2,
+  "tier": 2,
+  "star": false,
+  "size": "1024x1024",
+  "quality": "medium",
+  "prompt": "Recreate this exact shelf as a sharp close-up from the front at eye level: the small white crocheted lace doily lying flat on the white shelf, its centre empty — a clean rectangle about twelve by nine centimetres where a small box stood for years, the surrounding lace very slightly greyed by light; children's books with blank spines on both sides. Warm desk-lamp light from the lower left. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep3/ref_shelf.png",
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G09",
+  "name": "g_c3_phone_ring",
+  "pass": 2,
+  "tier": 2,
+  "star": false,
+  "size": "1024x1024",
+  "quality": "medium",
+  "prompt": "Photorealistic photograph taken with a recent smartphone camera, natural lens, believable exposure, fine realistic sensor noise, everyday Korean setting, not cinematic, not stylised, no HDR halo, no lens dirt. Using the reference image only for the tablecloth and the warm lamp light: a close photograph looking down at about 45 degrees onto the same dining table at night. A slim black smartphone in a clear, slightly yellowed soft case lies face up on the clear vinyl over the pale floral cotton tablecloth, its screen completely black and glossy with no reflection of anything readable; beside it, a plain white ceramic mug of water. Warm lamp light from the upper left; the far edge of the table falls into darkness. No hands, no people. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep3/ref_table.png",
+  "fidelity_doc": "low"
+ },
+ {
+  "id": "G10",
+  "name": "g_c3_lockpanel",
+  "pass": 2,
+  "tier": 2,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Recreate this exact view as a sharp close-up photograph taken from about forty centimetres in front of the door at night: the inside unit of the digital door lock on the dark charcoal-grey steel front door fills the upper half of the frame — a plain rectangular dark grey unit with one round button, a small rectangular battery cover and a tiny dark status window, completely blank, no logo; below it the lever handle and the edge of the door's recessed panel. Dim warm light from the left, the right side in shadow. Keep materials, colours and light direction faithful to the reference image. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep3/ref_lock.png",
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G11",
+  "name": "g_c3_shoes",
+  "pass": 2,
+  "tier": 2,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Recreate this exact area as a sharp close photograph from standing height looking slightly down, at night: the top of the white shoe cabinet with the pair of pink fluffy indoor slippers placed side by side; on the wall just right of it, the small white adhesive hook with the thin pink dog collar and its tiny round brass bell hanging still; below, on the hallway floor, the empty round grey dog cushion beside the brown coir doormat on beige tiles. Dim warm light from the left. Keep every object, colour and position faithful to the reference image. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep3/ref_shoes.png",
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G13",
+  "name": "g_c3_pot",
+  "pass": 2,
+  "tier": 2,
+  "star": false,
+  "size": "1024x1024",
+  "quality": "medium",
+  "prompt": "Recreate this exact stove as a sharp close photograph looking down at about 45 degrees, at night: the slightly dented stainless-steel pot with a clear glass lid on the front burner of the two-burner gas range; through the glass, dark green Korean seaweed soup with small pieces of beef; the burner is unlit; the white counter edge; dim warm light from the side. Keep the pot, lid and burner faithful to the reference image. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep3/ref_stove.png",
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G12",
+  "name": "g_c3_window",
+  "pass": 2,
+  "tier": 2,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Recreate the view through this balcony glass as a sharp telephoto photograph taken from the same spot with a 2x zoom: the facade of the neighbouring apartment block about forty metres away fills the frame — rows of identical windows and balcony railings over many floors, every window dark, no painted numbers, no signs, no logos; a faint warm reflection of the room in the glass along the bottom edge; a blue-black sky above with a faint orange glow. It is still night. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep3/ref_glass.png",
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G22",
+  "name": "g_p3_kongi_1130",
+  "pass": 2,
+  "tier": 3,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Photorealistic photograph taken with a recent smartphone camera, natural lens, believable exposure, fine realistic sensor noise, everyday Korean setting, not cinematic, not stylised, no HDR halo, no lens dirt. Using the first image as the reference for the dog and the second only for this apartment's entrance (the same beige tiles, coir doormat, shoe cabinet and charcoal-grey steel door): a casual smartphone photo taken from inside the entrance at about sixty centimetres high, in the early evening of a late-November day. The front door stands wide open outward, swung past ninety degrees, so its outer face is visible at a steep angle along the right edge of the frame, and on that outer face, near the edge at eye level, a small blank rectangular plate. On the threshold sits a closed plain brown cardboard delivery box with plain tape, completely blank. The dog, wearing a thin pink collar with a tiny brass bell, stands on the coir mat looking out through the open door, tail up. Outside, a plain dim stairwell landing with a grey terrazzo floor under cold fluorescent light; no other doors, no elevator. The entrance ceiling light is on, warm. The dog is a small apricot toy poodle with curly red-brown fur, a slightly paler muzzle going grey at the tip, round dark eyes and a black nose, exactly the dog in the reference photograph. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described.",
+  "ref": [
+   "work/gen_ep3/ref_kongi.png",
+   "work/gen_ep3/ref_hall.png"
+  ],
+  "fidelity_doc": "low"
+ },
+ {
+  "id": "G25",
+  "name": "g_p3_soup_2601",
+  "pass": 2,
+  "tier": 3,
+  "star": false,
+  "size": "1024x1024",
+  "quality": "low",
+  "prompt": "Photorealistic photograph taken with a recent smartphone camera, natural lens, believable exposure, fine realistic sensor noise, everyday Korean setting, not cinematic, not stylised, no HDR halo, no lens dirt. Using the reference image only for the clear vinyl over the pale floral tablecloth: a casual smartphone photo from above, at about seven on a winter morning, grey-blue daylight from a window mixed with the kitchen ceiling light. On the table, two bowls of Korean seaweed soup and two bowls of rice: one place has been eaten from — the soup half gone, a spoon resting in the bowl; the other place is untouched and full, its spoon and chopsticks laid neatly side by side on a folded paper napkin. Nobody in the photo. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep3/ref_table.png",
+  "fidelity_doc": "low"
+ },
+ {
+  "id": "G24",
+  "name": "g_p3_cake_2411",
+  "pass": 2,
+  "tier": 3,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Photorealistic photograph taken with a recent smartphone camera, natural lens, believable exposure, fine realistic sensor noise, everyday Korean setting, not cinematic, not stylised, no HDR halo, no lens dirt. Using the reference image only for this apartment's entrance (tiles, coir mat, shoe cabinet, door colour): a casual smartphone photo taken from inside at about twenty to eight in the evening in late November. In the open doorway stands a young woman cut off at the chest so that no face is visible, in a camel wool coat with the cuffs of a cream knit sweater showing, holding out a white cardboard cake box tied with a thin pink ribbon toward the camera with both hands; the box is completely blank. The entrance ceiling light is on, warm; behind her, the dim cold stairwell. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep3/ref_hall.png",
+  "fidelity_doc": "low"
+ },
+ {
+  "id": "G23",
+  "name": "g_p3_kongi_1213",
+  "pass": 2,
+  "tier": 3,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Photorealistic photograph taken with a recent smartphone camera, natural lens, believable exposure, fine realistic sensor noise, everyday Korean setting, not cinematic, not stylised, no HDR halo, no lens dirt. Using the first image as the reference for the dog and the second only for this apartment's entrance: a casual smartphone photo from standing height looking down at the entrance in the evening. The charcoal-grey front door is closed. The dog, wearing its thin pink collar with a tiny brass bell, lies curled on the round grey dog cushion beside the coir mat, chin on its paws, facing the closed door. The entrance ceiling light is on, warm; the pink slippers on the shoe cabinet are visible at the left edge. The dog is a small apricot toy poodle with curly red-brown fur, a slightly paler muzzle going grey at the tip, round dark eyes and a black nose, exactly the dog in the reference photograph. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described.",
+  "ref": [
+   "work/gen_ep3/ref_kongi.png",
+   "work/gen_ep3/ref_hall.png"
+  ],
+  "fidelity_doc": "low"
+ },
+ {
+  "id": "G18",
+  "name": "g_x3_mom_table",
+  "pass": 2,
+  "tier": 4,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material, light and colour identical unless the instruction below changes it. The woman is a Korean woman in her late fifties seen only from behind: shoulder-length black hair streaked with grey, loosely tied low at the nape with a plain black hair tie; a muted plum-coloured knitted cardigan over a light grey long-sleeved top; loose dark grey trousers; ivory socks. Her face is never visible. Add this woman sitting on the nearest dining chair with her back to the camera, slightly hunched, both forearms resting on the table. On the table in front of her, a plain white ceramic mug of water and, beside it, a slim black smartphone in a clear case lying face down. The table lamp's warm light outlines her shoulders and hair. Nothing else in the photograph changes. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep3/g_r3_kitchen.png",
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G20",
+  "name": "g_x3_kongi_sleep",
+  "pass": 2,
+  "tier": 4,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material, light and colour identical unless the instruction below changes it. Using the second image only as the reference for the dog: on the floor right in front of the half-open bedroom door at the right edge of the first photograph, add the dog curled up asleep, wearing no collar, nose tucked against its tail. The dog is a small apricot toy poodle with curly red-brown fur, a slightly paler muzzle going grey at the tip, round dark eyes and a black nose, exactly the dog in the reference photograph. Nothing else in the photograph changes. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described.",
+  "ref": [
+   "work/gen_ep3/g_r3_door.png",
+   "work/gen_ep3/ref_kongi.png"
+  ],
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G21",
+  "name": "g_x3_kongi_door",
+  "pass": 2,
+  "tier": 4,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material, light and colour identical unless the instruction below changes it. Using the second image only as the reference for the dog: add the dog, wearing no collar, standing on the coir doormat right in front of the closed front door, seen from behind and slightly from the side, ears raised, head up toward the door, tail held low. The dog is a small apricot toy poodle with curly red-brown fur, a slightly paler muzzle going grey at the tip, round dark eyes and a black nose, exactly the dog in the reference photograph. Nothing else in the photograph changes. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described.",
+  "ref": [
+   "work/gen_ep3/g_r3_door.png",
+   "work/gen_ep3/ref_kongi.png"
+  ],
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G19",
+  "name": "g_x3_jimin_sleep",
+  "pass": 2,
+  "tier": 4,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material, light and colour identical unless the instruction below changes it. A young adult is now asleep on the sofa under a light grey fleece blanket, lying on one side and turned toward the backrest, the blanket half slipped off toward the floor; only a little dark hair at the cushion end is visible; no face, no hands, no feet. The folded light-blue blanket on the armrest stays where it is. Nothing else in the photograph changes. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep3/g_r3_sofa.png",
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G27",
+  "name": "g_t3_title",
+  "pass": 2,
+  "tier": 4,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Photorealistic photograph taken with a recent smartphone camera, natural lens, believable exposure, fine realistic sensor noise, everyday Korean setting, not cinematic, not stylised, no HDR halo, no lens dirt. Using the reference image only for the tablecloth and the lamp: a quiet low-angle night photograph across the dining table at table height. In the foreground, a slim black smartphone in a clear case lying face down on the clear vinyl over the pale floral tablecloth, a plain white mug of water beside it; in the background, the small warm table lamp glowing softly out of focus; the rest of the room in deep darkness. No people, no dog. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep3/ref_table.png",
+  "fidelity_doc": "low"
+ },
+ {
+  "id": "G26",
+  "name": "g_p3_child_back",
+  "pass": 2,
+  "tier": 4,
+  "star": false,
+  "size": "1024x1024",
+  "quality": "low",
+  "prompt": "A smartphone photograph of an old 4x6-inch colour print from around 2008 lying on a light-wood table: the print fills most of the frame, one corner slightly curled, a soft band of glare across it; the print itself has warm compact-camera colours, gentle softness and a faint colour cast. Using the reference image only for the shape of the music box: the print shows a small child of about six seen entirely from behind, with short black hair, sitting on the floor of a sunlit child's bedroom in front of a low white bookshelf, looking at a small open dark-walnut music box with a brass mechanism that stands on a white crocheted lace doily on the shelf; the child's face is not visible at all. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep3/ref_orgel.png",
+  "fidelity_doc": "low"
+ }
+]

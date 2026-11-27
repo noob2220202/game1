@@ -7,6 +7,11 @@
  *       G.STORY.mails [{ id, folder:'inbox'|'trash', from, fromFull, subj, date, sent, body:(cb)=>string[], footer, deletedNote, redact }]
  * Behaviour: no compose / reply / forward; every bracketed '[…]' segment is a link button → toast G.e2.STR.mailNoOpen.
  * All mails are read (no badge). Flags set: none. Storage: none.
+ *
+ * ---- ep3 (G.STORY.mailAccount.mode === 'in' — ep2 data has no `mode` · owner in ep3: media · ARCH_EP3 §3.3) ----
+ * DESIGN_EP3 §4.8.4 폴더 › 메일 · §5.6: a plain logged-in inbox `받은편지함` of 3 read-only mails — no sync banner, no
+ * folders / trash, no compose · reply · forward, no link buttons, no 받는 사람 row (mom's phone). Text through G.mdu.T.
+ * data-scr mail.list · mail.<id>     data-qa mail.item:<id> (+ mail.view:<id> on the reader, as ep2)
  * ========================================================= */
 (function () {
   'use strict';
@@ -22,6 +27,7 @@
   const cb = (k) => { try { return G.e2 && G.e2.cb ? G.e2.cb(k) : false; } catch (e) { return false; } };
   let folder = 'inbox';
   let render = null;
+  const isV3 = () => ACC().mode === 'in';   // ep3 data marker (ARCH_EP3 §4.1-3)
 
   const COLORS = ['#5b7fd6', '#6b9e8a', '#a07fc2', '#c98a5b', '#5aa0b8'];
   function avatar(name, big) {
@@ -97,7 +103,54 @@
     if (G.bus) G.bus.emit('mail:open', m.id);
   }
 
+  /* ---------------- ep3 (mode 'in'): logged-in read-only inbox ---------------- */
+  const MU3 = () => G.mdu || null;
+  const T3 = (s) => { const mu = MU3(); if (mu && mu.T) return mu.T(s); return G.T ? G.T(String(s == null ? '' : s)) : String(s == null ? '' : s); };
+  function screen3(o) { const mu = MU3(); return mu && mu.screen ? mu.screen(o) : (C.screen || G.ui.screen)(o); }
+  function push3(scr, scrId, opts) {
+    scr.dataset.scr = scrId;
+    const e = (G.phone && G.phone.push) ? G.phone.push(scr, opts || {}) : null;
+    if (e && typeof e === 'object') { try { e.scr = scrId; } catch (er) {} }
+    return e;
+  }
+  const tap3 = () => { const mu = MU3(); if (mu && mu.sfx) mu.sfx('tap'); else tap(); };
+  function list3() {
+    const acc = ACC();
+    const holder = el('div.so2-ml-list.md3-ml-list');
+    ALL().forEach((m) => {
+      const lines = bodyOf(m);
+      const prev = String(lines.find((x) => String(x).trim()) || '');
+      holder.appendChild(el('button.so2-ml-row', { 'data-qa': 'mail.item:' + m.id, type: 'button', onclick: () => { tap3(); view3(m); } },
+        avatar3(m.from),
+        el('span.so2-ml-main', null,
+          el('span.so2-ml-top', null, el('b', null, T3(m.from)), el('small', null, T3(m.date || ''))),
+          el('span.so2-ml-subj', null, T3(m.subj)),
+          el('span.so2-ml-prev', null, T3(prev)))));
+    });
+    const scr = screen3({ title: T3(acc.head || ''), body: holder, cls: 'so2-ml md3-ml' });
+    scr.addEventListener('contextmenu', (e) => e.preventDefault());
+    push3(scr, 'mail.list', { appId: 'mail' });
+    return scr;
+  }
+  function avatar3(name) {
+    const n = T3(name || '');
+    let h = 0; for (const ch of n) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return el('span.so2-ml-av', { style: { background: COLORS[h % COLORS.length] }, 'aria-hidden': 'true' }, Array.from(n)[0] || '');
+  }
+  function view3(m) {
+    const lines = bodyOf(m);
+    const body = el('div.so2-ml-view.md3-ml-view',
+      el('div.so2-ml-vsubj', null, T3(m.subj)),
+      el('div.so2-ml-from', null, avatar3(m.from), el('div.so2-ml-fromt', null, el('div', null, el('b', null, T3(m.from))), el('div.so2-ml-date', null, T3(m.sent || m.date || '')))),
+      el('div.so2-ml-body', null, lines.map((l) => el('div.so2-ml-line', null, T3(l)))));
+    const scr = screen3({ title: '', body, cls: 'so2-ml so2-ml-reader md3-ml' });
+    scr.dataset.qa = 'mail.view:' + m.id;
+    scr.addEventListener('contextmenu', (e) => e.preventDefault());
+    push3(scr, 'mail.' + m.id, { anim: 'slide', appId: 'mail' });
+  }
+
   M.open = function (id) {
+    if (isV3()) { if (G.phone && G.phone.openApp && G.apps && G.apps.mail) { G.phone.openApp('mail', { id }); return; } list3(); const m3 = ALL().find((x) => x.id === id); if (m3) view3(m3); return; }
     const m = ALL().find((x) => x.id === id);
     if (G.phone && G.phone.openApp && G.apps && G.apps.mail) return G.phone.openApp('mail', { id });
     if (m) { folder = m.folder || 'inbox'; listScreen(); view(m); }
@@ -112,6 +165,7 @@
       badge: () => 0,   // every saved mail is already read (§4.3)
       open(p) {
         p = p || {};
+        if (isV3()) { list3(); const m3 = p.id ? ALL().find((x) => x.id === p.id) : null; if (m3) view3(m3); return; }
         const m = p.id ? ALL().find((x) => x.id === p.id) : null;
         folder = p.folder === 'trash' || (m && m.folder === 'trash') ? 'trash' : 'inbox';
         listScreen();

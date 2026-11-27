@@ -6,17 +6,19 @@ haru.pengueverything.cloud {
 	# (/work/* = 2편 설계·정답 원고 — 배포 차단 1순위, DESIGN_EP2 §0.2 S13 · §10 K)
 	# /ep2/assets/img/meta.json = 이미지 측정값·QA 메모 (tools/post_ep2.py 산출물, 런타임은 ep2/js/data/assets.js 의
 	# G.IMGMETA 만 읽음) — 숨는 곳·연출 제작 메모가 들어 있어 공개하지 않음
-	@hidden path /.git /.git/* /deploy /deploy/* /docs /docs/* /tools /tools/* /work /work/* /README.md /.gitignore /ep2/assets/img/meta.json
+	# /ep3/assets/img/meta.json = 같은 성격(tools/post_ep3.py 산출물 · 런타임은 ep3/js/data/assets.js 의 G.IMGMETA 인라인 사본만)
+	# /docs/* 에는 3편 설계·정답(DESIGN_EP3 · ARCH_EP3 · setC 원본)도 있다 — 이미 숨김
+	@hidden path /.git /.git/* /deploy /deploy/* /docs /docs/* /tools /tools/* /work /work/* /README.md /.gitignore /ep2/assets/img/meta.json /ep3/assets/img/meta.json
 	respond @hidden 404
 
 	@manifest path *.webmanifest
 	header @manifest Content-Type "application/manifest+json"
 
-	# 이미지·소리는 1주 캐시 (1편 /assets/*, 2편 /ep2/assets/*)
-	@assets path /assets/* /ep2/assets/*
+	# 이미지·소리는 1주 캐시 (1편 /assets/*, 2편 /ep2/assets/*, 3편 /ep3/assets/*)
+	@assets path /assets/* /ep2/assets/* /ep3/assets/*
 	header @assets Cache-Control "public, max-age=604800"
 
-	# HTML·JS·CSS는 매번 확인 (engine/ · ep2/ 코드도 같음)
+	# HTML·JS·CSS는 매번 확인 (engine/ · ep2/ · ep3/ · series/ 코드도 같음)
 	@code path / */ *.html *.js *.css
 	header @code Cache-Control "no-cache"
 
@@ -24,7 +26,7 @@ haru.pengueverything.cloud {
 		Strict-Transport-Security "max-age=31536000"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
-		# 카메라·마이크·위치·블루투스·모션 센서·클립보드 읽기는 어떤 페이지도 쓰지 않는다 (2편의 블루투스·위치는 전부 게임 UI)
+		# 카메라·마이크·위치·블루투스·모션 센서·클립보드 읽기는 어떤 페이지도 쓰지 않는다 (2편의 블루투스·위치, 3편의 통화·녹음·112는 전부 게임 UI)
 		Permissions-Policy "camera=(), microphone=(), geolocation=(), bluetooth=(), accelerometer=(), gyroscope=(), magnetometer=(), clipboard-read=(), fullscreen=(self)"
 		-Server
 	}

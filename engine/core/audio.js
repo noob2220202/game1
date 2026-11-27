@@ -31,6 +31,15 @@
  * Resume chip `🔈 소리 다시 켜기` (G.e2.STR.resume) at z 500 (ARCH §2.3), data-qa "audio.resume".
  * Bus events listened: settings · pause {open} · room:open · room:close · flag:gotPhone · mono:show · mono:hide
  * Flags set: none (tones.js sets toneRestored). Owner-private state: G.state.vars.au.
+ *
+ * Episode-3 additions (ARCH_EP3 §4.2 — data-gated; with the switches absent ep2 behaves exactly as before):
+ *   G.EP.VIB (array of keys, ep3 ['ring3','sms'])  allow-list for A.vibrate — any other key or a raw pattern is a silent no-op;
+ *                                        new keys ring3 [400,200,400] (덜 무섭게 ⇒ none) · sms [80]. A.stats.vibrate counts calls.
+ *   G.EP.noShake                         iOS (no navigator.vibrate): nothing at all — no 2 px shake, no synthesized buzz (§9.7 · V10).
+ *   A.sub: an entry may be an array of variants ({i}) · az may be a function · `<id>less` replaces <id> while 덜 무섭게.
+ *   A.hush(on, { roomDb, fade })         fade (s) = optional ramp for the buses and the ambiences (ep2 default when absent).
+ *   A.defineDuck(['amb','sfx','world']) (before unlock) inserts LP + gain stages after those buses; A.duck(on, {db, lp, tau, release})
+ *                                        — the 'ear phone' ducking of ep3 §7.1.1 (never registered by ep2 ⇒ same graph).
  * ========================================================= */
 (function () {
   'use strict';
@@ -77,14 +86,23 @@
     A.master.connect(A.hearing); A.hearing.connect(comp); comp.connect(c.destination);
     A.out = comp;
     A.BUSES.forEach((k) => { const g = c.createGain(); g.gain.value = BUS_DEF[k]; A.buses[k] = g; });
-    A.BUSES.forEach((k) => { if (k !== 'amb') A.buses[k].connect(A.master); });
+    // optional duck stages (ep3 registration only — A.defineDuck): bus → LP → gain → its usual destination
+    A._duck = {};
+    const duckOut = (k) => {
+      if (!A._duckBuses || A._duckBuses.indexOf(k) < 0) return A.buses[k];
+      const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 20000; lp.Q.value = 0.5;
+      const g = c.createGain(); g.gain.value = 1;
+      A.buses[k].connect(lp); lp.connect(g); A._duck[k] = { lp, g };
+      return g;
+    };
+    A.BUSES.forEach((k) => { if (k !== 'amb') duckOut(k).connect(A.master); });
     // 'jump': the B14 handle + sting only — outside silenceDrop so the hit lands at full level the moment the silence ends
     A.buses.jump = c.createGain(); A.buses.jump.connect(A.master);
     // amb: in-app LP + −6 dB (§7.1.1), then B08 roomLP
     A.ambAppLP = c.createBiquadFilter(); A.ambAppLP.type = 'lowpass'; A.ambAppLP.frequency.value = 20000; A.ambAppLP.Q.value = 0.5;
     A.ambRoomLP = c.createBiquadFilter(); A.ambRoomLP.type = 'lowpass'; A.ambRoomLP.frequency.value = 20000; A.ambRoomLP.Q.value = 0.6;
     A.ambApp = c.createGain(); A.ambApp.gain.value = 1;
-    A.buses.amb.connect(A.ambAppLP); A.ambAppLP.connect(A.ambRoomLP); A.ambRoomLP.connect(A.ambApp); A.ambApp.connect(A.master);
+    duckOut('amb').connect(A.ambAppLP); A.ambAppLP.connect(A.ambRoomLP); A.ambRoomLP.connect(A.ambApp); A.ambApp.connect(A.master);
     A._busTarget = {}; A.BUSES.forEach((k) => { A._busTarget[k] = BUS_DEF[k]; });
 
     A._white = mkNoise(c, 4, 'white'); A._brown = mkNoise(c, 6, 'brown'); A._pink = mkNoise(c, 6, 'pink');
@@ -104,6 +122,24 @@
   }
   A.bus = function (name) { return A.buses[name] || A.buses.sfx; };
   A.phoneOut = function () { return A._phoneSpk || A.bus('ui'); };
+  /* ep3 registration (§7.1.1 '귀에 댄 폰 덕킹'): call before unlock; ep2 never calls it ⇒ the graph above is unchanged */
+  A.defineDuck = function (list) {
+    if (A.ctx) { warn('defineDuck after unlock — ignored'); return false; }
+    A._duckBuses = (list || []).filter((k) => A.BUSES.indexOf(k) >= 0);
+    return true;
+  };
+  /** A.duck(on, { db:-8, lp:2000, tau:0.3, release:0.6 }) — gain + LP on the registered duck stages */
+  A.duck = function (on, o) {
+    o = o || {};
+    if (!A.ctx || !A._duck) return;
+    const t = now(), tau = on ? (o.tau != null ? o.tau : 0.3) / 3 : (o.release != null ? o.release : 0.6) / 3;
+    Object.keys(A._duck).forEach((k) => {
+      const d = A._duck[k];
+      d.g.gain.cancelScheduledValues(t); d.g.gain.setTargetAtTime(on ? db(o.db != null ? o.db : -8) : 1, t, Math.max(0.005, tau));
+      d.lp.frequency.cancelScheduledValues(t); d.lp.frequency.setTargetAtTime(on ? (o.lp || 2000) : 20000, t, Math.max(0.005, tau));
+    });
+    A._ducked = !!on;
+  };
 
   /* ---------------- buffers ---------------- */
   const NB = new WeakMap();   // ctx → {white, brown, pink}
@@ -358,9 +394,9 @@
     o = o || {};
     A._hush = !!on;
     if (!ok()) return;
-    const t = now();
-    HUSHED.forEach((k) => { const g = A.buses[k].gain; g.cancelScheduledValues(t); g.setTargetAtTime(on ? 0 : A._busTarget[k], t, on ? 0.05 : 0.6); });
-    if (A._hushAmb) A._hushAmb(!!on, o.roomDb != null ? o.roomDb : -52);
+    const t = now(), fade = o.fade != null ? Math.max(0.02, +o.fade || 0) : null;   // ep3: optional ramp (s); absent ⇒ ep2 timings
+    HUSHED.forEach((k) => { const g = A.buses[k].gain; g.cancelScheduledValues(t); g.setTargetAtTime(on ? 0 : A._busTarget[k], t, fade != null ? fade / 3 : on ? 0.05 : 0.6); });
+    if (A._hushAmb) A._hushAmb(!!on, o.roomDb != null ? o.roomDb : -52, fade);
     A.master.gain.setTargetAtTime(A.enabled ? A.volume : 0, t, 0.05);
   };
 
@@ -372,7 +408,9 @@
   const DEDUPE = { S07: 10000, S01: 60000, S00: 60000 };
   A.sub = function (id, o) {
     o = o || {};
-    const T = (G.SUBS && G.SUBS[id]) || null;
+    if (G.SUBS && G.SUBS[id + 'less'] && A.less()) id = id + 'less';          // ep3 `S07less` (absent in ep2 data)
+    let T = (G.SUBS && G.SUBS[id]) || null;
+    if (Array.isArray(T)) T = T[o.i != null ? o.i : 0] || null;              // ep3 variant arrays (S17 S18 S23)
     let text = o.text != null ? o.text : T && T.text;
     if (!text) { warn('sub: unknown id', id); return; }
     const kind = o.kind || (T && T.kind) || 'info';
@@ -381,7 +419,8 @@
     if (kind === 'mood' && mode !== 'all') return;
     let c2 = null; try { c2 = G.vars ? G.vars('c2Src') : null; } catch (e) {}
     if (o.text == null && T && T.video && c2 === 'video') text = T.video;
-    const az = o.az !== undefined ? o.az : (T ? T.az : null);
+    let az = o.az !== undefined ? o.az : (T ? T.az : null);
+    if (typeof az === 'function') { try { az = az(); } catch (e) { az = null; } }   // ep3: listener-dependent azimuth
     const ms = o.ms || (T && T.ms) || 3200;
     const tnow = performance.now();
     const dd = DEDUPE[id] != null ? DEDUPE[id] : 1200;
@@ -412,10 +451,17 @@
   /* =========================================================
    * Vibration (§7.1.7 table, §9.7) — callers pass the key
    * ========================================================= */
-  const VIB = { m2: [60, 80, 60], him: [60, 60, 60], n: [40], fp: [15], pin: [80], drill: [30], b14: [90, 40, 160] };
+  const VIB = { m2: [60, 80, 60], him: [60, 60, 60], n: [40], fp: [15], pin: [80], drill: [30], b14: [90, 40, 160],
+    ring3: [400, 200, 400], sms: [80] };                                     // ep3 keys (§7.1.7) — only reachable via G.EP.VIB
   A.VIB = VIB;
+  A.vibLog = [];
   let coarse = null;
   A.vibrate = function (key) {
+    const allow = G.EP && Array.isArray(G.EP.VIB) ? G.EP.VIB : null;
+    if (allow) {                                    // ep3 (ARCH §1 · G55): exactly the listed keys; raw patterns / ep2 keys = no-op
+      if (typeof key !== 'string' || allow.indexOf(key) < 0) { warn('vibrate: not in G.EP.VIB', key); return; }
+      if (key === 'ring3' && A.less()) return;      // 덜 무섭게 ⇒ the 03:33 ring does not vibrate (§6.1.8)
+    }
     const p = Array.isArray(key) ? key : VIB[key];
     if (!p) { warn('vibrate: unknown key', key); return; }
     if ((key === 'drill' || key === 'b14') && A.less()) return;
@@ -423,8 +469,12 @@
     if (navigator.vibrate) {
       // no vibrate before the first user gesture (Chrome logs an intervention error otherwise — debug jumps)
       if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;
-      try { navigator.vibrate(p); } catch (e) {} return;
+      try { navigator.vibrate(p); } catch (e) {}
+      A.stats.vibrate = (A.stats.vibrate || 0) + 1;
+      if (A.vibLog.length < 64) A.vibLog.push({ key: Array.isArray(key) ? 'raw' : key, p: p.slice(), pm: G.state ? Math.round(G.state.playMs || 0) : 0 });
+      return;
     }
+    if (G.EP && G.EP.noShake) return;               // ep3 iOS: the same information is already on screen and in sound (§9.7)
     // iOS: no vibration API → 2 px edge shake + a low buzz at the same moment (§9.7)
     if (coarse == null) { try { coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches; } catch (e) { coarse = false; } }
     if (!coarse || key === 'fp') return;

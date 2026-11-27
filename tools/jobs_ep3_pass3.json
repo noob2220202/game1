@@ -1,0 +1,62 @@
+[
+ {
+  "id": "G29",
+  "name": "g_x3_mom_bed",
+  "pass": 3,
+  "tier": 4,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material, light and colour identical unless the instruction below changes it. Using the second image only as the reference for the woman's hair and clothes: in the first photograph, add the woman sitting on the far edge of the bed with her back three-quarters to the camera, facing the window, head slightly bowed, both hands resting on her knees. The woman is a Korean woman in her late fifties seen only from behind: shoulder-length black hair streaked with grey, loosely tied low at the nape with a plain black hair tie; a muted plum-coloured knitted cardigan over a light grey long-sleeved top; loose dark grey trousers; ivory socks. Her face is never visible. Nothing else in the photograph changes. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described.",
+  "ref": [
+   "work/gen_ep3/g_r3_sr_bed.png",
+   "work/gen_ep3/ref_mom.png"
+  ],
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G31",
+  "name": "g_x3_mom_hall",
+  "pass": 3,
+  "tier": 4,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material, light and colour identical unless the instruction below changes it. Using the second image only as the reference for the woman's hair and clothes: in the first photograph, add the woman standing in the entrance hallway about four metres from the camera, slightly right of centre, just before the step down to the tiled entrance floor, her back to the camera, facing the closed front door; one hand held at her chest, the other hanging at her side; she does not touch the door. The doormat and the floor right in front of the door stay clear. The woman is a Korean woman in her late fifties seen only from behind: shoulder-length black hair streaked with grey, loosely tied low at the nape with a plain black hair tie; a muted plum-coloured knitted cardigan over a light grey long-sleeved top; loose dark grey trousers; ivory socks. Her face is never visible. Nothing else in the photograph changes. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described.",
+  "ref": [
+   "work/gen_ep3/g_r3_door.png",
+   "work/gen_ep3/ref_mom.png"
+  ],
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G30",
+  "name": "g_x3_kongi_feet",
+  "pass": 3,
+  "tier": 4,
+  "star": false,
+  "size": "1024x1536",
+  "quality": "medium",
+  "prompt": "Edit this exact photograph. Keep the camera position, lens, framing, perspective, every object, material, light and colour identical unless the instruction below changes it. Using the second image only as the reference for the dog: on the floor beside the seated woman's chair, at her feet, add the dog sitting and looking up toward her, now wearing a thin pink collar with a tiny brass bell, its tail raised and slightly blurred as if wagging. The dog is a small apricot toy poodle with curly red-brown fur, a slightly paler muzzle going grey at the tip, round dark eyes and a black nose, exactly the dog in the reference photograph. Nothing else in the photograph changes. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described.",
+  "ref": [
+   "work/gen_ep3/ref_kitchen_mom.png",
+   "work/gen_ep3/ref_kongi.png"
+  ],
+  "fidelity_doc": "high"
+ },
+ {
+  "id": "G28",
+  "name": "g_c3_mom_hands",
+  "pass": 3,
+  "tier": 4,
+  "star": false,
+  "size": "1024x1024",
+  "quality": "medium",
+  "prompt": "Photorealistic photograph taken with a recent smartphone camera, natural lens, believable exposure, fine realistic sensor noise, everyday Korean setting, not cinematic, not stylised, no HDR halo, no lens dirt. Using the first image only for the tablecloth and the lamp light and the second only for the colour of the cardigan: a close photograph at the dining table at night of a Korean woman's two hands, in her late fifties, wrapped around a plain white ceramic mug of water standing on the clear vinyl over the pale floral tablecloth; the cuffs of a muted plum knitted cardigan at the wrists; short unpainted nails and slightly dry knuckles of someone who has worked in a kitchen for years; no rings, no watch, no phone on the table. Only hands and wrists are visible, no face. Warm lamp light from the side. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described.",
+  "ref": [
+   "work/gen_ep3/ref_table.png",
+   "work/gen_ep3/ref_mom.png"
+  ],
+  "fidelity_doc": "low"
+ }
+]

@@ -1,6 +1,10 @@
 /* App icons — original glyphs (white on gradient), no brand marks.
  * engine/core/icons.js (core · ARCH_EP2 §4.23): ep1 set + G.ICONS.alerts (재난 알림) · G.ICONS.timeline (타임라인).
- * G.ICONS.calendar.svg is a getter that draws the in-game date (G.clock.now()) like a real calendar icon. */
+ * G.ICONS.calendar.svg is a getter that draws the in-game date (G.clock.now()) like a real calendar icon.
+ * ep3 (ARCH_EP3 §4.2 icons — NEW keys only, every existing key byte-identical; sms · files · weather are reused as they are):
+ *   moim (모임 — a small group) · voicerec (음성 녹음 — microphone) · folder (home folder tile, glass) · showHands (two hands
+ *   holding a phone out — the '엄마에게 보여 드리기' glyph, transparent bg) · easyPhone easyTalk easyCamera easyGallery easyMoim
+ *   easySettings (bold flat glyphs for the easy-home tiles, §5.1). Engine SVG only — no emoji glyphs (DESIGN_EP3 §5.0-5). */
 (function () {
   'use strict';
   const G = (window.G = window.G || {});
@@ -39,4 +43,28 @@
     /* ep2 — 타임라인 (location timeline): dotted path ending in a pin */
     timeline: { bg: 'linear-gradient(160deg,#4fc3a1,#1b8a74)', svg: `<svg viewBox="0 0 24 24"><path d="M4.5 19.5c2.2-.4 3.2-2 4.6-3.6 1.3-1.5 2.8-2.3 4.6-2.6" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="1.2 2.4"/><circle cx="4.5" cy="19.5" r="1.4" fill="#fff"/><path ${W} d="M16.4 3.6a4.3 4.3 0 014.3 4.3c0 3.1-4.3 7.2-4.3 7.2s-4.3-4.1-4.3-7.2a4.3 4.3 0 014.3-4.3z"/><circle cx="16.4" cy="7.9" r="1.6" fill="#1b8a74"/></svg>` },
   };
+
+  /* ---------------- ep3 — new keys only (ARCH_EP3 §4.2) ---------------- */
+  const GROUP = `<circle cx="12" cy="8" r="2.9" ${W}/><path ${W} d="M6.9 17.6c0-3 2.3-5.2 5.1-5.2s5.1 2.2 5.1 5.2v.6H6.9z"/>`
+    + `<circle cx="5.9" cy="10" r="2.1" fill="#fff" opacity=".78"/><path fill="#fff" opacity=".78" d="M2.4 17.6c0-2.3 1.6-4 3.6-4 .9 0 1.7.3 2.3.9-1 1-1.6 2.3-1.7 3.7v.3H2.4z"/>`
+    + `<circle cx="18.1" cy="10" r="2.1" fill="#fff" opacity=".78"/><path fill="#fff" opacity=".78" d="M21.6 17.6c0-2.3-1.6-4-3.6-4-.9 0-1.7.3-2.3.9 1 1 1.6 2.3 1.7 3.7v.3h4.2z"/>`;
+  const MIC = `<rect x="9.2" y="3.2" width="5.6" height="10.6" rx="2.8" ${W}/><path d="M6.6 11.2a5.4 5.4 0 0010.8 0M12 16.6v3M9 20.1h6" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;
+  const add = {
+    moim: { bg: 'linear-gradient(160deg,#d3a86c,#94672f)', svg: `<svg viewBox="0 0 24 24">${GROUP}</svg>` },
+    voicerec: { bg: 'linear-gradient(160deg,#ff9466,#e4533a)', svg: `<svg viewBox="0 0 24 24">${MIC}</svg>` },
+    /* home folder tile: frosted glass + a 3 × 2 grid of small tiles (the shell may draw the folder's own app icons on top) */
+    folder: { bg: 'rgba(255,255,255,.24)', svg: `<svg viewBox="0 0 24 24"><g fill="#fff" opacity=".9"><rect x="4.2" y="6" width="4.2" height="4.2" rx="1.2"/><rect x="9.9" y="6" width="4.2" height="4.2" rx="1.2"/><rect x="15.6" y="6" width="4.2" height="4.2" rx="1.2"/><rect x="4.2" y="12.2" width="4.2" height="4.2" rx="1.2"/><rect x="9.9" y="12.2" width="4.2" height="4.2" rx="1.2"/><rect x="15.6" y="12.2" width="4.2" height="4.2" rx="1.2"/></g></svg>` },
+    /* '엄마에게 보여 드리기' — two open hands holding a phone out (stroke glyph, inherits currentColor; transparent bg) */
+    // a phone turned toward a person (lead fix: the earlier 'phone in two hands' drawing read as a microphone on the
+    // mobile icon-only tab — no mic may even seem to be asked for in this series)
+    showHands: { bg: 'transparent', svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.4" y="4" width="8" height="15" rx="1.7" transform="rotate(-8 6.4 11.5)"/><path d="M5.6 6.4h1.9" transform="rotate(-8 6.4 11.5)"/><path d="M11.9 11.3h3.1M13.7 9.7l1.6 1.6-1.6 1.6"/><circle cx="19.2" cy="8.6" r="2.2"/><path d="M16 18.2c.3-2.7 1.6-4.3 3.2-4.3s2.9 1.6 3.2 4.3"/></svg>` },
+    /* easy-home tiles (§5.1 — 2 × 3 big tiles, 96 px glyph): flat solid colours, heavier shapes */
+    easyPhone: { bg: '#2fae4e', svg: `<svg viewBox="0 0 24 24"><path ${W} d="M6.4 10.6a15.2 15.2 0 007 7l2.4-2.4c.3-.3.8-.4 1.1-.2 1.2.4 2.4.6 3.7.6.6 0 1.1.5 1.1 1.1v3.7c0 .6-.5 1.1-1.1 1.1A18.3 18.3 0 012.3 3.9c0-.6.5-1.1 1.1-1.1h3.8c.6 0 1.1.5 1.1 1.1 0 1.3.2 2.5.6 3.7.1.4 0 .8-.3 1.1z"/></svg>` },
+    easyTalk: { bg: '#f2c94c', svg: `<svg viewBox="0 0 24 24"><path fill="#3a2a12" d="M12 3.4c5.2 0 9.4 3.3 9.4 7.5s-4.2 7.5-9.4 7.5c-.9 0-1.8-.1-2.6-.3l-4.6 2.6 1.1-3.9C4 15.4 2.6 13.3 2.6 10.9c0-4.2 4.2-7.5 9.4-7.5z"/><circle cx="8.2" cy="10.9" r="1.35" fill="#f2c94c"/><circle cx="12" cy="10.9" r="1.35" fill="#f2c94c"/><circle cx="15.8" cy="10.9" r="1.35" fill="#f2c94c"/></svg>` },
+    easyCamera: { bg: '#5a6170', svg: `<svg viewBox="0 0 24 24"><path ${W} d="M3.8 7.3h3.4L8.9 4.6h6.2l1.7 2.7h3.4c.9 0 1.6.7 1.6 1.6v9.4c0 .9-.7 1.6-1.6 1.6H3.8c-.9 0-1.6-.7-1.6-1.6V8.9c0-.9.7-1.6 1.6-1.6z"/><circle cx="12" cy="13.4" r="4.1" fill="#5a6170"/><circle cx="12" cy="13.4" r="2.3" fill="#fff"/></svg>` },
+    easyGallery: { bg: '#f08a24', svg: `<svg viewBox="0 0 24 24"><rect x="2.8" y="4.4" width="18.4" height="15.2" rx="2.6" ${W}/><circle cx="16" cy="9.2" r="1.9" fill="#f08a24"/><path fill="#f08a24" d="M4.6 17.8l4.7-5.7c.4-.5 1.2-.5 1.6 0l3 3.6 1.6-1.8c.4-.5 1.2-.5 1.6 0l2.3 2.8v1.1z"/></svg>` },
+    easyMoim: { bg: '#a8743a', svg: `<svg viewBox="0 0 24 24">${GROUP}</svg>` },
+    easySettings: { bg: '#6b6f78', svg: `<svg viewBox="0 0 24 24"><path ${W} d="M12 2.4l1.6 2.3 2.7-.6.6 2.7 2.5 1.2-.9 2.6 1.7 2.2-2.1 1.9.3 2.7-2.7.5-1.1 2.6-2.5-1.1-2.3 1.6-1.6-2.3-2.7.6-.6-2.7L2.4 15l.9-2.6-1.7-2.2 2.1-1.9-.3-2.7 2.7-.5 1.1-2.6 2.5 1.1z"/><circle cx="12" cy="12" r="3.6" fill="#6b6f78"/></svg>` },
+  };
+  Object.keys(add).forEach((k) => { if (!Object.prototype.hasOwnProperty.call(G.ICONS, k)) G.ICONS[k] = add[k]; });
 })();

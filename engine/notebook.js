@@ -13,6 +13,10 @@
  * Bus out: 'notebook:open' {tab} · 'notebook:close' · 'hint' {id, tier}
  * Saved: G.state.hints {id: tier} · G.state.hintsUsed · vars.nb = { tab, hintAt:{id: playMs}, memo, doneSeen:{id:1} }
  * DEBUG: window.haru.notebook(id, tier) reveals a tier ignoring waits.
+ * Episode 3 (ARCH_EP3 §4.2 · §5.15, data-gated — ep2 data has neither): objective `greyAfter:'<flag>'` next to `grayAfterM7`
+ *   (ep3 'M8' for block · dnd · album); the hint-reveal haptic navigator.vibrate(20) is skipped while G.EP.VIB is set (ep3 has
+ *   only the ring3 / sms patterns). G.OBJECTIVES.titleExceptions (with '@' suffixes like 'soup@gotPhone') is ignored here —
+ *   the DEBUG title auto-check lives in the episode's main.js.
  * data-qa: nb.fab nb.close nb.tab:todo|hint|memo nb.card:<id> nb.hint:<id>:<tier> nb.memo
  * ========================================================= */
 (function () {
@@ -58,7 +62,13 @@
   function shown() { return (G.OBJECTIVES || []).filter((o) => safe(() => !o.show || !!o.show(), false)); }
   function isDone(o) { return safe(() => !!(o.done && o.done()), false); }
   function checked(o) { return safe(() => !!(o.doneMark ? o.doneMark() : o.done && o.done()), false); }
-  function isGrey(o) { return !!o.grayAfterM7 && flag('M7') && !checked(o); }
+  // ep2: grayAfterM7 · ep3: greyAfter:'<flag>' (DESIGN_EP3 §2.4 — block · dnd · album turn grey after 'M8'); a card left
+  // unfinished past its flag is greyed quietly (no done mark), its hints stay readable
+  function isGrey(o) {
+    if (checked(o)) return false;
+    if (o.grayAfterM7 && flag('M7')) return true;
+    return typeof o.greyAfter === 'string' && !!o.greyAfter && flag(o.greyAfter);
+  }
   NB.current = function () { return shown().filter((o) => !isDone(o) && !isGrey(o)); };
   function hintable() { return shown().filter((o) => isGrey(o) || !isDone(o)); }   // grey cards keep their hints readable
   function primary() { const a = NB.current(); return a.find((o) => !o.optional) || a[0] || hintable()[0] || null; }
@@ -333,7 +343,8 @@
         holding = false; holdingNow = false; pendingRender = false; card.classList.remove('holding'); card.classList.add('done');
         reveal(o.id, n);
         sfx('pageTurn');
-        try { if (navigator.vibrate && G.settings && G.settings.vibration !== false) navigator.vibrate(20); } catch (er) {}
+        // ep3 (G.EP.VIB allow-list: only ring3 / sms exist — ARCH_EP3 §1): no reveal haptic; ep2 keeps its 20 ms tick
+        try { if (!(G.EP && G.EP.VIB) && navigator.vibrate && G.settings && G.settings.vibration !== false) navigator.vibrate(20); } catch (er) {}
         setTimeout(render, 160);
       }, HOLD_MS);
     };

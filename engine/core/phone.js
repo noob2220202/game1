@@ -21,6 +21,29 @@
  * Hooks set: users:lockDash. Hooks called: pause:open.
  * Flags set: dashSeen (QS user row drawn), M3 (unlockDash — first '0310').  Vars: user · wifiOn · wifiSaved · soundMode · dnd · pinTries · sh.*
  * No 'tick' emitter here (core base.js owns the 250 ms tick); no G.tones calls except notify routing + in-app pop.
+ *
+ * ep3 additions (ARCH_EP3 §4.2 phone.js · §5.7 — every one is data-gated; with ep2's G.EP the ep2 path is unchanged):
+ *   (a) G.EP.HOME[u].render(homeEl, api) — custom home (easy home); api = { openApp(id, params), iconNode(app, o),
+ *       setWallpaper(src, key), hm() → 'H:MM', date() → '1월 24일 일요일', statusTheme(t) }
+ *   (b) G.EP.HOME[u].apps items { folder:'<name>', apps:[ids] } → folder icon (data-qa home.folder) → overlay grid of
+ *       home.app:<id> + scrim home.folder.close (tap outside · back · Esc · home close it) · first open: flag folderSeen +
+ *       bus 'folder:open' {name}
+ *   (c) G.EP.HOME[u].widgetOpen:'calendar' → the widget's time opens 시계, its date line (data-qa home.widget.date) opens
+ *       the calendar (ep2: the whole widget opens 시계)
+ *   (d) G.EP.STATUS {net, wifi} → status bar `LTE` + bars · Wi-Fi name · time as 'H:MM' · sound-mode / DND glyphs; no SIM 없음
+ *   (e) G.EP.QS.tiles drawn in list order (wifi · bt · flash builders unchanged) + new ids 'sound' (소리 → 진동 → 무음 =
+ *       vars.soundMode) and 'dnd' (tap = vars.dndNow · long-press 0.5 s = G.settingsApp.open(G.EP.QS.dndLong)); with
+ *       G.EP.STATUS the Wi-Fi tile label = G.EP.STATUS.wifi and an empty panel says STR.noNotif
+ *   (f) G.phone.callScreen(spec) → Promise<{sec, by}> · G.phone.inCall() — layer .sh3-call z 47 (data-qa call.screen ·
+ *       call.end · call.btn:speaker|mute|keypad) · bus 'call:start' {id, kind, number, name} · 'call:end' {id, kind, number, sec, by}
+ *   (g) push(): node.dataset.scr → entry.scr (and the 'screen:push' payload)
+ *   (h) notify: hook 'chat:isOpen' (when set) instead of G.moment.isOpen · mute on vars.dnd ∨ vars.dndNow ∨ DND schedule ·
+ *       vars.dndNow (or 앱 알림 off) → no banner, no sound, no vibration (panel + badge only) · vibrate key G.tones.vibKey ·
+ *       no 3-tone cap when G.tones.cap === 0 · re-notify with the same unread id → entry.count++ (panel `새 메시지 {k}개`) ·
+ *       easy mode: banner / panel tap on an sms entry → G.easy.sms(thread)
+ *   (i) Wi-Fi with G.EP.STATUS = plain on/off (no saved list, no auto-on sched)
+ *   (j) G.phone.textScale(f) — phone layers' --ts = G.settings.textSize × f (easymode E10 · display.font) · homeStatus()
+ * ep3 bus out: folder:open · call:start · call:end.  ep3 flags set: folderSeen.  ep3 vars: dndNow · dndAt · soundMode · sh.*
  * ========================================================= */
 (function () {
   'use strict';
@@ -60,6 +83,13 @@
   const safe = (fn, d) => { try { return fn(); } catch (e) { console.error('[phone]', e); return d; } };
   const qa = (node, v) => { if (node && v) node.setAttribute('data-qa', v); return node; };
   P._T = T; P._STR = STR;
+  /* ep3 switch helpers (ARCH_EP3 §4.1-1: G.EP.STATUS is ep3-only) */
+  const ST = () => (G.EP && G.EP.STATUS) || null;
+  /** 'H:MM' (status bar · widgets · lock in ep3 — a real phone drops the leading zero) */
+  const shortHm = () => { const s = hm(); const m = /^(\d{1,2}):(\d{2})/.exec(s); if (!m) return s; const h = +m[1] % 12 || 12; return h + ':' + m[2]; };
+  const timeText = () => (ST() ? shortHm() : hm());
+  P.shortHm = shortHm;
+  const dndActive = () => !!vget('dnd', false) || !!vget('dndNow', false) || !!(ST() && SH().dndSched);
 
   /* glyphs */
   const SVG = {
@@ -75,11 +105,23 @@
     back: '<svg viewBox="0 0 24 24"><path d="M15 4l-8 8 8 8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     chev: '<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
     share: '<svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.4" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="18" cy="6" r="2.4" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="18" cy="18" r="2.4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8.2 10.9l7.6-3.8M8.2 13.1l7.6 3.8" stroke="currentColor" stroke-width="1.7"/></svg>',
+    /* ep3 (status bar · quick panel · call screen) */
+    bars: '<svg viewBox="0 0 24 24"><rect x="3" y="15" width="3.4" height="5" rx=".8" fill="currentColor"/><rect x="8.2" y="11.5" width="3.4" height="8.5" rx=".8" fill="currentColor"/><rect x="13.4" y="8" width="3.4" height="12" rx=".8" fill="currentColor"/><rect x="18.6" y="4.5" width="3.4" height="15.5" rx=".8" fill="currentColor" opacity=".38"/></svg>',
+    sound: '<svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 010 6M18 6.5a7.5 7.5 0 010 11" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>',
+    vib: '<svg viewBox="0 0 24 24"><rect x="8" y="4" width="8" height="16" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4.5 8.5v7M2 10v4M19.5 8.5v7M22 10v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
+    mute: '<svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9.5l5 5M20.5 9.5l-5 5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>',
+    dnd: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M7.6 12h8.8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+    callEnd: '<svg viewBox="0 0 24 24"><path d="M3 15c5-5 13-5 18 0l-2.5 2.5-3-1.5v-3c-2-.7-5-.7-7 0v3l-3 1.5z" fill="currentColor"/></svg>',
+    spk: '<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M16 9a4 4 0 010 6M18.5 6.5a8 8 0 010 11" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
+    mic: '<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21M4 4l16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
+    pad: '<svg viewBox="0 0 24 24"><g fill="currentColor"><circle cx="6" cy="5" r="1.7"/><circle cx="12" cy="5" r="1.7"/><circle cx="18" cy="5" r="1.7"/><circle cx="6" cy="11" r="1.7"/><circle cx="12" cy="11" r="1.7"/><circle cx="18" cy="11" r="1.7"/><circle cx="6" cy="17" r="1.7"/><circle cx="12" cy="17" r="1.7"/><circle cx="18" cy="17" r="1.7"/><circle cx="12" cy="22" r="1.4"/></g></svg>',
+    person: '<svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="4.2" fill="currentColor"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" fill="currentColor"/></svg>',
   };
   P.SVG = SVG;
   // ARCH §4.2 labels — used only when an app has not registered (partial builds)
   const LABELS = { talk: '톡', moment: '모먼트', mail: '메일', gallery: '갤러리', camera: '카메라', memo: '메모', browser: '인터넷', recorder: '녹음',
-    clock: '시계', calendar: '캘린더', alerts: '재난 알림', timeline: '타임라인', phone: '전화', settings: '설정' };
+    clock: '시계', calendar: '캘린더', alerts: '재난 알림', timeline: '타임라인', phone: '전화', settings: '설정',
+    sms: '메시지', moim: '모임', voicerec: '음성 녹음', files: '내 파일', weather: '날씨' };     // ep3 ids (ARCH_EP3 §5.2 labels)
   const HOME_FALLBACK = {
     n: { apps: ['talk', 'moment', 'mail', 'gallery', 'camera', 'memo', 'browser', 'recorder', 'clock', 'calendar', 'alerts', 'timeline'], dock: ['phone', 'settings'], wall: 'n_wall', widget: 'clock' },
     dash: { apps: ['gallery', 'memo', 'moment', 'clock', 'settings'], dock: [], wall: 'old_room', widget: null },
@@ -157,11 +199,15 @@
       B.on('wifi:change', () => qsRefresh());
       B.on('room:open', () => { updateLockUnder(); qsRefresh(); });
       B.on('room:close', () => { updateLockUnder(); qsRefresh(); });
+      // ep3 (inert on ep2: G.EP.STATUS / textScale are never set there)
+      B.on('var', (e) => { if (ST() && e && /^(soundMode|dndNow)$/.test(e.k)) { updateStatus(true); qsRefresh(); } });
+      B.on('settings', () => { if (txtScale != null) applyTextScale(); });
     }
     // Wi-Fi auto-on handler (persistent sched id — ARCH §4.24)
     try { if (G.e2 && G.e2.sched && G.e2.sched.on) G.e2.sched.on('shell:wifiAuto', () => wifiAutoFire()); } catch (e) { console.error('[phone] sched', e); }
     G.hooks && G.hooks.set && G.hooks.set('users:lockDash', () => USERS.lockDash());
-    if (G.DEBUG) { window.haru = window.haru || {}; window.haru.setUser = (id) => USERS.switchTo(id, { instant: true }); window.haru.notifs = () => JSON.parse(JSON.stringify((G.state && G.state.notifs) || [])); }
+    if (G.DEBUG) { window.haru = window.haru || {}; if (!ST()) window.haru.setUser = (id) => USERS.switchTo(id, { instant: true });   // ep3 has one user (ARCH_EP3 §7.2)
+    window.haru.notifs = () => JSON.parse(JSON.stringify((G.state && G.state.notifs) || [])); }
 
     if (flag('gotPhone')) seedNotifs();
     P.renderHome();
@@ -175,10 +221,12 @@
     const pause = el('button.sb-pause', { 'aria-label': '일시정지', 'data-qa': 'statusbar.pause', html: SVG.pause });
     pause.addEventListener('click', (e) => { e.stopPropagation(); G.hooks && G.hooks.call('pause:open'); });
     pause.addEventListener('pointerdown', (e) => e.stopPropagation());
+    const S3 = ST();
     const sb = el('div#statusbar', { 'data-qa': 'statusbar' },
       el('span.sb-left', null, pause, el('span.sb-time', null, '')),
       el('span.sb-right', null,
-        el('span.sb-net', null, 'SIM 없음'),
+        S3 ? el('span.sb-mode.sh3-sbmode') : null,
+        S3 ? el('span.sb-net.sh3-net', null, el('b', null, T(S3.net || 'LTE')), el('i.sh3-bars', { html: SVG.bars })) : el('span.sb-net', null, 'SIM 없음'),
         el('span.sb-wifi', null, el('i', { html: SVG.wifi }), el('b', null, '')),
         el('span.sb-bt', { html: SVG.bt }),
         el('span.sb-batt', null, el('b.sb-pct', null, ''), el('span.sb-battbody', null, el('span.sb-battfill')))));
@@ -203,12 +251,22 @@
     const wifiC = P.wifi.connected();
     const btC = !!(G.media && G.media.bt && G.media.bt.connected ? safe(() => G.media.bt.connected(), false) : flag('btConnected'));
     const b = battery();
-    const t = hm();
-    const ssid = 'saemal_rooftop';
-    const key = [t, b, wifiC, btC].join('|');
+    const t = timeText();
+    const S3 = ST();
+    const ssid = S3 ? T(S3.wifi || '') : 'saemal_rooftop';
+    const mode = S3 ? vget('soundMode', 'sound') + (vget('dndNow', false) ? '|dnd' : '') : '';
+    const key = [t, b, wifiC, btC].join('|') + (S3 ? '|' + mode : '');
     root.classList.toggle('sh2-locked', P.isLocked() && !lockEl.classList.contains('sh2-under'));
     if (!force && key === lastSB) return;
     lastSB = key;
+    if (S3) {
+      const sm = statusBar.querySelector('.sh3-sbmode');
+      if (sm) {
+        const m = vget('soundMode', 'sound');
+        sm.innerHTML = (vget('dndNow', false) ? '<i>' + SVG.dnd + '</i>' : '') + (m === 'vibrate' ? '<i>' + SVG.vib + '</i>' : m === 'mute' ? '<i>' + SVG.mute + '</i>' : '');
+        sm.style.display = sm.innerHTML ? '' : 'none';
+      }
+    }
     statusBar.querySelector('.sb-time').textContent = t;
     statusBar.querySelector('.sb-pct').textContent = b + '%';
     const fill = statusBar.querySelector('.sb-battfill');
@@ -240,8 +298,22 @@
       im.src = src;
     }
   };
-  let homeTimer = 0;
-  function scheduleHome() { if (homeTimer) return; homeTimer = setTimeout(() => { homeTimer = 0; P.renderHome(); }, 30); }
+  let homeTimer = 0, homeHold = 0;
+  function scheduleHome() {
+    if (homeTimer) return;
+    const wait = Math.max(30, homeHold - Date.now());            // ep3: holdHome() defers re-renders during the E8 unfold / fold
+    homeTimer = setTimeout(() => { homeTimer = 0; if (Date.now() < homeHold) { scheduleHome(); return; } P.renderHome(); }, wait);
+  }
+  /** ep3 (easymode E8): keep scheduled home re-renders off the screen for ms (the transition owns the home DOM meanwhile) */
+  P.holdHome = function (ms) { homeHold = Date.now() + Math.max(0, +ms || 0); };
+  /** ep3: a snapshot of the app stack (easymode fold — 'hidden in easy mode' screens) */
+  P.stackEntries = function () { return stack.slice(); };
+  const appOf = (id) => apps[id] || { id, name: LABELS[id] || id, icon: (G.ICONS && G.ICONS[id]) || null, _missing: true };
+  /** status-bar text colour over the home: dark on the easy home's cream (ep3), else light (ep2: always light) */
+  function homeStatus() { const m = safe(() => manifest(USERS.current()), null); return m && m.easy ? 'dark' : 'light'; }
+  P.homeStatus = homeStatus;
+  const homeApi = () => ({ openApp: (id, p) => P.openApp(id, p), iconNode: (a, o) => P.iconNode(a, o), setWallpaper: (s, k) => P.setWallpaper(s, k),
+    hm: shortHm, date: () => kDate(now()), statusTheme: (t) => P.statusTheme(t), img });
   P.renderHome = function () {
     if (!homeEl) return;
     const user = USERS.current();
@@ -249,24 +321,95 @@
     P.setWallpaper(img(m.wall), m.wall);
     homeEl.innerHTML = '';
     homeEl.dataset.user = user;
+    if (homeEl.dataset.mode) {                               // ep3: drop what a custom home put on #home last time
+      Array.from(homeEl.classList).forEach((c) => { if (/^(ez3|sh3)-/.test(c)) homeEl.classList.remove(c); });
+      homeEl.removeAttribute('data-qa'); delete homeEl.dataset.scr;
+    }
+    if (typeof m.render === 'function') {                    // ep3 (a) — custom home (easy home)
+      homeEl.dataset.mode = m.easy ? 'easy' : 'custom';
+      let drawn = false;
+      try { const r = m.render(homeEl, homeApi()); drawn = r !== null && r !== false && homeEl.childNodes.length > 0; } catch (e) { console.error('[phone] home render', e); }
+      if (!drawn) {                                           // partial build (renderer absent): a plain grid of the same apps
+        homeEl.innerHTML = '';
+        const ids = m.apps || (((G.STORY && G.STORY.easy && G.STORY.easy.home) || []).map((r) => r[0]));
+        const grid = el('div.app-grid');
+        ids.forEach((id) => grid.appendChild(P.iconNode(appOf(id), { user })));
+        homeEl.appendChild(grid);
+      }
+      if (ST() && !stack.length && !P.isLocked()) P.statusTheme(homeStatus());
+      checkHome();
+      return;
+    }
+    if (ST()) homeEl.dataset.mode = 'std';
     if (m.widget === 'clock') {
       const d = now();
-      const w = el('button.home-widget', { 'data-qa': 'home.widget', 'aria-label': LABELS.clock },
-        el('div.hw-time', null, hm()), el('div.hw-date', null, kDate(d)));
-      w.addEventListener('click', () => { sfx('tap'); P.openApp('clock'); });
-      homeEl.appendChild(w);
+      if (m.widgetOpen) {                                     // ep3 (c) — time → 시계 · date line → widgetOpen (캘린더)
+        const tb = el('button.hw-time', { 'aria-label': T(LABELS.clock) }, timeText());
+        const db = el('button.hw-date', { 'data-qa': 'home.widget.date' }, kDate(d));
+        tb.addEventListener('click', () => { sfx('tap'); P.openApp(apps.clock ? 'clock' : m.widgetOpen); });
+        db.addEventListener('click', (e) => { e.stopPropagation(); sfx('tap'); P.openApp(m.widgetOpen); });
+        homeEl.appendChild(el('div.home-widget.sh3-widget', { 'data-qa': 'home.widget' }, tb, db));
+      } else {
+        const w = el('button.home-widget', { 'data-qa': 'home.widget', 'aria-label': LABELS.clock },
+          el('div.hw-time', null, hm()), el('div.hw-date', null, kDate(d)));
+        w.addEventListener('click', () => { sfx('tap'); P.openApp('clock'); });
+        homeEl.appendChild(w);
+      }
     } else homeEl.appendChild(el('div.home-spacer'));
     const grid = el('div.app-grid');
-    (m.apps || []).forEach((id) => grid.appendChild(P.iconNode(apps[id] || { id, name: LABELS[id] || id, icon: (G.ICONS && G.ICONS[id]) || null, _missing: true }, { user })));
+    (m.apps || []).forEach((id) => grid.appendChild(id && typeof id === 'object' && id.folder ? folderNode(id, user) : P.iconNode(appOf(id), { user })));
     homeEl.appendChild(grid);
     if (m.dock && m.dock.length) {
       const dock = el('div.dock' + (m.dock.length === 2 ? '.two' : ''));
-      m.dock.forEach((id) => dock.appendChild(P.iconNode(apps[id] || { id, name: LABELS[id] || id, icon: (G.ICONS && G.ICONS[id]) || null, _missing: true }, { user, dock: true })));
+      m.dock.forEach((id) => dock.appendChild(P.iconNode(appOf(id), { user, dock: true })));
       homeEl.appendChild(dock);
     }
+    if (ST() && !stack.length && !P.isLocked()) P.statusTheme(homeStatus());
     checkHome();
   };
-  function refreshWidget() { if (!homeEl) return; const t = homeEl.querySelector('.hw-time'); if (t) t.textContent = hm(); const d = homeEl.querySelector('.hw-date'); if (d) d.textContent = kDate(now()); }
+  function refreshWidget() {
+    if (!homeEl) return;
+    homeEl.querySelectorAll('.hw-time, [data-live="time"]').forEach((t) => { t.textContent = timeText(); });
+    homeEl.querySelectorAll('.hw-date, [data-live="date"]').forEach((d) => { d.textContent = kDate(now()); });
+  }
+  P.refreshWidget = refreshWidget;
+
+  /* ---------------- ep3 (b) — home folder `{ folder, apps }` (§2.6 · §4.2.3 · §5.2) ---------------- */
+  let folderOv = null;
+  function folderNode(f, user) {
+    const ids = Array.isArray(f.apps) ? f.apps : [];
+    const badge = ids.reduce((s, id) => s + (user === 'n' && apps[id] && apps[id].badge ? safe(() => +apps[id].badge(user) || 0, 0) : 0), 0);
+    const mini = el('span.ai-img.sh3-fimg', null, ids.slice(0, 9).map((id) => {
+      const ic = (apps[id] && apps[id].icon) || (G.ICONS && G.ICONS[id]) || { bg: '#8a8a90', svg: '' };
+      return el('i', { style: { background: ic.bg }, html: ic.svg || '' });
+    }));
+    const name = T(f.folder);
+    const n = el('button.app-icon.sh3-folder', { 'aria-label': name, 'data-qa': 'home.folder', dataset: { folder: f.folder } },
+      mini, badge ? el('span.ai-badge', null, badge > 99 ? '99+' : String(badge)) : null, el('span.ai-label', null, name));
+    n.addEventListener('click', () => { sfx('tap'); openFolder(f, user); });
+    return n;
+  }
+  function closeFolder() { if (!folderOv) return; const o = folderOv; folderOv = null; o.close(); }
+  function openFolder(f, user) {
+    if (folderOv) return;
+    const name = T(f.folder);
+    const grid = el('div.sh3-fgrid', null, (Array.isArray(f.apps) ? f.apps : []).map((id) => {
+      const node = P.iconNode(appOf(id), { user });
+      node.addEventListener('click', () => closeFolder());
+      return node;
+    }));
+    const panel = el('div.sh3-fpanel', { role: 'dialog', 'aria-label': name }, el('div.sh3-ftitle', null, name), grid);
+    // tap outside the folder closes it (a real phone folder) — the band under the panel carries the QA hook (its centre is free)
+    const above = el('div.sh3-fsp');
+    const below = el('div.sh3-fsp.below', { 'data-qa': 'home.folder.close', role: 'button', 'aria-label': '닫기' });
+    const wrap = el('div.sh3-folder-wrap', null, above, panel, below);
+    wrap.addEventListener('click', (e) => { if (e.target === wrap || e.target === above || e.target === below) closeFolder(); });
+    folderOv = P.overlay(wrap, { kind: 'folder', modal: 'soft', onBack: () => closeFolder(), dismiss: () => closeFolder() });
+    setFlag('folderSeen');
+    G.bus && G.bus.emit('folder:open', { name: f.folder });
+  }
+  P.closeFolder = closeFolder;
+  P.folderOpen = () => !!folderOv;
   P.iconNode = function (a, o) {
     o = o || {};
     const user = o.user || USERS.current();
@@ -308,6 +451,7 @@
   P.push = function (node, opts) {
     opts = opts || {};
     const entry = Object.assign({ node, appId: P.currentApp }, opts);
+    if (node.dataset && node.dataset.scr) entry.scr = node.dataset.scr;      // ep3 (g) — DESIGN §5.8 screen id (show · QA)
     node.classList.add('screen-view');
     node.classList.add('anim-' + (opts.anim || (stack.length ? 'slide' : 'zoom')));
     stackEl.appendChild(node);
@@ -361,7 +505,7 @@
     setTimeout(() => top.node.remove(), 320);
     const prev = stack[stack.length - 1];
     if (prev) { uncover(prev.node); applyStatus(prev.node); safe(() => prev.onResume && prev.onResume()); }
-    else { P.currentApp = null; P.statusTheme('light'); if (!P.isLocked()) { SH().app = null; save(); } P.renderHome(); }
+    else { P.currentApp = null; P.statusTheme(homeStatus()); if (!P.isLocked()) { SH().app = null; save(); } P.renderHome(); }
     updateLockUnder();
     checkHome();
     G.bus && G.bus.emit('screen:pop', top);
@@ -403,7 +547,7 @@
   P.closeAll = function (silent) {
     while (stack.length) { const e = stack.pop(); safe(() => e.onClose && e.onClose()); e.node.remove(); }
     P.currentApp = null;
-    P.statusTheme('light');
+    P.statusTheme(homeStatus());
     updateLockUnder();
     if (!silent) P.renderHome(); else checkHome();
   };
@@ -419,7 +563,7 @@
     const nodes = stack.slice();
     stack.length = 0;
     nodes.forEach((e) => { safe(() => e.onClose && e.onClose()); e.node.classList.add('to-home'); setTimeout(() => e.node.remove(), 300); });
-    P.currentApp = null; P.statusTheme('light');
+    P.currentApp = null; P.statusTheme(homeStatus());
     SH().app = null; save();
     updateLockUnder();
     P.renderHome();
@@ -561,7 +705,7 @@
     });
     return out;
   };
-  P.unread = function (user, app) { return P.notifList(user).filter((n) => !app || n.app === app).length; };
+  P.unread = function (user, app) { return P.notifList(user).filter((n) => !app || n.app === app).reduce((s, n) => s + (n.count || 1), 0); };
   P.markRead = function (pred) { let ch = false; notifs().forEach((n) => { if (!n.read && safe(() => pred(n), false)) { n.read = true; ch = true; } }); if (ch) { save(); refreshLists(); } };
   P.dismissNotif = function (id) { notifs().forEach((n) => { if (n.id === id || (id && id.items && id.items.includes(n))) n.gone = true; }); save(); refreshLists(); };
   function refreshLists() { G.bus && G.bus.emit('lock:refresh'); qsRefresh(); }
@@ -592,12 +736,14 @@
     const key = chat || ('app:' + o.app);
     const pm = playMs();
     if (o.coalesce !== false && lastTone[key] != null && pm - lastTone[key] < 10000) return;   // one sound per 10 s (same chat)
-    const mode = vget('soundMode', 'sound'); const dnd = !!vget('dnd', false);
+    const mode = vget('soundMode', 'sound'); const dnd = dndActive();
     if (dnd || mode === 'mute') return;
     const sh = SH(); sh.chatTones = sh.chatTones || {};
     const count = chat ? (sh.chatTones[chat] || 0) : 0;
-    if (mode === 'vibrate' || (chat && count >= 3)) {                // vibrate mode · 4th+ tone of the same chat → banner + vibrate only
-      if (o.vibrate !== false && G.settings && G.settings.vibration !== false) vibrate(tid === 'dash' ? 'him' : 'n');
+    const noCap = !!(G.tones && G.tones.cap === 0);                  // ep3: every §4.13 row rings (no 3-tone cap)
+    if (mode === 'vibrate' || (chat && count >= 3 && !noCap)) {      // vibrate mode · 4th+ tone of the same chat → banner + vibrate only
+      const vk = G.tones && typeof G.tones.vibKey === 'function' ? safe(() => G.tones.vibKey(tid), null) : (tid === 'dash' ? 'him' : 'n');
+      if (vk && o.vibrate !== false && G.settings && G.settings.vibration !== false) vibrate(vk);
       lastTone[key] = pm;
       return;
     }
@@ -613,20 +759,26 @@
     const chat = chatOf(o);
     const cur = USERS.current();
     const isCur = user === cur && !switching;
-    const chatOpen = !!(isCur && chat && G.moment && G.moment.isOpen && safe(() => G.moment.isOpen(chat), false));
+    const hasHook = !!(G.hooks && G.hooks.has && G.hooks.has('chat:isOpen'));      // ep3 (h): comms answers for sms + talk threads
+    const chatOpen = !!(isCur && chat && (hasHook ? safe(() => G.hooks.call('chat:isOpen', chat), false)
+      : (G.moment && G.moment.isOpen && safe(() => G.moment.isOpen(chat), false))));
     let entry = null;
     if (o.banner !== false && !chatOpen) {
+      const prev = ST() ? notifs().find((x) => x.id === id && !x.read && !x.gone) : null;   // ep3: a later text of the same delivery
       entry = upsert({ id, user, app: o.app, chat, title: o.title || '', body: o.body || '', when: o.when || fmtK(now()), time: now().getTime(), route: o.route || null, read: false, gone: false });
+      if (ST()) { entry.count = prev ? (prev.count || 1) + 1 : 1; save(); }   // unread texts of one delivery (comms' o.count = k-th text overall — a read entry restarts at 1)
     }
     G.bus && G.bus.emit('notify', Object.assign({}, o, { id, user, chat }));
     if (!isCur) { refreshLists(); return { id, banner: false }; }
     if (chatOpen) {                                                  // the conversation is open → small in-app pop only
       const mode = vget('soundMode', 'sound');
       if (o.banner === false) soundRoute(o, chat);
-      else if (!o.silent && mode === 'sound' && !vget('dnd', false)) playTone('inapp', { ledger: false, vibrate: false });
+      else if (!o.silent && mode === 'sound' && !dndActive()) playTone('inapp', { ledger: false, vibrate: false });
       return { id, banner: false };
     }
     if (o.banner === false) { soundRoute(o, chat); return { id, banner: false }; }   // N09 — tone only
+    // ep3 (h): DND `지금 사용` (or the app's notifications switched off in 설정 › 알림 › 앱 알림) → panel + badge only (§4.13)
+    if (ST() && (vget('dndNow', false) || (SH().appOff && SH().appOff[o.app]))) { refreshLists(); scheduleHome(); return { id, banner: false }; }
     soundRoute(o, chat);
     refreshLists();
     const shown = showBanner(entry);
@@ -677,6 +829,7 @@
       if (P.isLocked()) { if (!lockEl.classList.contains('sh2-under') && G.lock && G.lock._tapNotif) G.lock._tapNotif(cur); return; }
       cur.read = true; save(); refreshLists();
       P.closeQuickPanel();
+      if (easyRoute(cur)) return;
       if (cur.route) P.route(cur.route);
     });
     let sy = null;
@@ -689,6 +842,14 @@
     G.bus && G.bus.emit('notify:shown', { id: n.id });
   }
   function clearBanners() { bq.length = 0; if (curBanner) curBanner.close(); }
+  /** ep3: in easy mode an sms notification opens the one big conversation (E5 · §3.3) instead of the 메시지 app */
+  function easyRoute(n) {
+    if (!n || n.app !== 'sms' || !G.easy || !G.easy.sms || !G.easy.on || !safe(() => G.easy.on(), false)) return false;
+    const th = (n.route && n.route.params && n.route.params.thread) || (n.chat ? String(n.chat).replace(/^sms:/, '') : null);
+    if (!th) return false;
+    safe(() => G.easy.sms(th));
+    return true;
+  }
 
   /* =========================================================
    * lock layer handle (lock.js renders into it)
@@ -780,13 +941,14 @@
       b = !!b;
       const was = P.wifi.on();
       vset('wifiOn', b);
+      if (ST()) { if (was !== b) wifiEmit(); return; }          // ep3 (i): plain on/off — no saved list, no auto-on sched
       try {
         if (G.e2 && G.e2.sched) { G.e2.sched.cancel('shell:wifiAuto'); if (!b && P.wifi.auto()) G.e2.sched.after(90000, 'shell:wifiAuto'); }
         else { clearTimeout(wifiFallbackTimer); if (!b && P.wifi.auto()) wifiFallbackTimer = setTimeout(wifiAutoFire, 90000); }
       } catch (e) { console.error('[phone] wifi sched', e); }
       if (was !== b) wifiEmit();
     },
-    connected() { return P.wifi.on() && wifiSaved().includes('saemal_rooftop'); },
+    connected() { if (ST()) return P.wifi.on(); return P.wifi.on() && wifiSaved().includes('saemal_rooftop'); },
     saved() { return wifiSaved(); },
     forget(ssid) { const s = wifiSaved(); const i = s.indexOf(ssid); if (i < 0) return false; s.splice(i, 1); vset('wifiSaved', s); wifiEmit(); return true; },
     join(ssid, pw) {
@@ -840,7 +1002,7 @@
   let dashFlash = false;
   function qsRefresh(clockOnly) {
     if (!qs) return;
-    if (clockOnly) { const h = qs.panel.querySelector('.qp-head b'); if (h) h.textContent = hm(); return; }
+    if (clockOnly) { const h = qs.panel.querySelector('.qp-head b'); if (h) h.textContent = timeText(); return; }
     qs.render();
   }
   P.closeQuickPanel = function () { if (!qs) return; const q = qs; qs = null; q.ov.close(); };
@@ -858,43 +1020,89 @@
       const gear = el('button.qp-gear', { 'aria-label': T(LABELS.settings), html: SVG.gear });
       gear.addEventListener('click', () => { if (P.isLocked()) return; P.closeQuickPanel(); P.openApp('settings'); });
       if (locked) gear.classList.add('dim');
-      panel.appendChild(el('div.qp-head', null, el('b', null, hm()), el('span', null, kDate(d)), el('i.qp-sp'), gear));
+      panel.appendChild(el('div.qp-head', null, el('b', null, timeText()), el('span', null, kDate(d)), el('i.qp-sp'), gear));
       const tiles = el('div.qp-tiles');
-      // Wi-Fi
-      const wOn = P.wifi.on(), wC = P.wifi.connected();
-      const wTile = el('button.qp-tile' + (wOn ? '.on' : ''), { 'data-qa': 'qs.tile:wifi', 'aria-pressed': String(wOn) },
-        el('span.qp-ic', { html: SVG.wifi }), el('span.qp-lb', null, el('b', null, 'Wi-Fi'), wC ? el('small', null, 'saemal_rooftop') : null));
-      wTile.addEventListener('click', () => { sfx('tap'); P.wifi.setOn(!P.wifi.on()); });
-      // Bluetooth (tap = on/off · long-press 0.5 s or label tap → device list)
-      const bOn = P.btOn(), bst = P.btState();
-      const bTile = el('div.qp-tile' + (bOn ? '.on' : ''), { 'data-qa': 'qs.tile:bt', role: 'button', tabindex: 0, 'aria-pressed': String(bOn) },
-        el('span.qp-ic', { html: SVG.bt }), el('span.qp-lb', null, el('b', null, bst === 'connected' ? '2층_스피커' : '블루투스')));
-      let lp = null, lpFired = false;
-      bTile.addEventListener('pointerdown', () => { lpFired = false; clearTimeout(lp); lp = setTimeout(() => { lpFired = true; btSheet(); }, 500); });
-      ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => bTile.addEventListener(ev, () => clearTimeout(lp)));
-      bTile.addEventListener('contextmenu', (e) => e.preventDefault());
-      bTile.addEventListener('click', (e) => {
-        if (lpFired) { lpFired = false; return; }
-        sfx('tap');
-        if (e.target.closest('.qp-lb')) { btSheet(); return; }
-        const b = BT(); if (b) safe(() => b.setOn(!P.btOn()));
-      });
-      bTile.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); btSheet(); } });
-      // Flashlight ({N}: camera with flash · '—': visual toggle only — §5.3 · ARCH §9 G36)
-      const roomCam = !!(G.room && G.room.isOpen && safe(() => G.room.isOpen(), false) && safe(() => (G.room.current() || {}).mode === 'camera', false));
-      const fOn = user === 'dash' ? dashFlash : (roomCam && !!safe(() => G.room.flash(), false));
-      const fTile = el('button.qp-tile' + (fOn ? '.on' : ''), { 'data-qa': 'qs.tile:flash', 'aria-pressed': String(fOn) },
-        el('span.qp-ic', { html: SVG.flash }), el('span.qp-lb', null, el('b', null, '손전등')));
-      fTile.addEventListener('click', () => {
-        sfx('tap');
-        if (USERS.current() === 'dash') { dashFlash = !dashFlash; render(); return; }
-        if (roomCam && G.room.flash) { safe(() => G.room.flash(!fOn)); render(); return; }
-        if (!G.room || !G.room.open) return;
-        const fromLock = P.isLocked();
-        P.closeQuickPanel();
-        safe(() => G.room.open({ mode: 'camera', flash: true, fromLock }));
-      });
-      tiles.append(wTile, bTile, fTile);
+      const build = {
+        // Wi-Fi
+        wifi() {
+          const wOn = P.wifi.on(), wC = P.wifi.connected();
+          const wTile = el('button.qp-tile' + (wOn ? '.on' : ''), { 'data-qa': 'qs.tile:wifi', 'aria-pressed': String(wOn) },
+            el('span.qp-ic', { html: SVG.wifi }), el('span.qp-lb', null, el('b', null, 'Wi-Fi'), wC ? el('small', null, ST() ? T(ST().wifi || '') : 'saemal_rooftop') : null));
+          wTile.addEventListener('click', () => { sfx('tap'); P.wifi.setOn(!P.wifi.on()); });
+          return wTile;
+        },
+        // Bluetooth (tap = on/off · long-press 0.5 s or label tap → device list)
+        bt() {
+          const bOn = P.btOn(), bst = P.btState();
+          const bTile = el('div.qp-tile' + (bOn ? '.on' : ''), { 'data-qa': 'qs.tile:bt', role: 'button', tabindex: 0, 'aria-pressed': String(bOn) },
+            el('span.qp-ic', { html: SVG.bt }), el('span.qp-lb', null, el('b', null, bst === 'connected' ? '2층_스피커' : '블루투스')));
+          let lp = null, lpFired = false;
+          bTile.addEventListener('pointerdown', () => { lpFired = false; clearTimeout(lp); lp = setTimeout(() => { lpFired = true; btSheet(); }, 500); });
+          ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => bTile.addEventListener(ev, () => clearTimeout(lp)));
+          bTile.addEventListener('contextmenu', (e) => e.preventDefault());
+          bTile.addEventListener('click', (e) => {
+            if (lpFired) { lpFired = false; return; }
+            sfx('tap');
+            if (e.target.closest('.qp-lb')) { btSheet(); return; }
+            const b = BT(); if (b) safe(() => b.setOn(!P.btOn()));
+          });
+          bTile.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); btSheet(); } });
+          return bTile;
+        },
+        // Flashlight ({N}: camera with flash · '—': visual toggle only — §5.3 · ARCH §9 G36)
+        flash() {
+          const roomCam = !!(G.room && G.room.isOpen && safe(() => G.room.isOpen(), false) && safe(() => (G.room.current() || {}).mode === 'camera', false));
+          const fOn = user === 'dash' ? dashFlash : (roomCam && !!safe(() => G.room.flash(), false));
+          const fTile = el('button.qp-tile' + (fOn ? '.on' : ''), { 'data-qa': 'qs.tile:flash', 'aria-pressed': String(fOn) },
+            el('span.qp-ic', { html: SVG.flash }), el('span.qp-lb', null, el('b', null, '손전등')));
+          fTile.addEventListener('click', () => {
+            sfx('tap');
+            if (USERS.current() === 'dash') { dashFlash = !dashFlash; render(); return; }
+            if (roomCam && G.room.flash) { safe(() => G.room.flash(!fOn)); render(); return; }
+            if (!G.room || !G.room.open) return;
+            const fromLock = P.isLocked();
+            P.closeQuickPanel();
+            safe(() => G.room.open({ mode: 'camera', flash: true, fromLock }));
+          });
+          return fTile;
+        },
+        // ep3 — 소리 (소리 → 진동 → 무음 = vars.soundMode · §5.3)
+        sound() {
+          const m = vget('soundMode', 'sound');
+          const lb = m === 'vibrate' ? '진동' : m === 'mute' ? '무음' : '소리';
+          const t = el('button.qp-tile' + (m !== 'mute' ? '.on' : ''), { 'data-qa': 'qs.tile:sound', 'aria-pressed': String(m !== 'mute') },
+            el('span.qp-ic', { html: m === 'vibrate' ? SVG.vib : m === 'mute' ? SVG.mute : SVG.sound }), el('span.qp-lb', null, el('b', null, lb)));
+          t.addEventListener('click', () => {
+            sfx('tap');
+            const c = vget('soundMode', 'sound');
+            vset('soundMode', c === 'sound' ? 'vibrate' : c === 'vibrate' ? 'mute' : 'sound');
+            render();
+          });
+          return t;
+        },
+        // ep3 — 방해 금지 (tap = `지금 사용` · long-press 0.5 s = 설정 › 방해 금지 — §5.3 · §0.3 D19)
+        dnd() {
+          const on = !!vget('dndNow', false);
+          const t = el('div.qp-tile' + (on ? '.on' : ''), { 'data-qa': 'qs.tile:dnd', role: 'button', tabindex: 0, 'aria-pressed': String(on) },
+            el('span.qp-ic', { html: SVG.dnd }), el('span.qp-lb', null, el('b', null, '방해 금지')));
+          let lp = null, lpFired = false;
+          const openDnd = () => {
+            if (P.isLocked()) return;
+            P.closeQuickPanel();
+            const key = (G.EP && G.EP.QS && G.EP.QS.dndLong) || 'dnd';
+            if (G.settingsApp && G.settingsApp.open) safe(() => G.settingsApp.open(key));
+          };
+          t.addEventListener('pointerdown', () => { lpFired = false; clearTimeout(lp); lp = setTimeout(() => { lpFired = true; sfx('tap'); openDnd(); }, 500); });
+          ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => t.addEventListener(ev, () => clearTimeout(lp)));
+          t.addEventListener('contextmenu', (e) => e.preventDefault());
+          t.addEventListener('click', () => { if (lpFired) { lpFired = false; return; } sfx('tap'); P.setDndNow(!vget('dndNow', false)); render(); });
+          t.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); P.setDndNow(!vget('dndNow', false)); render(); } });
+          return t;
+        },
+      };
+      const order = (G.EP && G.EP.QS && Array.isArray(G.EP.QS.tiles) && G.EP.QS.tiles.length) ? G.EP.QS.tiles : ['wifi', 'bt', 'flash'];
+      order.forEach((id) => { const t = build[id] ? build[id]() : null; if (t) tiles.appendChild(t); });
+      if (order.length === 4) tiles.classList.add('sh3-four');
       panel.appendChild(tiles);
       // brightness (decor)
       panel.appendChild(el('div.qp-bright', null, el('span.qp-sun', { html: SVG.sun }), slider(62, { label: '밝기' })));
@@ -934,7 +1142,7 @@
         const box = el('div.qp-notifs');
         groups.forEach((g) => box.appendChild(qsNotifRow(g)));
         panel.appendChild(box);
-      }
+      } else if (ST()) panel.appendChild(el('div.qp-empty.sh3-qpempty', null, STR('noNotif')));   // ep3 — §4.13 `알림 없음`
       panel.appendChild(el('div.qp-grab'));
     };
     const ov = P.overlay(wrap, { kind: 'qs', onBack: () => P.closeQuickPanel(), dismiss: () => P.closeQuickPanel() });
@@ -949,7 +1157,7 @@
   function initial() { const n = T('{N}'); return n ? Array.from(n)[0] : ''; }
   P._initial = initial;
   function qsNotifRow(g) {
-    const n = g.head, k = g.items.length;
+    const n = g.head, k = g.items.reduce((s, x) => s + (x.count || 1), 0);
     const { name, ic } = bannerApp(n);
     const title = n.title ? T(n.title) : name;
     const row = el('div.qp-n', { 'data-qa': 'notif:' + n.id, role: 'button', tabindex: 0 },
@@ -972,6 +1180,7 @@
       P.closeQuickPanel();
       if (P.isLocked()) { if (G.lock && G.lock._tapNotif) G.lock._tapNotif(n); return; }
       g.items.forEach((x) => { x.read = true; }); save(); refreshLists();
+      if (easyRoute(n)) return;
       if (n.route) P.route(n.route);
     });
     return row;
@@ -1075,6 +1284,162 @@
         el('div.share-btns', null, dec, acc));
       const wrap = el('div.share-wrap', null, box);
       ov = P.overlay(wrap, { modal: 'soft', kind: 'share', onBack: () => finish('decline'), dismiss: () => finish('decline') });
+    });
+  };
+
+  /* =========================================================
+   * ep3 (h) — DND `지금 사용` (shared by the QS tile and 설정 › 방해 금지 — §3.9 · §4.7.3) · vars.dndAt = in-game 'HH:MM'
+   * ========================================================= */
+  P.setDndNow = function (on) {
+    on = !!on;
+    vset('dndNow', on);
+    vset('dndAt', on ? hm() : null);
+    updateStatus(true);
+  };
+
+  /* =========================================================
+   * ep3 (j) — phone text scale (easymode E10 · 설정 › 글자 크기와 스타일): phone layers' --ts = G.settings.textSize × f.
+   * The game layer (cards · subtitles · notebook) keeps the root --ts. null / 1 = no override (ep2 never calls this).
+   * ========================================================= */
+  let txtScale = null;
+  function applyTextScale() {
+    if (!root) return;
+    const nodes = [homeEl, stackEl, lockEl, overlayEl, bannerEl, switchEl].concat(Array.from(root.querySelectorAll('.sh3-call'))).filter(Boolean);
+    if (txtScale == null || txtScale === 1) { nodes.forEach((n) => n.style.removeProperty('--ts')); return; }
+    const base = Number(G.settings && G.settings.textSize) || 1;
+    const v = String(Math.round(base * txtScale * 1000) / 1000);
+    nodes.forEach((n) => n.style.setProperty('--ts', v));
+  }
+  P.textScale = function (f) { txtScale = (f == null || !isFinite(+f)) ? null : +f; applyTextScale(); };
+
+  /* =========================================================
+   * ep3 (f) — call screen (§5.3 통화 화면 · §4.3.7 · §3.2.3 — the ep1 P.callScreen contract, simulation UI only: no tel:,
+   * no real dialling). Results come from the caller's script (comms G.STORY.dial.results). Layer .sh3-call z 47 (above the
+   * lock, eye views and the emergency keypad; dialogs / sheets z 50 stay above it). No other phone in the room rings (§0.1 #34).
+   *   spec = { id, name, number, kind:'cell'|'talk'|'emergency', avatar, big=false, script(api) }
+   *   api  = { status(text) · card(text | {who, text}, {gapMs}) → Promise · beep(hz=1000, s=0.5) → Promise · connect() · line(on) ·
+   *            ring(on) · wait(ms) → Promise (playMs) · timer(on) · end(label = STR.callEnd) · ended (getter) · node }
+   *   ringback ('call.ringback' / talk 'talk.dial', one cycle per cue, repeated) runs from the start until connect() / a status
+   *   other than STR.connecting / ring(false) / end. Red end (data-qa call.end) ends at any time → { by:'user' }.
+   * ========================================================= */
+  let callCur = null;
+  P.inCall = function () { return !!callCur; };
+  P.callScreen = function (spec) {
+    spec = spec || {};
+    if (callCur) { console.warn('[phone] callScreen: a call is already up'); return Promise.resolve({ sec: 0, by: 'busy' }); }
+    return new Promise((resolve) => {
+      const kind = spec.kind === 'talk' ? 'talk' : spec.kind === 'emergency' ? 'emergency' : 'cell';
+      const big = !!spec.big;
+      const id = spec.id || ('call' + Date.now().toString(36));
+      const name = T(spec.name || spec.number || '');
+      const number = spec.number && name.indexOf(T(spec.number)) < 0 ? T(spec.number) : '';
+      const avSrc = spec.avatar ? img(spec.avatar) : '';
+      const av = el('div.sh3-cs-av');
+      if (avSrc) { const im = el('img', { src: avSrc, alt: '' }); im.onerror = () => { im.remove(); av.innerHTML = SVG.person; }; av.appendChild(im); }
+      else av.innerHTML = SVG.person;
+      const connecting = STR('connecting');
+      const statusEl = el('div.sh3-cs-status', null, connecting);
+      const timeEl = el('div.sh3-cs-time');
+      const cards = el('div.sh3-cs-cards', { 'aria-live': 'polite' });
+      const op = (k, label, svg) => {
+        const b = el('button.sh3-cs-op', { 'data-qa': 'call.btn:' + k, 'aria-pressed': 'false' }, el('span.sh3-cs-opi', { html: svg }), el('small', null, label));
+        b.addEventListener('click', (e) => { e.stopPropagation(); sfx('tap'); const on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', String(on)); b.classList.toggle('on', on); });
+        return b;
+      };
+      const endBtn = el('button.sh3-cs-end', { 'data-qa': 'call.end', 'aria-label': '종료' }, el('span', { html: SVG.callEnd }));
+      const bottom = big
+        ? el('div.sh3-cs-bigrow', null, op('speaker', '스피커', SVG.spk), el('div.sh3-cs-endw', null, endBtn, el('small', null, '종료')))
+        : el('div.sh3-cs-std', null, el('div.sh3-cs-ops', null, op('speaker', '스피커', SVG.spk), op('mute', '음소거', SVG.mic), op('keypad', '키패드', SVG.pad)),
+          el('div.sh3-cs-endw', null, endBtn));
+      const node = el('div.sh3-call' + (big ? '.big' : '') + '.k-' + kind, { 'data-qa': 'call.screen', role: 'dialog', 'aria-label': name, dataset: { kind, scr: 'call.' + kind } },
+        el('div.sh3-cs-top', null, av, el('div.sh3-cs-name', null, name), kind === 'talk' ? el('div.sh3-cs-kind', null, (typeof spec.label === 'string' && spec.label) || '보이스톡') : null,
+          number ? el('div.sh3-cs-num', null, number) : null, statusEl, timeEl),
+        cards, bottom);
+      if (txtScale != null && txtScale !== 1) node.style.setProperty('--ts', String(Math.round((Number(G.settings && G.settings.textSize) || 1) * txtScale * 1000) / 1000));
+      if (G.ui && G.ui.hideKeyboard) safe(() => G.ui.hideKeyboard());
+      P.closeQuickPanel();
+      root.appendChild(node);
+      requestAnimationFrame(() => node.classList.add('in'));
+      P.statusTheme('light');
+
+      let ended = false, ringing = false, ringT = 0, sec = 0, timerOn = false, t0 = 0, lineH = null;
+      const waits = [];
+      const clockLive = () => !!(G.bus && G.state && G.clock && G.clock.started && safe(() => G.clock.started(), false));
+      const waitMs = (ms) => new Promise((res) => {
+        if (ended || !(ms > 0)) { res(); return; }
+        if (!clockLive()) { const w = { res, t: setTimeout(() => { const i = waits.indexOf(w); if (i >= 0) waits.splice(i, 1); res(); }, ms) }; waits.push(w); return; }
+        waits.push({ res, target: playMs() + ms });
+      });
+      const offTick = G.bus ? G.bus.on('tick', () => {
+        const pm = playMs();
+        for (let i = waits.length - 1; i >= 0; i--) if (waits[i].target != null && pm >= waits[i].target) { const w = waits.splice(i, 1)[0]; w.res(); }
+        if (timerOn) { const s = Math.max(0, Math.floor((pm - t0) / 1000)); if (s !== sec) { sec = s; timeEl.textContent = Math.floor(s / 60) + ':' + pad(s % 60); } }
+      }) : null;
+      const ringCue = kind === 'talk' ? 'talk.dial' : 'call.ringback';
+      const ringOnce = () => { if (!ringing || ended) return; cue(ringCue); ringT = setTimeout(ringOnce, 3000); };
+      const ring = (on) => { on = !!on && !ended; if (on === ringing) return; ringing = on; clearTimeout(ringT); if (on) ringT = setTimeout(ringOnce, 500); };
+      const stopLine = () => { if (lineH && typeof lineH.stop === 'function') safe(() => lineH.stop()); lineH = null; };
+      const backOff = P.pushBack(() => !!callCur);           // a real in-call screen: back does not drop the call
+      callCur = { id, kind, node };
+      const close = (by) => {
+        if (offTick) offTick();
+        backOff();
+        node.classList.add('out');
+        setTimeout(() => node.remove(), 420);
+        callCur = null;
+        const top = P.top();
+        P.statusTheme(top && top.node && top.node.dataset.status ? top.node.dataset.status : (P.isLocked() ? 'light' : homeStatus()));
+        G.bus && G.bus.emit('call:end', { id, kind, number: spec.number || '', sec, by });
+        resolve({ sec, by });
+      };
+      const finish = (by, label) => {
+        if (ended) return;
+        ended = true; ring(false); ringing = false; clearTimeout(ringT); stopLine();
+        timerOn = false;
+        statusEl.textContent = T(label || '') || STR('callEnd');
+        node.classList.add('ended');
+        cue(kind === 'talk' ? 'talk.end' : 'call.end');
+        waits.splice(0).forEach((w) => { clearTimeout(w.t); w.res(); });
+        setTimeout(() => close(by), 1000);
+      };
+      endBtn.addEventListener('click', (e) => { e.stopPropagation(); sfx('tap'); finish('user'); });
+      const reveal = (line, text) => new Promise((res) => {
+        const chars = Array.from(text);
+        if (!chars.length || ended) { line.textContent = text; res(); return; }
+        let i = 0;
+        const stepT = () => { if (ended) { line.textContent = text; res(); return; } i++; line.textContent = chars.slice(0, i).join(''); if (i >= chars.length) { res(); return; } setTimeout(stepT, chars[i - 1] === '…' ? 400 : 70); };
+        stepT();
+      });
+      const api = {
+        node,
+        get ended() { return ended; },
+        status(t) { if (ended) return; const s = T(t || ''); statusEl.textContent = s; if (s !== connecting) ring(false); },
+        ring(on) { ring(on); },
+        async card(t, o) {
+          if (ended) return;
+          o = o || {};
+          const who = t && typeof t === 'object' ? t.who : o.who;
+          const text = T(t && typeof t === 'object' ? t.text : t);
+          if (!text) return;
+          const body = el('span.sh3-cs-ct');
+          cards.appendChild(el('div.sh3-cs-card' + (who ? '.who' : ''), null, who ? el('b', null, T(who)) : null, body));
+          await reveal(body, text);
+          await waitMs(o.gapMs != null ? o.gapMs : 1600);
+        },
+        async beep(hz, s) { if (ended) return; s = s || 0.5; cue('call.beep', { hz: hz || 1000, s }); await waitMs(s * 1000 + 200); },
+        connect() { if (ended) return; ring(false); cue('call.connect'); statusEl.textContent = ''; node.classList.add('live'); api.timer(true); },
+        line(on) { if (ended) return; if (on) { stopLine(); lineH = cue('call.line') || null; } else stopLine(); },
+        wait: waitMs,
+        timer(on) { timerOn = !!on; if (timerOn) { t0 = playMs(); sec = 0; timeEl.textContent = '0:00'; } },
+        end(label) { finish('script', label); },
+      };
+      G.bus && G.bus.emit('call:start', { id, kind, number: spec.number || '', name: spec.name || '' });
+      ring(true);
+      (async () => {
+        try { if (typeof spec.script === 'function') await spec.script(api); else await waitMs(4000); }
+        catch (e) { console.error('[phone] call script', e); }
+        if (!ended) finish('script');
+      })();
     });
   };
 

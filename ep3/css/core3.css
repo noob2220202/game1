@@ -1,0 +1,100 @@
+/* =========================================================
+ * ep3/css/core3.css (core) — the card + chip layer (G.cards · G.chips · ARCH_EP3 §5.6), the ep3 monologue / recap look,
+ * the sound-subtitle and monologue lift above the cards, and the DEBUG meter. Prefix c3- (ARCH §2.2).
+ * Layers (ARCH §2.3): .c3-card z 150 inside #screen — story cards bottom-anchored, never over the top 56 px (the ✎ tab z 60
+ *   stays visible and tappable above every card); the layer root takes no pointer events, only card boxes and chips do.
+ *   #fx-layer (z 300 — subtitles, monologue) and .kb (z 450) sit above it.
+ * Mobile-first 360–430 px · every tap target ≥ 44 px · text follows --ts (game-layer text size) · reduced motion respected.
+ * Grief episode: no shake, no flash — opacity / transform fades only (≥ 0.4 s, ARCH §1).
+ * ========================================================= */
+
+/* ---------------- layer ---------------- */
+/* top: the 56 px strip — or more on a notched phone, where the ✎ tab sits under a taller status bar (--sb-h + 4 … + 48) */
+.c3-card { position: absolute; left: 0; right: 0; top: 56px; top: max(56px, calc(var(--sb-h, 30px) + 52px)); bottom: 0; z-index: 150; pointer-events: none; opacity: 0;
+  transition: opacity .4s ease; font-family: var(--font); -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.c3-card.in { opacity: 1; }
+.c3-card.out { opacity: 0; }
+.c3-card.c3-hidden { visibility: hidden; opacity: 0; transition: opacity .2s ease, visibility 0s .2s; }
+.c3-card.c3-hidden * { pointer-events: none !important; }
+
+/* story: a soft shade under the stack so the cards read over the room / eye views (no full-screen dim) */
+.c3-scrim { position: absolute; left: 0; right: 0; bottom: 0; height: 62%; pointer-events: none;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, .38) 38%, rgba(0, 0, 0, .66) 100%); }
+.c3-card.react .c3-scrim { display: none; }
+
+.c3-stack { position: absolute; left: 12px; right: 12px; bottom: calc(var(--safe-bot, 0px) + 34px); max-height: calc(100% - 12px);
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; overflow: hidden; pointer-events: none;
+  transition: bottom .25s cubic-bezier(.2, .9, .3, 1); }
+#screen.kb-open .c3-stack { bottom: calc(var(--kbh, 300px) + 8px); }   /* a chip field owns the keyboard: lift the stack over it */
+
+/* ---------------- card boxes ---------------- */
+.c3-cbox { position: relative; flex: none; pointer-events: auto; cursor: pointer; padding: 12px 16px 13px; border-radius: 16px;
+  background: rgba(13, 13, 17, .9); border: 1px solid rgba(255, 255, 255, .08); box-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+  color: #ececef; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  opacity: 0; transform: translateY(8px); transition: opacity .45s ease, transform .45s ease; outline: none; touch-action: manipulation; }
+.c3-cbox.in { opacity: 1; transform: none; }
+.c3-cbox.old { opacity: .5; pointer-events: none; }
+.c3-cbox.old.in { opacity: .5; }
+.c3-cbox:focus-visible { box-shadow: 0 0 0 2px rgba(231, 201, 154, .7), 0 10px 30px rgba(0, 0, 0, .45); }
+.c3-cwho { font-size: calc(12.5px * var(--ts, 1)); font-weight: 700; letter-spacing: .6px; color: #e7c99a; margin-bottom: 4px; }
+.c3-ctext { font-size: calc(16px * var(--ts, 1)); line-height: 1.62; word-break: keep-all; overflow-wrap: anywhere; white-space: pre-line; min-height: 1.62em; }
+.c3-cbox.scene .c3-ctext { font-family: var(--serif, 'Gowun Batang', serif); color: #d9d6cf; font-size: calc(15.5px * var(--ts, 1)); line-height: 1.75; }
+/* {N}'s own said / sent line (a chip answer) — right side, no name tag */
+.c3-cbox.me { align-self: flex-end; max-width: 86%; padding: 10px 14px; border-radius: 16px 4px 16px 16px; background: rgba(47, 61, 84, .9);
+  border-color: rgba(150, 176, 214, .22); }
+.c3-cbox.me .c3-ctext { color: #e8eef7; font-size: calc(15px * var(--ts, 1)); }
+
+/* react: the compact card under the phone screen (show reactions) — the phone UI stays readable around it */
+.c3-card.react .c3-stack { left: 16px; right: 16px; }
+.c3-card.react .c3-cbox { padding: 10px 14px 11px; border-radius: 14px; background: rgba(22, 20, 18, .93); border-color: rgba(231, 201, 154, .2);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, .5); }
+.c3-card.react .c3-ctext { font-size: calc(15px * var(--ts, 1)); }
+.c3-card.react .c3-cbox.scene .c3-ctext { font-size: calc(14.5px * var(--ts, 1)); }
+
+/* ---------------- chip sheets ---------------- */
+.c3-chipbox { flex: none; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.c3-chipbox:empty { display: none; }
+.c3-chips { display: flex; flex-direction: column; gap: 8px; pointer-events: auto; opacity: 0; transform: translateY(6px); transition: opacity .4s ease, transform .4s ease; }
+.c3-chips.in { opacity: 1; transform: none; }
+.c3-chips.away { display: none; }
+.c3-chip { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 48px; width: 100%; padding: 10px 16px 10px 18px;
+  border-radius: 24px; border: 1px solid rgba(255, 255, 255, .26); background: rgba(20, 20, 26, .92); color: #f2f2f4; text-align: left;
+  font: inherit; font-size: calc(15px * var(--ts, 1)); line-height: 1.45; word-break: keep-all; overflow-wrap: anywhere; cursor: pointer;
+  -webkit-appearance: none; appearance: none; transition: background .15s, transform .1s; touch-action: manipulation; }
+.c3-chip:active { background: rgba(60, 60, 70, .95); transform: scale(.99); }
+.c3-chip:focus-visible { outline: 2px solid rgba(231, 201, 154, .75); outline-offset: 2px; }
+.c3-pen { flex: none; display: inline-flex; width: 20px; height: 20px; color: #e7c99a; opacity: .9; }
+.c3-pen svg { width: 100%; height: 100%; }
+
+.c3-chipedit { display: none; pointer-events: auto; flex-direction: column; gap: 8px; padding: 10px; border-radius: 18px;
+  background: rgba(13, 13, 17, .94); border: 1px solid rgba(255, 255, 255, .1); box-shadow: 0 10px 30px rgba(0, 0, 0, .45); }
+.c3-chipedit.on { display: flex; animation: c3In .3s ease both; }
+.c3-chipedit .fld.c3-chip-fld { min-height: 48px; padding: 11px 14px; align-items: flex-start; white-space: pre-wrap; word-break: keep-all; overflow-wrap: anywhere;
+  border-radius: 14px; background: #f4f4f6; border-color: #d6d6db; color: #111; font-size: calc(16px * var(--ts, 1)); line-height: 1.5; }
+.c3-chipedit .fld.c3-chip-fld .fld-text { flex: 0 1 auto; min-width: 0; }
+.c3-chipedit .fld.c3-chip-fld .fld-caret { height: 1.3em; align-self: center; }
+.c3-chip-btns { display: flex; gap: 8px; }
+.c3-chip-keep, .c3-chip-send { flex: 1; min-height: 46px; padding: 0 14px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, .18);
+  font: inherit; font-size: calc(15px * var(--ts, 1)); cursor: pointer; -webkit-appearance: none; appearance: none; touch-action: manipulation; }
+.c3-chip-keep { background: rgba(255, 255, 255, .06); color: #cfcfd4; }
+.c3-chip-send { flex: 1.4; background: #e9e4da; border-color: #e9e4da; color: #1a1712; font-weight: 700; }
+.c3-chip-send.off { opacity: .4; }
+.c3-chip-keep:active, .c3-chip-send:active { transform: scale(.98); }
+@keyframes c3In { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* ---------------- subtitles & monologue above the cards (#fx-layer z 300) ---------------- */
+#phone.c3-cards-up:not(.kb-open) .c2-subs { bottom: calc(var(--c3-ch, 0px) + 12px); }
+#phone.c3-cards-up:not(.kb-open) .c2-mono { bottom: calc(var(--c3-ch, 0px) + 64px); transition: bottom .25s ease; }
+/* the recap (지난 이야기 — §3.0 · §4.0 R1): notebook handwriting on the monologue channel, over the flow's black scene.
+   Gaegu — never the hand the series gives to him (§0.3 D30). */
+.c2-mono-line.c3-recap { font-family: 'Gaegu', 'Gamja Flower', cursive; font-size: calc(22px * var(--ts, 1)); line-height: 1.55; letter-spacing: 0;
+  color: rgba(244, 238, 226, .96); background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; text-shadow: 0 1px 3px rgba(0, 0, 0, .9);
+  padding: 4px 6px; max-width: 340px; }
+
+/* ---------------- DEBUG meter (z 900 — G.DEBUG only) ---------------- */
+.c3-debug-meter { bottom: calc(var(--safe-bot, 0px) + 1px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .c3-cbox, .c3-chips, .c3-stack { transition: opacity .4s ease; transform: none !important; }
+  .c3-chipedit.on { animation: none; }
+}

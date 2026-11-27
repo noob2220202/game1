@@ -1,0 +1,70 @@
+{
+ "note": "Episode 3 voice lines (DESIGN_EP3 §7.3 · §4.14). Voices and instructions are copied verbatim from §7.3 — later episodes (8 · 10 · 17 · 23 mom, 7 Seah) reuse the same voice + the same instruction head. Generate: python tools/post_ep3.py --tts-gen (tools/tts.py run(), gpt-4o-mini-tts, wav) -> work/tts_ep3/raw; post: python tools/post_ep3.py --tts-post (tools/ttspost.py helpers + the §7.3 chain) -> ep3/assets/audio/ (WAV 22.05 kHz mono). Targets: active RMS -20 dBFS, peak <= -1 dBFS. The only TTS that says a name is v3_sea_name, made for '하루' only.",
+ "sr": 22050,
+ "jobs": [
+  {
+   "name": "v3_mom_call",
+   "voice": "coral",
+   "alt_voice": "alloy",
+   "text": "여보세요? …세아야? 세아야, 엄마야.",
+   "instructions": "A Korean woman in her late fifties answering her phone at 3:33 a.m. at a dark kitchen table, holding it to her ear. For a whole year she has called her missing daughter every night and no one ever answered; this time the call came from her daughter. Plain standard Korean with a low, warm, slightly hoarse voice; no regional accent, nothing exaggerated. First '여보세요?' — careful and very quiet, almost afraid to break something. About one second of silence. '…세아야?' — almost only breath, a little higher, fragile hope. About one second of silence. '세아야, 엄마야.' — warm and trembling, holding back tears, slower on '엄마야'. No crying, no sobbing, no laugh, no gasp, no theatrical emotion. End with a soft, unsteady breath. Say the name 세아 as two clean syllables 'se-a'.",
+   "post": "mom_call",
+   "target_s": 6.8,
+   "tol_s": 0.4,
+   "phrase_starts_s": [
+    0.4,
+    2.4,
+    4.4
+   ],
+   "speech_end_s": 6.0,
+   "hp": 90,
+   "lp": 9000,
+   "layout_note": "file t = recording r - 0.6: lead 0.4 s, phrases at r 1.0 / 3.0 / 5.0-6.6, end breath r 6.6-7.4 (§7.3); dry - the room (irLiving .5) and the phone-mic chain are runtime",
+   "take": "v3_mom_call",
+   "take_note": "take 1 shipped (ASR gpt-4o-transcribe: '여보세요? 세아야? 세아야, 엄마야.'): four clean phrases with ~0.5-0.8 s pauses, no end breath in the take (tail -83 dB) - the file's 6.0-6.8 s is silence + room tone -66 dBFS. Retake t2 (work/tts_ep3/raw/v3_mom_call_t2) merged '세아야? 세아야,' into one phrase - not used."
+  },
+  {
+   "name": "v3_mom_okay",
+   "voice": "coral",
+   "text": "괜찮대요. 우리 딸이 괜찮대요.",
+   "instructions": "The same Korean woman in her late fifties, at dawn, standing at her gas stove just after lighting it, her back to the dining table. She speaks quietly, half to the young guest sitting at the table behind her and half to herself. '괜찮대요.' — quiet and certain, a held breath released. A short pause. '우리 딸이 괜찮대요.' — slower and warmer, a small smile breaking through held-back tears on '우리 딸이', as if she has decided to believe it; relief, not triumph. Not crying, no sobbing, no laugh, no drama. Same voice and intonation as before, low and steady at the very end.",
+   "post": "mom_okay",
+   "target_s": 3.0,
+   "tol_s": 0.3,
+   "hp": 90,
+   "lp": 9000,
+   "seed_note": "gpt-4o-mini-tts has no seed parameter: 'same session / fixed seed' = same voice + same instruction head, generated in the same run as v3_mom_call",
+   "take": "v3_mom_okay",
+   "take_note": "take 1 (ASR: '괜찮대요. 우리 딸이 괜찮대요.'), 3.6 s of speech -> WSOLA x1.15 + pause .3 s = 3.18 s"
+  },
+  {
+   "name": "v3_sea_name",
+   "voice": "shimmer",
+   "text": "하루야",
+   "instructions": "A frightened young Korean woman in her twenties whispering very quietly into a phone microphone at night so that someone nearby cannot hear — trembling, breathy, intimate. She hides a single name between two quiet breaths inside her humming: '하루야' (ha-ru-ya). Pure whisper, no voiced tone, no pitch; about 0.6 seconds, the last syllable fading out, a small breath before and after. Secret and tender, not loud.",
+   "post": "sea_name",
+   "max_s": 0.8,
+   "hp": 200,
+   "lp": 6000,
+   "voiced_max": 0.1,
+   "name_rule": "generated ONCE for the default name '하루' (= G.T('{N야}') with PLAYER_NAME '하루'). Never generated for any other name; no name-less take; the spare slots are not used for names (§7.3 · §4.14.2).",
+   "take": "v3_sea_name",
+   "take_note": "3 takes (work/tts_ep3/raw v3_sea_name / _t2 / _t3) measured 0.64 / 0.74 / 0.85 voiced frames (> 0.10): shimmer whispers are breathy-voiced (ep1 v_sea_mono measures 0.83 on the same meter). Shipped = take 1 (least voiced, 0.90 s raw) through whisperize() (STFT envelope + noise excitation) -> voiced 0, then HP 200 / LP 6 kHz, <= 0.80 s, 30 ms fades."
+  },
+  {
+   "name": "spare_1",
+   "generate": false,
+   "note": "예비 — 미사용 (§7.3)"
+  },
+  {
+   "name": "spare_2",
+   "generate": false,
+   "note": "예비 — 미사용 (§7.3)"
+  },
+  {
+   "name": "spare_3",
+   "generate": false,
+   "note": "예비 — 미사용 (§7.3)"
+  }
+ ]
+}

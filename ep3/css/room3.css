@@ -1,0 +1,241 @@
+/* =========================================================
+ * 하루를 위한 방탈출! 3 — 방 보기 · eye views · close-ups · room DOM effects (ep3/css/room3.css · owner: room)
+ * Classes rm3-* (engine/room/room.js v3 block) + the DESIGN effect names led3 / win3 / ring3 / cal3 / steam3 / g3-* / srspill /
+ * ceilglow / momshadow mapped to rm3-led · rm3-win · rm3-ringhold · rm3-cal3 · rm3-steam · g3-* · rm3-srspill · rm3-pglow .ceil ·
+ * rm3-momshadow. z inside #screen: .rm3-eye / .rm3-camlock 45 (ARCH §2.3); the camera itself lives in #app-stack.
+ * Animations use opacity / transform only (filters only on the 1.2 s grading cross-fades); reduced motion / low-end at the end.
+ * ========================================================= */
+
+/* ---------------- layers ---------------- */
+.rm3-layer { position: absolute; inset: 0; z-index: 45; background: #000; opacity: 0; transition: opacity .4s ease; }
+.rm3-layer.in { opacity: 1; }
+.rm3-layer.now { transition: none; }
+#screen.eye-mode #statusbar, #screen.eye-mode .home-bar, #screen.eye-mode #banners { display: none !important; }   /* shell owns this (main.css); repeated for partial builds */
+
+.rm3-room { position: absolute; inset: 0; overflow: hidden; background: #000; color: #fff; isolation: isolate; outline: none;
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+.rm3-room:focus, .rm3-room:focus-visible { outline: none; }
+.rm3-room button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.rm3-vp { position: absolute; inset: 0; overflow: hidden; touch-action: none; }
+.rm3-cam .rm3-vp { top: calc(var(--sb-h, 30px) + 52px); bottom: calc(var(--safe-bot, 0px) + 150px); }
+.rm3-turn { position: absolute; inset: 0; transition: transform .25s ease-out; }
+.rm3-turn.turn-r { animation: rm3TurnR .44s cubic-bezier(.2,.9,.3,1); }
+.rm3-turn.turn-l { animation: rm3TurnL .44s cubic-bezier(.2,.9,.3,1); }
+@keyframes rm3TurnR { from { opacity: .35; transform: translateX(64px); } to { opacity: 1; transform: none; } }
+@keyframes rm3TurnL { from { opacity: .35; transform: translateX(-64px); } to { opacity: 1; transform: none; } }
+
+/* ---------------- one scene (natural image size, scaled by transform) ---------------- */
+.rm3-frame { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.rm3-imgs, .rm3-basehost, .rm3-pl, .rm3-fx, .rm3-spots, .rm3-dom, .rm3-fbsil { position: absolute; inset: 0; }
+.rm3-imgs, .rm3-basehost, .rm3-pl, .rm3-fx, .rm3-dom, .rm3-fbsil { pointer-events: none; }
+.rm3-imgs { transition: filter 1.2s ease; }
+.rm3-base, .rm3-patch { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; object-fit: fill; pointer-events: none; -webkit-user-drag: none; }
+.rm3-frame.g3-spill .rm3-imgs { filter: brightness(1.10) contrast(.97) sepia(.03); }                 /* §8.3-4 05:30 부엌 불 번짐 */
+.rm3-room.g3-0610 .rm3-imgs { filter: brightness(.96) saturate(.92); }                                 /* 06:10 — still night */
+.rm3-room.g3-blur .rm3-imgs { filter: blur(8px) brightness(.6); }                                       /* c3_window behind the credits */
+/* eye views: the picture keeps its whole width (letterboxed) and melts into the black above / below it */
+.rm3-eyeview .rm3-frame.k-view::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(#000 0%, rgba(0,0,0,0) 8%, rgba(0,0,0,0) 92%, #000 100%); }
+.rm3-vig { position: absolute; inset: 0; z-index: 1; pointer-events: none; background: radial-gradient(ellipse 90% 72% at 50% 48%, transparent 58%, rgba(0,0,0,.20) 100%); }
+.rm3-cam .rm3-vig { display: none; }
+
+/* missing room photo (§9.8): plain gradient + an outline of the room's shapes — no text */
+.rm3-fbsil { display: none; background: linear-gradient(180deg, #2b2824 0%, #201d1a 61%, #16130f 61.4%, #1c1916 100%); }
+.rm3-frame.rm3-noimg > .rm3-fbsil { display: block; }
+.rm3-fbsil::after, .rm3-fbsil::before { content: ''; position: absolute; border: 3px solid rgba(160,150,135,.35); border-radius: 4px; }
+.rm3-fbsil.r3_door::after { left: 37%; top: 32%; width: 21%; height: 30%; background: #1a1b1e; }
+.rm3-fbsil.r3_door::before { left: 78%; top: 8%; width: 14%; height: 68%; }
+.rm3-fbsil.r3_veranda::after { left: 16%; top: 29%; width: 78%; height: 46%; background: #0d1322; }
+.rm3-fbsil.r3_sofa::after { left: 0; top: 53%; width: 56%; height: 20%; background: #3a352f; }
+.rm3-fbsil.r3_sofa::before { left: 71%; top: 62%; width: 25%; height: 11%; }
+.rm3-fbsil.r3_kitchen::after { left: 37%; top: 44%; width: 52%; height: 18%; background: #4a3f33; }
+.rm3-fbsil.r3_kitchen::before { left: 30%; top: 34%; width: 14%; height: 8%; }
+.rm3-fbsil.r3_sr_desk::after { left: 2%; top: 49%; width: 56%; height: 30%; background: #3d3226; }
+.rm3-fbsil.r3_sr_desk::before { left: 56%; top: 13%; width: 31%; height: 50%; }
+.rm3-fbsil.r3_sr_bed::after { left: 47%; top: 52%; width: 53%; height: 26%; background: #5a4a4a; }
+.rm3-fbsil.r3_sr_bed::before { left: 14%; top: 11%; width: 25%; height: 50%; }
+.rm3-frame.k-cu.rm3-noimg { background: radial-gradient(ellipse at 50% 45%, #3a332b 0%, #15120f 60%, #050404 100%); }
+.rm3-cropfb { position: absolute; inset: 0; background-repeat: no-repeat; filter: blur(2px) brightness(.9); }
+.rm3-frame.c3_manual.rm3-noimg, .rm3-frame.c3_drawing.rm3-noimg, .rm3-frame.c3_drawing_back.rm3-noimg { background: #3a2e22; }
+.rm3-frame.c3_doorframe.rm3-noimg { background: #2c2a25; }
+
+/* ---------------- hotspots (≥ 44 CSS px at any zoom through ::after) ---------------- */
+.rm3-spot { position: absolute; border-radius: calc(8px * var(--iz, 1)); background: transparent; }
+.rm3-spot::after { content: ''; position: absolute; left: 50%; top: 50%; width: max(100%, calc(44px * var(--iz, 1))); height: max(100%, calc(44px * var(--iz, 1))); transform: translate(-50%, -50%); }
+.rm3-spot:active { background: rgba(255,255,255,.06); }
+.rm3-spot.rm3-flip { display: flex; align-items: center; justify-content: center; color: rgba(60,50,35,.0); }
+.rm3-spot.rm3-flip svg { width: 40%; height: 40%; opacity: 0; }
+.rm3-debug .rm3-spot { outline: calc(2px * var(--iz, 1)) dashed rgba(255,60,60,.85); outline-offset: calc(-2px * var(--iz, 1)); }
+.rm3-debug .rm3-spot::before { content: attr(data-id); position: absolute; left: 2px; top: 2px; font: 600 calc(11px * var(--iz, 1))/1 monospace; color: #ff5050; }
+.rm3-debug .rm3-srspill .w, .rm3-debug .rm3-win, .rm3-debug .rm3-util { outline: calc(1px * var(--iz, 1)) dashed rgba(0,200,255,.7); }
+
+/* ---------------- doorlock LED .led3 (§8.3-5): green breathing · err3 = 3 red .15 / .15 · calm = red 0.9 s once ---------------- */
+.rm3-led { position: absolute; display: block; width: calc(3.2px * var(--iz, 1)); height: calc(3.2px * var(--iz, 1)); border-radius: 50%; transform: translate(-50%, -50%);
+  background: #39d97a; box-shadow: 0 0 calc(4px * var(--iz, 1)) rgba(57,217,122,.75); animation: rm3Breath 4s ease-in-out infinite; }
+.rm3-led.cu { width: 2.2%; height: 1.47%; box-shadow: 0 0 calc(8px * var(--iz, 1)) rgba(57,217,122,.7); }
+.rm3-led.err3 { background: #ff3b30; box-shadow: 0 0 calc(6px * var(--iz, 1)) rgba(255,59,48,.85); animation: rm3Err3 .9s steps(1, end) 1 both; }
+.rm3-led.cu.err3 { box-shadow: 0 0 calc(12px * var(--iz, 1)) 2px rgba(255,59,48,.8); }
+.rm3-led.err3calm { background: #ff3b30; box-shadow: 0 0 calc(6px * var(--iz, 1)) rgba(255,59,48,.8); animation: rm3Err3c 1.2s steps(1, end) 1 both; }
+@keyframes rm3Breath { 0%, 100% { opacity: .25; } 50% { opacity: .55; } }
+@keyframes rm3Err3 { 0% { opacity: 1; } 16.66% { opacity: .06; } 33.33% { opacity: 1; } 50% { opacity: .06; } 66.66% { opacity: 1; } 83.33%, 100% { opacity: .06; } }
+@keyframes rm3Err3c { 0% { opacity: 1; } 75%, 100% { opacity: .06; } }
+
+/* ---------------- 세아 방 문틈 빛 .srspill ---------------- */
+.rm3-srspill { position: absolute; inset: 0; opacity: 0; transition: opacity 1.2s ease; pointer-events: none; }
+.rm3-srspill .w { position: absolute; background: linear-gradient(90deg, rgba(255,196,120,.45), rgba(255,196,120,.22) 70%, rgba(255,196,120,.08)); mix-blend-mode: screen; }
+.rm3-srspill .f { position: absolute; border-radius: 50%; background: radial-gradient(ellipse at 72% 40%, rgba(255,196,120,.32), rgba(255,196,120,0) 70%); mix-blend-mode: screen; }
+
+/* ---------------- 보일러 · 건너편 창 · 벽시계 · 달력 · 폰 화면빛 · 김 · 불꽃 · 엄마 그림자 ---------------- */
+.rm3-util { position: absolute; opacity: 0; transition: opacity 8s ease; pointer-events: none; mix-blend-mode: screen;
+  background: linear-gradient(rgba(255,165,70,0), rgba(255,165,70,.42)); box-shadow: 0 0 calc(10px * var(--iz, 1)) rgba(255,165,70,.25); }
+.rm3-util.on { opacity: .9; transition: opacity .4s ease; }
+.rm3-wins { position: absolute; inset: 0; pointer-events: none; }
+.rm3-win { position: absolute; opacity: 0; transition: opacity .3s linear; pointer-events: none;
+  background: repeating-linear-gradient(90deg, rgba(0,0,0,.08) 0 12%, rgba(0,0,0,0) 12% 24%), radial-gradient(ellipse at 50% 50%, rgba(255,214,160,.9), rgba(255,214,160,.7)); }
+.rm3-win.on { opacity: 1; }
+.rm3-clock { position: absolute; pointer-events: none; filter: drop-shadow(0 calc(1px * var(--iz, 1)) calc(1px * var(--iz, 1)) rgba(0,0,0,.3)); }
+.rm3-clock svg { width: 100%; height: 100%; overflow: visible; }
+.rm3-clock line { stroke: #3a3a3e; stroke-linecap: round; }
+.rm3-clock line.h { stroke-width: .075; }
+.rm3-clock line.m { stroke-width: .05; }
+.rm3-clock circle { fill: #3a3a3e; }
+.rm3-cal3 { position: absolute; left: 0; top: 0; transform-origin: 0 0; color: #2b2b2b; mix-blend-mode: multiply; filter: blur(.3px); font-family: var(--font, sans-serif); text-align: center; pointer-events: none; }
+.rm3-cal3 .y { font-size: 26px; font-weight: 600; margin-top: 14px; letter-spacing: 1px; }
+.rm3-cal3 .m { font-size: 92px; font-weight: 700; line-height: 1; margin: 4px 0 10px; }
+.rm3-cal3 .g { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 14px; font-size: 25px; font-weight: 600; padding: 0 6px; }
+.rm3-cal3 .g b { font-size: 21px; }
+.rm3-cal3 .sun { color: #c62828; }
+.rm3-cal3 .sat { color: #1e56c8; }
+.rm3-cal3 .circ { position: relative; }
+.rm3-cal3 .ring { position: absolute; left: 50%; top: 50%; width: 52px; height: 44px; transform: translate(-50%, -52%) rotate(-6deg); }
+.rm3-cal3 .ring svg { width: 100%; height: 100%; overflow: visible; }
+.rm3-cal3 .note { position: absolute; left: 50%; top: 105%; transform: translateX(-50%) rotate(-4deg); font-size: 22px; font-style: normal; font-weight: 400; color: #b42020; white-space: nowrap; }
+.rm3-pglow { position: absolute; inset: 0; pointer-events: none; }
+.rm3-pglow i { position: absolute; border-radius: 50%; transform: translate(-50%, -50%); opacity: 0; transition: opacity .3s linear; mix-blend-mode: screen; }
+.rm3-pglow .ceil { width: 36%; height: 24%; background: radial-gradient(closest-side, rgba(200,215,255,.16), rgba(200,215,255,0)); }
+.rm3-pglow .ear { width: 14%; height: 9%; background: radial-gradient(closest-side, rgba(190,210,255,.22), rgba(190,210,255,0)); }
+.rm3-pglow .tbl { width: 18%; height: 7%; background: radial-gradient(closest-side, rgba(200,215,255,.26), rgba(200,215,255,0)); }
+.rm3-pglow i.on { opacity: 1; }
+.rm3-pglow .ceil.pulse { animation: rm3Ring 1.6s ease-in-out infinite; }
+@keyframes rm3Ring { 0%, 100% { opacity: .55; } 30% { opacity: 1; } }          /* ≤ 25 % brightness change per 100 ms (§9.7) */
+.rm3-steam { position: absolute; width: 16%; height: 20%; transform: translate(-50%, -100%); opacity: 0; transition: opacity 2s ease; pointer-events: none; }
+.rm3-steam.cu { width: 34%; height: 46%; }
+.rm3-steam.on { opacity: 1; }
+.rm3-steam i { position: absolute; left: 30%; bottom: 0; width: 40%; height: 42%; border-radius: 50%; background: rgba(255,255,255,.12); filter: blur(calc(16px * var(--iz, 1)));
+  animation: rm3Steam 5s ease-in-out infinite; }
+.rm3-steam i + i { left: 18%; animation-delay: -2.5s; }
+@keyframes rm3Steam { 0% { transform: translateY(0) scale(.7); opacity: 0; } 25% { opacity: 1; } 100% { transform: translateY(-120%) scale(1.25); opacity: 0; } }
+.rm3-flamewrap { position: absolute; inset: 0; opacity: 0; transition: opacity .4s ease; pointer-events: none; }
+.rm3-flamewrap.on { opacity: 1; }
+.rm3-flame { position: absolute; left: 0; top: 0; width: 100%; height: 100%; mix-blend-mode: screen; animation: rm3Flame .42s ease-in-out infinite alternate; }
+.rm3-flamecss { display: none; position: absolute; border-radius: 50%; mix-blend-mode: screen; background: radial-gradient(ellipse at 50% 80%, rgba(111,168,255,.9), rgba(111,168,255,0) 70%); }
+.rm3-flamewrap.nopng .rm3-flamecss { display: block; }
+@keyframes rm3Flame { from { opacity: .9; } to { opacity: 1; } }
+.rm3-momshadow { position: absolute; border-radius: 42% 42% 30% 30%; background: rgba(0,0,0,.42); filter: blur(calc(14px * var(--iz, 1))); transform: skewX(-8deg);
+  opacity: 0; transition: opacity .6s ease; pointer-events: none; }
+.rm3-momshadow.on { opacity: 1; }
+
+/* ---------------- close-up DOM: printed staff · child / mother hand · doorframe stand-in (§8.3-6) ---------------- */
+.rm3-staff, .rm3-print { position: absolute; mix-blend-mode: multiply; opacity: .88; filter: blur(.25px); }
+.rm3-staff svg { width: 100%; height: 100%; overflow: visible; }
+.rm3-staff .lines line, .rm3-staff .ld, .rm3-staff .bar { stroke: #2b2b2b; stroke-width: .9; }
+.rm3-staff .barB { stroke: #2b2b2b; stroke-width: 2.8; }
+.rm3-staff ellipse { fill: #2b2b2b; }
+.rm3-staff .st { stroke: #2b2b2b; stroke-width: 1.15; }
+.rm3-staff .clef { fill: none; stroke: #2b2b2b; stroke-width: 2.3; stroke-linecap: round; stroke-linejoin: round; }
+.rm3-staff .ts { font: 700 20px Georgia, 'Times New Roman', serif; fill: #2b2b2b; text-anchor: middle; }
+.rm3-print { display: flex; align-items: center; justify-content: center; color: #333; font-family: var(--font, sans-serif); font-weight: 400; white-space: nowrap; }
+.rm3-hand { position: absolute; white-space: nowrap; line-height: 1; pointer-events: none; }
+.rm3-hand.crayon { font-weight: 700; mix-blend-mode: multiply; opacity: .9; text-shadow: 0 0 1px currentColor, 1px 1px 0 rgba(0,0,0,.04); letter-spacing: .02em; }
+.rm3-hand.pencil { mix-blend-mode: multiply; opacity: .85; }
+.rm3-hand.pen { mix-blend-mode: multiply; opacity: .9; }
+.rm3-hand.graphite { opacity: .82; }
+.rm3-paperfb { display: none; position: absolute; left: 13%; top: 15%; width: 75%; height: 69%; background: #ece2c6; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
+.rm3-paperfb svg { position: absolute; left: -17.3%; top: -21.7%; width: 133.3%; height: 144.9%; overflow: visible; }
+.rm3-frame.rm3-noimg .rm3-paperfb { display: block; }
+.rm3-dom.back .rm3-paperfb svg { display: none; }
+.rm3-dom.onfail { display: none; }
+.rm3-frame.rm3-noimg .rm3-dom.onfail { display: block; }
+.rm3-dom.frame .face { position: absolute; background: #f1efe8; box-shadow: inset 6px 0 0 rgba(0,0,0,.08); }
+.rm3-dom.frame .ln { position: absolute; background: rgb(82,82,90); opacity: .78; }
+.rm3-frame.c3_manual.rm3-noimg .rm3-dom.manual::before { content: ''; position: absolute; left: 8%; top: 22%; width: 84%; height: 46%; background: #efe6cf; box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+
+/* ---------------- the phone on the table — DOM screen on ring_q (.ring3 · §8.3-5) ---------------- */
+.rm3-ringhold { position: absolute; left: 0; top: 0; transform-origin: 0 0; overflow: hidden; border-radius: 28px; background: #000; }
+.rm3-ringhold .glass { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(125deg, rgba(255,255,255,.10), rgba(255,255,255,0) 42%); z-index: 2; }
+.rm3-ringscr { position: absolute; inset: 0; overflow: hidden; color: #fff; font-family: var(--font, sans-serif); pointer-events: none; }
+.rm3-ringhold.flat { left: 50%; top: 50%; transform: translate(-50%, -50%) scale(1.25) !important; transform-origin: 50% 50%; box-shadow: 0 0 0 10px #111, 0 10px 40px rgba(0,0,0,.6); }
+
+/* ---------------- camera chrome (camera mode only — §4.9: 셔터 · 손전등 · 1× · 모드 글자 '사진') ---------------- */
+.rm3-chrome { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.rm3-chrome > * { pointer-events: auto; }
+.rm3-top { position: absolute; left: 0; right: 0; top: 0; height: calc(var(--sb-h, 30px) + 52px); display: flex; align-items: flex-end; justify-content: space-between;
+  padding: 0 40px 4px; box-sizing: border-box; background: #000; pointer-events: none; }
+.rm3-topmid { display: flex; align-items: center; gap: 14px; pointer-events: auto; }
+.rm3-topsp { width: 44px; height: 44px; }
+.rm3-top > * { pointer-events: auto; }
+.rm3-btn { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; }
+.rm3-btn svg { width: 22px; height: 22px; }
+.rm3-flashbtn.on { color: #ffd60a; }
+.rm3-dots { display: flex; align-items: center; }
+.rm3-dot { width: 26px; height: 44px; display: flex; align-items: center; justify-content: center; }
+.rm3-dot i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.35); transition: background .2s; }
+.rm3-dot.on i { background: #ffd60a; }
+.rm3-turnbtn { position: absolute; top: 44%; width: 44px; height: 64px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.85);
+  background: rgba(0,0,0,.26) !important; }
+.rm3-turnbtn svg { width: 26px; height: 26px; }
+.rm3-turnbtn.left { left: 0; border-radius: 0 12px 12px 0; }
+.rm3-turnbtn.right { right: 0; border-radius: 12px 0 0 12px; }
+.rm3-bottom { position: absolute; left: 0; right: 0; bottom: 0; height: calc(var(--safe-bot, 0px) + 150px); background: #000; display: flex; flex-direction: column; align-items: center; }
+.rm3-zoom { position: absolute; top: -54px; left: 50%; transform: translateX(-50%); min-width: 44px; height: 44px; padding: 0 8px; border-radius: 22px;
+  background: rgba(0,0,0,.5) !important; color: #ffd60a; font-size: 13px; font-weight: 700; letter-spacing: -.2px; }
+.rm3-mode { margin: 10px 0 10px; height: 18px; font-size: 13px; font-weight: 700; letter-spacing: .5px; color: #ffd60a; }
+.rm3-row { width: 100%; display: flex; align-items: center; justify-content: space-around; padding: 0 24px; box-sizing: border-box; }
+.rm3-shutter { width: 74px; height: 74px; border-radius: 50%; border: 4px solid #fff !important; padding: 4px !important; }
+.rm3-shutter i { display: block; width: 100%; height: 100%; border-radius: 50%; background: #fff; transition: transform .1s; }
+.rm3-shutter:active i { transform: scale(.88); }
+.rm3-thumb, .rm3-rowsp { width: 48px; height: 48px; }
+.rm3-thumb { border-radius: 10px; background: #222 center/cover no-repeat !important; border: 2px solid rgba(255,255,255,.7) !important; }
+.rm3-torch { position: absolute; inset: 0; z-index: 1; opacity: 0; transition: opacity .2s; pointer-events: none; mix-blend-mode: soft-light;
+  background: radial-gradient(circle at 50% 46%, rgba(255,250,235,.55), rgba(255,250,235,.18) 38%, rgba(255,250,235,0) 70%); }
+.rm3-cam.flash-on .rm3-torch { opacity: 1; }
+
+/* ---------------- captions · direction subtitles · shutter flash · dim ---------------- */
+.rm3-cap { position: absolute; z-index: 7; left: 50%; bottom: 15%; width: max-content; max-width: calc(100% - 40px); transform: translate(-50%, 6px); box-sizing: border-box;
+  padding: 8px 14px; border-radius: 12px; background: rgba(0,0,0,.62); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  font-family: var(--serif, 'Gowun Batang', serif); font-size: calc(15px * var(--ts, 1)); line-height: 1.55; color: #eee; text-align: center; word-break: keep-all;
+  opacity: 0; transition: opacity .35s, transform .35s; pointer-events: none; }
+.rm3-cap.in { opacity: 1; transform: translate(-50%, 0); }
+.rm3-cap.quick { transition: none; }
+.rm3-cam .rm3-cap { bottom: calc(var(--safe-bot, 0px) + 166px); }
+.rm3-dirsubs { position: absolute; inset: 0; z-index: 7; pointer-events: none; }
+.rm3-dirsub { position: absolute; width: max-content; max-width: min(70%, calc(100% - 20px)); transform: translate(-50%, -50%) translateY(6px); padding: 5px 10px; border-radius: 8px;
+  background: rgba(0,0,0,.55); font-size: calc(14px * var(--ts, 1)); line-height: 1.45; color: #f2f2f2; text-align: center; word-break: keep-all; white-space: pre-line;
+  opacity: 0; transition: opacity .3s, transform .3s; }
+.rm3-dirsub.in { opacity: 1; transform: translate(-50%, -50%); }
+.rm3-shotfx { position: absolute; inset: 0; z-index: 8; background: #fff; opacity: 0; pointer-events: none; }
+.rm3-shotfx.go { animation: rm3Shot .32s ease-out; }
+@keyframes rm3Shot { 0% { opacity: .85; } 100% { opacity: 0; } }
+.rm3-dim { position: absolute; inset: 0; z-index: 2; background: #000; opacity: 0; pointer-events: none; }
+
+/* ---------------- close-ups (camera) ---------------- */
+.rm3-culayer { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
+.rm3-culayer.on { pointer-events: auto; }
+.rm3-cu { position: absolute; inset: 0; background: #000; opacity: 0; transition: opacity .25s ease; }
+.rm3-cu.in { opacity: 1; }
+.rm3-cubox { position: absolute; left: 0; right: 0; top: calc(var(--sb-h, 30px) + 52px); bottom: calc(var(--safe-bot, 0px) + 110px); overflow: hidden; touch-action: none; }
+/* ‹ at the top, just inside the show tab (the outer 30 px of each top corner is the game layer's · story cards cover the bottom) */
+.rm3-cuback { position: absolute; z-index: 3; left: 40px; top: calc(var(--sb-h, 30px) + 4px); }
+.rm3-room.rm3-hascu .rm3-cap { bottom: calc(var(--safe-bot, 0px) + 40px); }
+.rm3-flipin { animation: rm3Flip .38s ease both; }
+@keyframes rm3Flip { from { opacity: 0; transform-origin: 50% 50%; } to { opacity: 1; } }
+
+/* ---------------- reduced motion · low end ---------------- */
+.rm3-room.rm3-calm .rm3-turn.turn-r, .rm3-room.rm3-calm .rm3-turn.turn-l { animation: none; }
+.rm3-room.rm3-calm .rm3-steam i, .rm3-room.rm3-lowend .rm3-steam i { animation: none; opacity: .6; transform: translateY(-40%); }
+.rm3-room.rm3-calm .rm3-flame, .rm3-room.rm3-lowend .rm3-flame { animation: none; }
+.rm3-room.rm3-calm .rm3-pglow .ceil.pulse { animation: none; opacity: .8; }
+@media (prefers-reduced-motion: reduce) {
+  .rm3-turn.turn-r, .rm3-turn.turn-l, .rm3-flame, .rm3-pglow .ceil.pulse { animation: none; }
+  .rm3-steam i { animation: none; opacity: .6; }
+}

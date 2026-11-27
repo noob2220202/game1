@@ -2,8 +2,10 @@
  * series/series.js — root episode picker 'MT-A 불 켜진 집' (SERIES §7.3 '루트 에피소드 선택 화면 방문' · §7.4 · §7.9 ·
  * §4.1 운영 규칙 · DESIGN_EP2 §12).
  *   Visit: G.series.ensure() → backfillEp1() (bible §7.4) → read-only status per episode. Nothing else is written.
- *   A night building drawn in SVG: one window per released episode home (404 = ep1, 601 = ep2 옥탑). A window is lit when
- *   that episode is done / canon in haru-escape.series.v1, dark otherwise; ♪ on a lit window whose 세아 signal was found.
+ *   A night building drawn in SVG: one window per released episode home (404 = ep1, 601 = ep2 옥탑, 702 = ep3 — a window of
+ *   the second building behind the villa on the right: a Daejeon apartment block, 16 floors, no text — DESIGN_EP3 §9.9). A
+ *   window is lit when that episode is done / canon in haru-escape.series.v1, dark otherwise; ♪ on a lit window whose 세아
+ *   signal was found (ep3: seen.e3_grey ∨ sea ∋ sig_name).
  *   '권장' marks the first released, unfinished episode — order is never enforced (gifts are not locked).
  *   Unreleased episodes (G.series.isReleased(n) false) are ordinary dark windows: no label, no date, no title.
  *   ?preview=1 (maker phone test) is honoured by isReleased and kept on every episode link.
@@ -42,12 +44,20 @@
   WINS['101'] = { x: COLS[0], y: top(1) + 12, w: WW, h: WH };
   WINS['104'] = { x: COLS[3], y: top(1) + 12, w: WW, h: WH };
   WINS['601'] = { x: 80, y: 24, w: 34, h: 24 };    // 옥탑
+  /* second building (ep3 — DESIGN_EP3 §9.9): one Daejeon apartment block, behind the villa on the right, drawn first.
+   * 16 floors · floor height 13 · ground 330 → roof y = 330 − 208 = 122. 3 dark decor windows per floor (x 283 · 293 · 303,
+   * 8 × 6 — not WINS); the 7th-floor 293 cell is WINS['702'] (= 02호). The ep2 villa geometry above is unchanged. */
+  var B2 = { x: 278, w: 38, fh: 13, floors: 16 };
+  function b2Top(f) { return GROUND - B2.fh * f; }
+  WINS['702'] = { x: B2.x + 15, y: b2Top(7) + 4, w: 8, h: 6 };   // = x 293 · y 243
 
   /* ---------- episodes (only homes that exist get a window; future ones stay unlabeled dark panes) ---------- */
   var EPS = [
     { n: 1, room: '404', title: NREUL + ' 위한 방탈출!', sub: '', href: FILE ? '../index.html' : '../', rec: 'right', seen: [], sea: [] },
     { n: 2, room: '601', title: NREUL + ' 위한 방탈출! 2', sub: '돌려줄게', href: FILE ? '../ep2/index.html' : '../ep2/', rec: 'left',
       seen: ['e2_piyo'], sea: ['sig_piyo', 'sig_fifth'] },
+    { n: 3, room: '702', title: NREUL + ' 위한 방탈출! 3', sub: '엄마의 번호', href: FILE ? '../ep3/index.html' : '../ep3/', rec: 'left',
+      seen: ['e3_grey'], sea: ['sig_name'], subCls: 'serif' },   // not the pen hand (that one is his — DESIGN_EP3 §0.3 D30)
   ];
 
   function safe(fn, d) { try { return fn(); } catch (e) { try { console.error('[picker]', e); } catch (er) {} return d; } }
@@ -73,12 +83,26 @@
   /* ---------- SVG facade ---------- */
   function winSvg(room) {
     var r = WINS[room], x = r.x, y = r.y, w = r.w, h = r.h, cx = x + w / 2, my = y + Math.round(h * 0.45);
-    return '<g class="win" id="w' + room + '">' +
+    return '<g class="win' + (w < 16 ? ' small' : '') + '" id="w' + room + '">' +
       '<g class="w-on"><rect class="w-halo" x="' + (x - 6) + '" y="' + (y - 6) + '" width="' + (w + 12) + '" height="' + (h + 12) + '" rx="4" filter="url(#pkGlow)"/>' +
       '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="url(#pkWarm)"/></g>' +
       '<rect class="w-pane" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '"/>' +
       '<path class="w-mull" d="M' + cx + ' ' + y + 'V' + (y + h) + 'M' + x + ' ' + my + 'H' + (x + w) + '"/>' +
       '<rect class="w-frame" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '"/></g>';
+  }
+  /* the second building, drawn before the villa (behind it): body, 3 dark decor windows per floor, rooftop water tank */
+  function building2() {
+    var top = b2Top(B2.floors), s = '<g class="pk-b2">' +
+      '<rect x="' + B2.x + '" y="' + top + '" width="' + B2.w + '" height="' + (GROUND - top) + '" fill="#11131a"/>' +
+      '<rect x="' + (B2.x + 9) + '" y="' + (top - 9) + '" width="14" height="9" fill="#141720"/>' +
+      '<rect x="' + (B2.x + 8) + '" y="' + (top - 10) + '" width="16" height="2" fill="#1b1e27"/>';
+    for (var f = 1; f <= B2.floors; f++) {
+      [B2.x + 5, B2.x + 15, B2.x + 25].forEach(function (x) {
+        if (f === 7 && x === WINS['702'].x) return;               // WINS['702'] draws this one
+        s += '<rect x="' + x + '" y="' + (b2Top(f) + 4) + '" width="8" height="6" fill="#0b0d12"/>';
+      });
+    }
+    return s + '</g>';
   }
   function facade() {
     var s = '<svg class="pk-svg" viewBox="0 0 ' + VW + ' ' + VH + '" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">' +
@@ -93,6 +117,7 @@
       '<rect x="0" y="' + GROUND + '" width="' + VW + '" height="' + (VH - GROUND) + '" fill="url(#pkStreet)"/>' +
       '<rect x="0" y="' + GROUND + '" width="' + VW + '" height="1" fill="url(#pkCurb)"/>' +
       '<ellipse cx="160" cy="' + (GROUND + 3) + '" rx="46" ry="5" fill="#ffbe6e" opacity=".07"/>' +
+      building2() +
       // roof: 옥탑 unit, water tank, antenna
       '<rect x="62" y="10" width="92" height="6" fill="#1f232d"/>' +
       '<rect x="66" y="16" width="84" height="46" fill="#161920"/>' +
@@ -278,7 +303,7 @@
       row.appendChild(el('span', 'pk-room', e.room));
       var t = el('span', 'pk-titles');
       t.appendChild(el('span', 'pk-title', e.title));
-      if (e.sub) t.appendChild(el('span', 'pk-sub', e.sub));
+      if (e.sub) t.appendChild(el('span', 'pk-sub' + (e.subCls ? ' ' + e.subCls : ''), e.sub));
       row.appendChild(t);
       if (x.sig) row.appendChild(el('span', 'pk-note', '♪'));
       if (x.rec) row.appendChild(el('span', 'pk-chip', '권장'));

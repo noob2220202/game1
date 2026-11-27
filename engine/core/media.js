@@ -20,6 +20,13 @@
  * DSP chains come from audio: G.audio.mediaChain(kind) → { input, setVolume(v, tauSec), dispose() } (fallback built here).
  * Disconnect / cut while playing on the speaker pauses playback (Android "becoming noisy"), so nothing blares from the phone.
  * from:'voice' clips may carry AudioBuffer.mediaTrimDb (G.audio.jiminVM: +10 dB) — applied on the phone route only.
+ *
+ * Episode 3 (owner: audio · ARCH_EP3 §4.2 · DESIGN_EP3 §7.1.5) — active only when G.EP.mediaRoute is a function:
+ *   out() = G.EP.mediaRoute() → 'ear' | 'table'. Each playback connects its source to one gain per route kind ('ear', 'table'),
+ *   each into chain(kind) = G.audio.mediaChain(kind); gain 1 on h.target, 0 on the other — no DelayNode (the 0.2 s is ep2 BT only).
+ *   Listens room:where · var:where · flag:playArmed (handlers return at once without G.EP.mediaRoute) → reroute: 80 ms crossfade
+ *   + bus 'media:out' {target}. The ep2 "speaker went away → pause" branch applies to 'bt' only. from:'callrec' is a valid source.
+ *   Volume of the ear/table chains = vars.phoneVol (no ep3 volume UI — the chains are calibrated at 60).
  * ========================================================= */
 (function () {
   'use strict';
@@ -71,7 +78,14 @@
   let btBusy = false;      // 'connecting'
   let rafId = 0;
 
-  M.out = () => (flag('btConnected') && !flag('musicCut') ? 'bt' : 'phone');
+  /* ep3 route layer: G.EP.mediaRoute() → 'ear'|'table' (absent in ep2 ⇒ the bt/phone logic below, unchanged) */
+  const routeFn = () => (G.EP && typeof G.EP.mediaRoute === 'function' ? G.EP.mediaRoute : null);
+  const ROUTES = ['ear', 'table'];
+  M.out = () => {
+    const rf = routeFn();
+    if (rf) { let r = null; try { r = rf(); } catch (e) { console.error('[media] mediaRoute', e); } return ROUTES.indexOf(r) >= 0 ? r : 'ear'; }
+    return flag('btConnected') && !flag('musicCut') ? 'bt' : 'phone';
+  };
   M.getVolume = (target) => { const v = V(target === 'bt' ? 'btVol' : 'phoneVol'); return Number.isFinite(v) ? v : target === 'bt' ? 15 : 60; };
   M.state = () => ({
     playing: !!(cur && cur.playing()), from: cur ? cur.from : null, id: cur ? cur.id : null,
@@ -121,12 +135,20 @@
       const n = h._nodes; h._nodes = null;
       if (!n) return;
       try { n.src.onended = null; n.src.stop(); } catch (e) {}
+      if (n.gs) { setTimeout(() => { try { n.src.disconnect(); } catch (e) {} Object.keys(n.gs).forEach((k) => { try { n.gs[k].disconnect(); } catch (e) {} }); }, 150); return; }
       setTimeout(() => { try { n.src.disconnect(); n.gP.disconnect(); n.gB.disconnect(); n.dly.disconnect(); } catch (e) {} }, 150);
     }
     function startAt(offset) {
       h._ctxClock = ctxRunning() && !!h._buf;
       const c = actx();
-      if (h._buf && c && h._ctxClock) {
+      if (h._buf && c && h._ctxClock && routeFn()) {        // ep3: one gain per route kind, no delay
+        const s = c.createBufferSource(); s.buffer = h._buf; s.loop = h.loop;
+        const gs = {};
+        ROUTES.forEach((k) => { const ch = chain(k), g = c.createGain(); g.gain.value = h.target === k ? 1 : 0; s.connect(g); if (ch) g.connect(ch.input); gs[k] = g; });
+        s.onended = () => { if (h._nodes && h._nodes.src === s && !h.loop) ended(); };
+        try { s.start(0, clamp(offset, 0, Math.max(0, h._buf.duration - 0.001))); } catch (e) { console.error('[media] start', e); }
+        h._nodes = { src: s, gs };
+      } else if (h._buf && c && h._ctxClock) {
         const pc = chain('phone'), bc = chain('bt');
         const s = c.createBufferSource(); s.buffer = h._buf; s.loop = h.loop;
         const gP = c.createGain(), gB = c.createGain(), dly = c.createDelay(1);
@@ -180,7 +202,8 @@
       const n = h._nodes, c = actx();
       if (n && c) {
         const t = c.currentTime, tau = (ms || 80) / 1000 / 3;
-        try { n.gP.gain.setTargetAtTime(to === 'phone' ? (h._vt || 1) : 0, t, tau); n.gB.gain.setTargetAtTime(to === 'bt' ? 1 : 0, t, tau); } catch (e) {}
+        if (n.gs) { Object.keys(n.gs).forEach((k) => { try { const p = n.gs[k].gain; p.cancelScheduledValues(t); p.setValueAtTime(p.value, t); p.setTargetAtTime(k === to ? 1 : 0, t, tau); } catch (e) {} }); }
+        else { try { n.gP.gain.setTargetAtTime(to === 'phone' ? (h._vt || 1) : 0, t, tau); n.gB.gain.setTargetAtTime(to === 'bt' ? 1 : 0, t, tau); } catch (e) {} }
       }
       return old !== to;
     };
@@ -225,9 +248,17 @@
   M.stopAll = function () { if (cur) cur.stop('stop'); };
 
   /* route changes (BT connect / disconnect / cut) */
+  let lastRoute = null;
   function reroute(reason) {
     const to = M.out();
     const h = cur;
+    if (routeFn()) {                                       // ep3 ear ⇄ table (80 ms crossfade · nothing pauses)
+      if (h && h._playing) { if (h._reroute(to, 80)) bus.emit('media:out', { target: to }); }
+      else if (h) h.target = to;
+      if (!(h && h._playing) && to !== lastRoute) bus.emit('media:out', { target: to });
+      lastRoute = to;
+      return;
+    }
     if (!h || !h._playing) { bus.emit('media:out', { target: to }); return; }
     if (to === 'phone' && h.target === 'bt') {            // speaker went away → pause (Android 'becoming noisy')
       h.pause(reason === 'cut' ? 'cut' : 'stop');
@@ -338,6 +369,9 @@
       if (V('ledState') !== want) V('ledState', want);
     };
     fix();
+    // ep3 route changes (inert on ep2: no G.EP.mediaRoute) — sr → lv after playArmed crossfades ear → table in 80 ms
+    const onRoute = () => { if (!routeFn()) return; reroute('route'); };
+    bus.on('room:where', onRoute); bus.on('var:where', onRoute); bus.on('flag:playArmed', onRoute);
     bus.on('state:load', () => { if (cur) cur.stop('stop'); fix(); });
     bus.on('state:reset', () => { if (cur) cur.stop('stop'); btConn = null; btBusy = false; });
   };

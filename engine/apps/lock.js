@@ -12,6 +12,15 @@
  * Bus emitted: lock:show {user, mode} · lock:unlock {user, how:'swipe'|'finger'|'notif'|'pin', first} · security:finger {ok, where}
  * Flags set: M1 (first entry into an unlocked {N} screen — requires gotPhone; not lock-camera, not QS) · fingerIconTouched · pinPadOpened
  * Director: mark('B03') at the first unlock (no sound). Hooks called: phone:emergency. Room: G.room.open({mode:'camera', fromLock:true}).
+ *
+ * ep3 (ARCH_EP3 §4.2 lock.js · §5.7 · DESIGN_EP3 §3.1 · §4.2.1 · §5.3 · §0.3 D42) — G.EP.LOCK present ⇒ the easy skin only:
+ *   show('n') draws G.easy.lockSkin(node) (fallback: the same strings in plain DOM): big clock 'H:MM' (live) · `1월 24일 일요일` ·
+ *   kongi_old · STR.swipeOpen · STR.emergency (lock.emergency → hook 'phone:emergency') · camera (lock.camera →
+ *   G.room.open({mode:'camera', fromLock:true})). No PIN, finger, smart-lock line, widget line or notifications.
+ *   Swipe ≥ 80 px (touch → how 'swipe', mouse → 'drag') · ↑ / Enter ('key') unlock. First unlock = !flag(G.EP.LOCK.firstFlag)
+ *   → sets it ('gotPhone' — never M1) · G.director.mark(G.EP.LOCK.beat) ('B07') · cue G.EP.LOCK.cue ('ui.unlock') on every
+ *   unlock gesture. Shown once (handover); show() after the first unlock is ignored (the phone never relocks).
+ *   Bus: lock:show {user:'n', mode:'easy'} · lock:unlock {user:'n', how:'swipe'|'drag'|'key', first}. Flags set: gotPhone.
  * ========================================================= */
 (function () {
   'use strict';
@@ -93,8 +102,10 @@
   function trustState() { return G.security && G.security.trustState ? safe(() => G.security.trustState(), null) : (G.phone && G.phone.wifi && G.phone.wifi.connected() ? 'network' : null); }
 
   /* ---------------- show ---------------- */
+  const EL = () => (G.EP && G.EP.LOCK) || null;              // ep3 switch (never defined by ep2)
   LK.show = function (u, o) {
     o = o || {};
+    if (EL()) { showEasy(o); return; }
     user = u === 'dash' ? 'dash' : 'n';
     mode = o.mode === 'hook' ? 'hook' : 'normal';
     opts = o;
@@ -243,6 +254,7 @@
   }
   function openGesture() {
     if (unlocking || opened || !node) return;
+    if (mode === 'easy') { easyUnlock('key'); return; }       // ep3: ↑ / Enter on the easy lock
     if (user === 'dash') { openDashPin(); return; }
     if (trustState()) {
       if (mode === 'hook') { hookOpen(pendingNotif || null); return; }
@@ -385,6 +397,109 @@
     if (dLock.left() > 0) startCountdown(padNode, () => dLock.left(), TXT.pinTitle);
     G.bus.emit('lock:pin', { user });
   }
+
+  /* =========================================================
+   * ep3 — the easy lock skin (G.EP.LOCK). One screen, swipe only, shown once.
+   * ========================================================= */
+  const shortHm = () => { if (G.phone && G.phone.shortHm) return G.phone.shortHm(); const s = hm(); const m = /^(\d{1,2}):(\d{2})/.exec(s); return m ? ((+m[1] % 12 || 12) + ':' + m[2]) : s; };
+  function showEasy(o) {
+    const L = EL();
+    const ff = L.firstFlag || 'gotPhone';
+    if (flag(ff) && !o.force) {                               // §0.3 D42 — the phone never locks again
+      if (G.DEBUG) console.warn('[lock] easy lock: already opened once — not shown again');
+      if (G.phone && G.phone.isLocked && G.phone.isLocked()) LK.hide();
+      return;
+    }
+    user = 'n'; mode = 'easy'; opts = o;
+    cleanup();
+    unlocking = false; opened = false; pendingNotif = null;
+    layer = G.phone.lockLayer();
+    layer.innerHTML = '';
+    G.phone.setLocked(true);
+    G.phone.statusTheme && G.phone.statusTheme('light');
+    node = buildEasy(L);
+    layer.appendChild(node);
+    requestAnimationFrame(() => node && node.classList.add('in'));
+    offs.push(
+      G.bus.on('tick', () => { if (hm() !== lastHM) drawEasyClock(); }),
+      G.bus.on('clock:min', drawEasyClock), G.bus.on('clock:jump', drawEasyClock));
+    G.bus.emit('lock:show', { user: 'n', mode: 'easy' });
+  }
+  function plainSkin(n) {                                     // used only when easymode.js is absent (partial builds)
+    const D = (G.STORY && G.STORY.easy && G.STORY.easy.lock) || {};
+    const time = el('div.ez3-lk-time.lk-time', { 'data-qa': 'lock.time' });
+    const date = el('div.ez3-lk-date.lk-date', null, T(D.date || kDate(now())));
+    const em = el('button.ez3-lk-em.lk-btn.lk-em', { 'data-qa': 'lock.emergency' }, T(D.emergency || '{$emergency}'));
+    const cam = el('button.lk-round.lk-cam.ez3-lk-cam', { 'aria-label': TXT.camera, 'data-qa': 'lock.camera', html: ICON.cam });
+    n.append(el('div.ez3-lk-top.lk-top', null, time, date), el('div.ez3-lk-swipe', null, T(D.swipe || '{$swipeOpen}')), el('div.lk-bottom.ez3-lk-bottom', null, em, cam));
+    return { time, date };
+  }
+  function buildEasy(L) {
+    const n = el('div.sh2-lock.sh3-lock.ez3-lock', { 'data-qa': 'lock.surface', dataset: { scr: 'easy.lock' } });
+    wallStyle(n, L.wall || 'kongi_old');
+    let parts = null;
+    if (G.easy && typeof G.easy.lockSkin === 'function') parts = safe(() => G.easy.lockSkin(n), null);
+    if (!parts || !parts.time) { n.innerHTML = ''; parts = plainSkin(n); }
+    n._time = parts.time; n._date = parts.date;
+    const em = n.querySelector('[data-qa="lock.emergency"]');
+    if (em) em.addEventListener('click', (e) => { e.stopPropagation(); if (unlocking) return; sfx('tap'); emergency(); });
+    const cam = n.querySelector('[data-qa="lock.camera"]');
+    if (cam) cam.addEventListener('click', (e) => { e.stopPropagation(); if (unlocking) return; sfx('tap'); camera(); });
+    node = n;
+    drawEasyClock();
+    bindEasySurface(n);
+    return n;
+  }
+  function drawEasyClock() {
+    if (!node || !node._time || mode !== 'easy') return;
+    lastHM = hm();
+    node._time.textContent = shortHm();
+  }
+  function bindEasySurface(n) {
+    let sy = null, pid = null, ptype = 'touch';
+    const skip = (t) => !!(t && t.closest && t.closest('.lk-bottom, button'));
+    const reset = () => { const top = n.querySelector('.lk-top'); if (top) top.style.transform = ''; n.style.removeProperty('--lk-fade'); };
+    n.addEventListener('pointerdown', (e) => {
+      if (unlocking || opened || skip(e.target)) return;
+      sy = e.clientY; pid = e.pointerId; ptype = e.pointerType || 'touch';
+    });
+    n.addEventListener('pointermove', (e) => {
+      if (sy == null || e.pointerId !== pid) return;
+      const dy = sy - e.clientY;
+      if (dy > 0) { const top = n.querySelector('.lk-top'); if (top) top.style.transform = `translateY(${-Math.min(60, dy * 0.35)}px)`; n.style.setProperty('--lk-fade', String(Math.max(0.4, 1 - dy / 300))); }
+    });
+    n.addEventListener('pointerup', (e) => {
+      if (sy == null) return;
+      const dy = sy - (e.clientY == null ? sy : e.clientY);
+      sy = null; reset();
+      if (dy >= 80) easyUnlock(ptype === 'mouse' ? 'drag' : 'swipe');
+    });
+    n.addEventListener('pointercancel', () => { sy = null; reset(); });
+    n.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+  async function easyUnlock(how) {
+    if (unlocking || !node || mode !== 'easy') return;
+    unlocking = true;
+    const L = EL() || {};
+    const ff = L.firstFlag || 'gotPhone';
+    const first = !flag(ff);
+    cue(L.cue || 'ui.unlock');
+    node.classList.add('leaving');
+    await sleep(380);
+    cleanup();
+    if (first) {
+      G.flag(ff, true);
+      if (L.beat && G.director && G.director.mark) safe(() => G.director.mark(L.beat));
+    }
+    G.phone.setLocked(false);
+    if (layer) layer.innerHTML = '';
+    node = null;
+    unlocking = false;
+    const top = G.phone.top && G.phone.top();
+    G.phone.statusTheme && G.phone.statusTheme(top && top.node && top.node.dataset.status ? top.node.dataset.status : (G.phone.homeStatus ? G.phone.homeStatus() : 'light'));
+    G.bus.emit('lock:unlock', { user: 'n', how, first });
+  }
+  LK._easyUnlock = easyUnlock;
 
   /* ---------------- unlock / hide ---------------- */
   async function unlock(how, notif) {

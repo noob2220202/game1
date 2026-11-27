@@ -42,13 +42,13 @@
     e1_acrostic: false, e1_alarmDel: false, e1_cafe: false, e1_bell: false, e1_live: 0, e1_lookAways: 0,
     e1_reloads: 0, e1_mfaFails: 0, e1_doorWrong: 0,
     e2_finger: 'deleted', e2_dash: 'locked', e2_fakeReply: false, e2_jimin: false, e2_phone: 'police',
-    e3_played: true, e3_dnd: false, e4_gyul: false, e5_shed: 'waited', e6_fast: false, e7_first: 'road', e8_first: 'mom',
+    e3_played: true, e3_dnd: false, e3_easyBack: false, e4_gyul: false, e5_shed: 'waited', e6_fast: false, e7_first: 'road', e8_first: 'mom',
   };
   /* seen key registry (bible §7.2 'seen 키 등록표') */
   var SEEN_KEYS = [
     'e1_qr', 'e1_eps', 'e1_piyo', 'e1_memory', 'e1_sensorLog',
     'e2_cbs', 'e2_kbd', 'e2_note', 'e2_key404', 'e2_whistle', 'e2_hangyeol', 'e2_piyo', 'e2_hinge',
-    'e3_block', 'e3_dndLog', 'e3_grey', 'e4_scar', 'e4_whistle', 'e4_locked', 'e5_height',
+    'e3_block', 'e3_dndLog', 'e3_grey', 'e3_height', 'e3_radio', 'e3_cake', 'e4_scar', 'e4_whistle', 'e4_locked', 'e5_height',
     'e6_settle', 'e6_wipe', 'e6_door05', 'e7_voice', 'e7_wall546', 'e8_kit1012', 'e9_vest', 'e10_home',
     'e11_fifth', 'e12_voucher', 'e13_night', 'e14_del0420', 'e17_redact', 'e18_key', 'e19_mom', 'e22_guest',
   ];
@@ -209,7 +209,7 @@
    * isReleased(n): ep1 → always true · a listed episode → Date.now() ≥ its instant, or the page URL carries ?preview=1
    * (the maker's phone test before release — no debug UI) · anything unlisted → false.
    * Readers: series/series.js (picker windows) · ep2/js/gate.js (ep2 gate) · js/main.js (ep1 P-3 link). */
-  var RELEASES = { 2: Date.UTC(2026, 11, 24, 12, 0) };
+  var RELEASES = { 2: Date.UTC(2026, 11, 24, 12, 0), 3: Date.UTC(2027, 0, 23, 12, 0) };
   S.releases = RELEASES;
   S.isReleased = function (n) {
     n = n | 0;

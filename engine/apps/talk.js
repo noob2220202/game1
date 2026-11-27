@@ -15,6 +15,18 @@
  * Bus emitted: 'chat:open' {thread} (톡 rooms: thread = 'talk:<id>')
  * Flags set: none. Storage: none (the ep1 save is read only inside G.STORY.talk.seaRoomMessages at room-open).
  * data-qa: talk.thread:<id> · talk.relogin · chat.msg:<id>
+ *
+ * ep3 additions (owner in ep3: comms — ARCH_EP3 §3.1 · §4.2 · §5.10) — inert on ep2 (no G.STORY.talk.mode):
+ *   G.chat.viewIn(spec) — a separate logged-in chat builder (month folds · '1' marks · time on the last bubble of a run · call /
+ *     mail / photo bubbles · chips + in-game-keyboard composer); C.view is untouched. Used by 톡 'in' and engine/apps/sms.js.
+ *   G.STORY.talk.mode === 'in' → 톡 logged in (DESIGN_EP3 §3.20.1 · §4.5 · §5.1 · §3.2.3): tabs 친구 · 채팅 · 더보기, rooms
+ *     sea jimin self group3 kitchen, input rules, voice talk → G.phone.callScreen({kind:'talk'}) → `보이스톡 · 응답 없음` row.
+ *     G.talk.open(roomId) · isOpen(roomId) · init() · call(roomId, 'voice'|'face')
+ *     Saved: G.state.threads['talk:<room>'] (ids + in-game stamps; free text only in the session store) · vars.talkCalls · vars.cm
+ *     Bus: 'chat:open' · 'chat:msg'.  data-scr talk.list · talk.friends · talk.more · talk.<room> · talk.group.<id> · talk.mail ·
+ *     talk.photo · talk.profile.<id> · talk.settings.  data-qa talk.tab:<k> · talk.call · talk.menu · talk.callrow:<id> ·
+ *     talk.redial · talk.mailcard · talk.fold:<YYYY-MM> (2025-09 = the ep1 block · 2026-11-25 = the second 2026-11 fold) ·
+ *     chat.input · chat.send
  * ========================================================= */
 (function () {
   'use strict';
@@ -442,12 +454,436 @@
     return scr;
   };
 
+  /* =========================================================
+   * ep3 (comms) — C.viewIn: the logged-in chat renderer shared by 톡 (mode 'in') and engine/apps/sms.js.
+   * A separate builder so C.view (ep2 moment + logged-out talk) keeps its DOM byte-for-byte (ARCH_EP3 §4.1-1).
+   *   spec = { skin:'talk'|'sms', title, sub, avatar(node), onTitle, right:[nodes], back, header, cls, scr (data-scr), qa,
+   *            dayLabel(date, m) → string, unreadMark, names (group sender names), avatarFor(m) → node,
+   *            foldLabel(key, msgs) → string, foldQa(key) → string, callLabel(m), mailCard:[l1, l2],
+   *            onCall(m), onMail(m), onImg(m), big }
+   *   api  = { scr, body, list, rows, setItems(msgs), add(m, {scroll}), setChips(list, onPick, onDismiss), setComposer(node),
+   *            composer({ctx, placeholder, onSend(text, chipKey)}) → {field, send}, scrollEnd(smooth), close() }
+   *   message m = { id, t:'YYYY-MM-DD HH:MM', from:'me'|'them', text, call, img, mail, unread, name, strike, fold }
+   *   time label sits on the LAST bubble of a same-minute run (DESIGN_EP3 §4 읽는 법) · '1' only when spec.unreadMark.
+   * data-qa: chat.msg:<id> · talk.callrow:<id> · talk.mailcard · talk.fold:<key> · chat.chip · chat.chip.dismiss · chat.input · chat.send
+   * ========================================================= */
+  const IN_SVG = {
+    phone: '<svg viewBox="0 0 24 24"><path d="M6.6 10.8a15 15 0 006.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 013 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z" fill="currentColor"/></svg>',
+    mail: '<svg viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3.8 7l8.2 6 8.2-6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>',
+    chev: '<svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    menu: '<svg viewBox="0 0 24 24"><path d="M4.5 7h15M4.5 12h15M4.5 17h15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    pin: '<svg viewBox="0 0 24 24"><path d="M9 3.5h6l-1 5 3.2 3.3H6.8L10 8.5z" fill="currentColor"/><path d="M12 11.8V20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    chat: '<svg viewBox="0 0 24 24"><path d="M12 4.5c-4.7 0-8.5 3-8.5 6.7 0 2.3 1.5 4.3 3.8 5.5l-.9 3.3 3.8-2.4c.6.1 1.2.2 1.8.2 4.7 0 8.5-3 8.5-6.6S16.7 4.5 12 4.5z" fill="currentColor"/></svg>',
+  };
+  C.IN_SVG = IN_SVG;
+  C.viewIn = function (spec) {
+    spec = spec || {};
+    const skin = spec.skin || 'talk';
+    const key = 'w' + (++viewSeq);
+    const body = el('div.so2-cbody');
+    const chips = el('div.so2-chips');
+    const compWrap = el('div.so2-compwrap');
+    const footer = el('div.so2-cfoot', null, chips, compWrap);
+    const scr = C.screen({ title: '', header: spec.header, back: spec.back !== false, right: spec.right || [],
+      cls: 'so2-chat cm3-chat cm3-sk-' + skin + (skin === 'talk' ? ' so2-sk-talk' : '') + (spec.big ? ' cm3-big' : '') + (spec.cls ? ' ' + spec.cls : ''),
+      body, footer, bodyCls: 'so2-cscroll' });
+    if (spec.qa) scr.dataset.qa = spec.qa;
+    if (spec.scr) scr.dataset.scr = spec.scr;
+    if (scr.head) {
+      const tt = el(spec.onTitle ? 'button.so2-ch-title' : 'div.so2-ch-title', { onclick: spec.onTitle ? () => { C.tap(); spec.onTitle(); } : null },
+        spec.avatar || null,
+        el('span.so2-ch-tt', null, el('span.so2-ch-name', null, el('span.so2-ch-n', null, T(spec.title || '')), spec.badge ? el('span.cm3-members', null, spec.badge) : null),
+          spec.sub ? el('span.so2-ch-sub', null, T(spec.sub)) : null));
+      const titles = scr.head.querySelector('.sv-titles');
+      if (titles) { titles.innerHTML = ''; titles.appendChild(tt); }
+    }
+    if (!footer.parentNode) scr.appendChild(footer);
+    const sc = scr.body || body;
+    const list = el('div.so2-msgs');
+    body.appendChild(list);
+    const rows = {};
+    let lastMsg = null, lastRow = null;
+    const dlabel = (m) => { const d = C.parseT(m.t); return d ? (spec.dayLabel ? spec.dayLabel(d, m) : C.dayLabel(d)) : ''; };
+    const sameRun = (a, b) => a && b && !a.sys && !b.sys && a.from === b.from && (a.name || '') === (b.name || '') && dayKey(a) === dayKey(b) && sameMinute(a, b);
+    function bubbleIn(m) {
+      if (m.call) {
+        const b = el('button.so2-bub.cm3-callb', { type: 'button', 'data-qa': 'talk.callrow:' + (m.id || ''), onclick: (e) => { e.stopPropagation(); if (spec.onCall) { C.tap(); spec.onCall(m); } } },
+          el('i.cm3-callic', { html: IN_SVG.phone }), el('span', null, T(spec.callLabel ? spec.callLabel(m) : m.label || '')));
+        if (!spec.onCall) b.disabled = true;
+        return b;
+      }
+      if (m.mail) {
+        const mc = spec.mailCard || [];
+        return el('button.so2-bub.cm3-mailb', { type: 'button', 'data-qa': 'talk.mailcard', onclick: (e) => { e.stopPropagation(); if (spec.onMail) { C.tap(); spec.onMail(m); } } },
+          el('span.cm3-mailt', null, el('i.cm3-mailic', { html: IN_SVG.mail }), el('b', null, T(mc[0] || ''))), el('small', null, T(mc[1] || '')));
+      }
+      if (m.img) {
+        return el('button.so2-bub.so2-imgb.cm3-imgb', { type: 'button', onclick: (e) => { e.stopPropagation(); if (spec.onImg) { C.tap(); spec.onImg(m); } } }, C.imgBox(m.img, 'so2-bimg'));
+      }
+      const txt = m.raw ? String(m.text || '') : T(m.text || '');
+      if (m.strike) {
+        const lines = String(txt).split('\n'); const lastL = lines.pop();
+        return el('div.so2-bub', null, lines.length ? lines.join('\n') + '\n' : '', el('s.cm3-strike', null, lastL));
+      }
+      return el('div.so2-bub', null, txt);
+    }
+    function rowIn(m, prev, next) {
+      const frag = document.createDocumentFragment();
+      const dk = dayKey(m);
+      if (dk != null && (!prev || dayKey(prev) !== dk)) frag.appendChild(el('div.so2-day', null, el('span', null, dlabel(m))));
+      if (m.sys) { const n = el('div.so2-sys', { 'data-qa': 'chat.msg:' + (m.id || '') }, T(m.sys)); if (m.id) rows[m.id] = n; frag.appendChild(n); return frag; }
+      const me = m.from === 'me';
+      const first = !sameRun(prev, m);
+      const showTime = !sameRun(m, next);
+      const meta = el('span.cm3-meta', null,
+        spec.unreadMark && me && m.unread ? el('span.cm3-u', null, '1') : null,
+        showTime ? el('span.so2-time', null, m.time || C.fmtK(m.t)) : null);
+      const col = el('div.so2-col', null,
+        !me && first && (spec.names || m.name) ? el('div.so2-name', null, T(m.name || spec.title || '')) : null,
+        bubbleIn(m));
+      const row = el('div.so2-row' + (me ? '.me' : '') + (first ? '.first' : '') + (m.call ? '.cm3-callrow' : ''), { 'data-qa': 'chat.msg:' + (m.id || ''), dataset: { mid: m.id || '' } },
+        !me && spec.avatarFor ? (first ? spec.avatarFor(m) : el('span.so2-avsp')) : null,
+        col, meta);
+      row._meta = meta;
+      if (m.id) rows[m.id] = row;
+      frag.appendChild(row);
+      return frag;
+    }
+    function foldPill(key, msgs, ctx) {
+      const label = spec.foldLabel ? spec.foldLabel(key, msgs) : key;
+      const pill = el('button.cm3-fold', { type: 'button', 'data-qa': 'talk.fold:' + (spec.foldQa ? spec.foldQa(key, msgs) : key) },
+        el('span.cm3-fold-l', null, T(label)), el('i.cm3-fold-c', { html: IN_SVG.chev }));
+      pill.addEventListener('click', () => {
+        C.tap();
+        const box = el('div.cm3-fold-open');
+        msgs.forEach((m, i) => box.appendChild(rowIn(m, i ? msgs[i - 1] : null, i < msgs.length - 1 ? msgs[i + 1] : ctx.next)));
+        const before = sc.scrollHeight, top = sc.scrollTop, pillTop = pill.offsetTop;
+        pill.replaceWith(box);
+        if (pillTop < top) sc.scrollTop = top + (sc.scrollHeight - before);
+      });
+      return pill;
+    }
+    function setItems(arr) {
+      list.innerHTML = ''; Object.keys(rows).forEach((k) => delete rows[k]);
+      arr = arr || [];
+      let i = 0, prevShown = null;
+      while (i < arr.length) {
+        const m = arr[i];
+        if (m.fold) {
+          let j = i; while (j + 1 < arr.length && arr[j + 1].fold === m.fold) j++;
+          const grp = arr.slice(i, j + 1);
+          list.appendChild(foldPill(m.fold, grp, { next: arr[j + 1] || null }));
+          prevShown = null; i = j + 1; continue;
+        }
+        list.appendChild(rowIn(m, prevShown, arr[i + 1] && !arr[i + 1].fold ? arr[i + 1] : null));
+        prevShown = m; i++;
+      }
+      lastMsg = arr.length ? arr[arr.length - 1] : null;
+      lastRow = lastMsg && lastMsg.id ? rows[lastMsg.id] : null;
+    }
+    function nearBottom() { return sc.scrollHeight - sc.scrollTop - sc.clientHeight < 160; }
+    function scrollEnd(smooth) { try { sc.scrollTo({ top: sc.scrollHeight + 999, behavior: smooth ? 'smooth' : 'auto' }); } catch (e) { sc.scrollTop = sc.scrollHeight; } }
+    function add(m, o) {
+      o = o || {};
+      const nb = nearBottom();
+      if (lastRow && sameRun(lastMsg, m) && lastRow._meta) { const t = lastRow._meta.querySelector('.so2-time'); if (t) t.remove(); }
+      list.appendChild(rowIn(m, lastMsg, null));
+      lastMsg = m; lastRow = m.id ? rows[m.id] : null;
+      if (o.scroll !== false && (nb || m.from === 'me' || o.force)) scrollEnd(o.smooth !== false);
+    }
+    let field = null, sendBtn = null, pending = null;
+    const api = {
+      key, scr, body, list, rows, setItems, add, scrollEnd,
+      setChips(arr, onPick, onDismiss) {
+        chips.innerHTML = '';
+        (arr || []).forEach((c) => {
+          const b = el('button.so2-chip', { type: 'button', 'data-qa': 'chat.chip', dataset: { chip: c.key }, onclick: () => { C.tap(); onPick && onPick(c); } }, el('span', null, c.text), el('i.so2-pen', { 'aria-hidden': 'true' }, '✎'));
+          chips.appendChild(b);
+          if (c.dismiss) chips.appendChild(el('button.so2-chip.so2-chip-x', { type: 'button', 'data-qa': 'chat.chip.dismiss', onclick: () => { C.tap(); onDismiss && onDismiss(c); } }, c.dismissLabel || ''));
+        });
+        chips.classList.toggle('in', chips.childNodes.length > 0);
+        chips.classList.toggle('so2-wrap', chips.childNodes.length > 0);
+      },
+      setComposer(node) { compWrap.innerHTML = ''; if (node) compWrap.appendChild(node); },
+      /** in-game keyboard composer (predict bar never drawn in ep3 — G.EP.KBD) · chip pick → field (ctx 'chip:<key>') */
+      composer(o) {
+        o = o || {};
+        if (G.ui && G.ui.field) {
+          field = G.ui.field({ placeholder: T(o.placeholder || ''), mode: 'ko', ctx: o.ctx || '', predict: false, numRow: true, submitLabel: T(o.submitLabel || ''),
+            onSubmit: () => send(), onChange: (v) => { if (sendBtn) sendBtn.classList.toggle('on', !!String(v).trim()); if (!String(v).trim()) { pending = null; if (field) field.opts.ctx = o.ctx || ''; } }, qa: 'chat.input' });
+          field.node.classList.add('so2-field');
+          field.node.dataset.qa = 'chat.input';
+        }
+        sendBtn = el('button.so2-send', { type: 'button', 'aria-label': '보내기', 'data-qa': 'chat.send', html: SEND_SVG, onclick: () => send() });
+        api.setComposer(el('div.so2-comp', null, field ? field.node : null, sendBtn));
+        function send() {
+          if (!field) return;
+          const v = String(field.value || '').trim();
+          if (!v) return;
+          const ck = pending; pending = null;
+          field.clear(); field.opts.ctx = o.ctx || ''; sendBtn.classList.remove('on');
+          try { G.audio && G.audio.sfx && G.audio.sfx.msgSend && G.audio.sfx.msgSend(); } catch (e) {}
+          if (o.onSend) o.onSend(v, ck);
+        }
+        api.pickChip = function (c) {
+          if (!field) return;
+          field.set(T(c.text)); pending = c.key; field.opts.ctx = 'chip:' + c.key;
+          if (sendBtn) sendBtn.classList.add('on');
+          field.node.classList.remove('so2-flash'); void field.node.offsetWidth; field.node.classList.add('so2-flash');
+        };
+        api.pending = () => pending;
+        return { field, send };
+      },
+      close() { delete views[key]; },
+    };
+    views[key] = api;
+    return api;
+  };
+
+  /* =========================================================
+   * ep3 (comms) — 톡 logged in (G.STORY.talk.mode === 'in') · DESIGN_EP3 §3.20.1 · §4.5 · §5.1 · §3.2.3 보이스톡
+   *   G.talk.open(roomId) · G.talk.isOpen(roomId) · G.talk.init() — rooms sea jimin self group3 kitchen
+   *   Saved: G.state.threads['talk:<room>'] = [{ id, from:'me', d, hm } | { id, call:'noAnswer', from:'me', d, hm }] (ids only —
+   *   free text in the session store 'talk:<room>:<msgId>'; a reload without it draws nothing for that line) · vars.talkCalls
+   *   Bus: 'chat:open' {thread:'talk:<id>'} · 'chat:msg' {thread, id}
+   *   data-scr: talk.list · talk.friends · talk.more · talk.<room> (talk.group.<id> for the two groups) · talk.mail · talk.profile.<id>
+   * ========================================================= */
+  const inMode = () => TD().mode === 'in';
+  const IV = () => { const v = (G.state && G.state.vars) || {}; if (!v.cm || typeof v.cm !== 'object') v.cm = {}; return v.cm; };
+  const easyOn = () => { try { return !!(G.easy && G.easy.on && G.easy.on()); } catch (e) { return false; } };
+  const cbGet = (k) => { try { return G.e3 && G.e3.cb ? G.e3.cb(k) : null; } catch (e) { return null; } };
+  const nowYmdHm = () => { const d = C.now(); return { d: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`, hm: `${pad(d.getHours())}:${pad(d.getMinutes())}` }; };
+  const sess = { get(k) { try { return G.e3 && G.e3.session ? G.e3.session.get(k) : null; } catch (e) { return null; } }, set(k, v) { try { if (G.e3 && G.e3.session) G.e3.session.set(k, v); } catch (e) {} } };
+  const threadsIn = (id) => { const s = G.state || {}; if (!s.threads || typeof s.threads !== 'object') s.threads = {}; const k = 'talk:' + id; if (!Array.isArray(s.threads[k])) s.threads[k] = []; return s.threads[k]; };
+  const roomOf = (id) => (TD().list || []).find((r) => r.id === id) || null;
+  const scrIdOf = (id) => { const r = roomOf(id); return r && r.group ? 'talk.group.' + id : 'talk.' + id; };
+  const inViews = {};   // room id → { api, scr }
+  function roomMsgs(id) {
+    const R = (TD().rooms || {})[id];
+    let base = [];
+    try { base = typeof R === 'function' ? R(cbGet) : (R || []); } catch (e) { console.error('[comms] talk room', id, e); base = []; }
+    const extra = [];
+    threadsIn(id).forEach((x) => {
+      const t = x.d + ' ' + x.hm;
+      if (x.call) extra.push({ id: x.id, t, from: 'me', call: x.call });
+      else { const txt = sess.get('talk:' + id + ':' + x.id); if (txt != null) extra.push({ id: x.id, t, from: 'me', text: txt, raw: true, unread: !!x.u }); }
+    });
+    return base.concat(extra);
+  }
+  function inAvatar(room, px) { return C.avatar({ img: room.avatar, initial: room.initial, name: room.name, bg: room.group ? '#b7c1c9' : null }, px); }
+  function foldLabelIn(key, msgs) {
+    const fh = TD().foldHead || {};
+    const calls = msgs.filter((m) => m.call).length, texts = msgs.filter((m) => !m.call).length;
+    if (key === 'e1') return String(fh.e1 || '{m}').replace('{m}', texts);
+    const d = C.parseT(msgs[0].t);
+    return `${d.getFullYear()}년 ${d.getMonth() + 1}월 · 보이스톡 ${calls}` + (texts ? ` · 메시지 ${texts}` : '');
+  }
+  function sheetPick(buttons) {   // buttons: [[value, label, qa]] → Promise<value|null>
+    if (!(G.phone && G.phone.sheet)) return Promise.resolve(buttons[0] ? buttons[0][0] : null);
+    return G.phone.sheet({ buttons: buttons.map((b) => ({ label: b[1], value: b[0] })), mount: (fin, box) => { buttons.forEach((b) => { const n = box.querySelector('[data-qa="sheet.btn:' + b[0] + '"]'); if (n && b[2]) n.setAttribute('data-qa', b[2]); }); } });
+  }
+  /** voice / face talk (§3.2.3 · §4.5.6): 연결 중… 30 s → STR.noAnswer → a right `보이스톡 · 응답 없음` row (in-game clock) */
+  function talkCall(id, kind) {
+    const room = roomOf(id) || { id, name: '' };
+    const t0 = (performance && performance.now) ? performance.now() : Date.now();
+    const pnow = () => ((performance && performance.now) ? performance.now() : Date.now());
+    const D = TD();
+    const after = id === 'jimin' && G.flag && G.flag('bip') ? D.jiminAfter : null;
+    // shell G.phone.callScreen: the 'talk.dial' ringback runs from the start until a status / connect / end (ARCH_EP3 §5.7)
+    const script = async (api) => {
+      const wait = (ms) => (api.wait ? api.wait(ms) : new Promise((r) => setTimeout(r, ms)));
+      const rem = 30000 - (pnow() - t0);
+      if (rem > 300) await wait(rem);
+      if (api.ended) return;
+      if (after) {
+        if (api.card) { await api.card(after.card); await api.card({ who: after.who, text: after.say }); }
+        await wait(1200);
+      } else { if (api.status) api.status(C.str('noAnswer') || '상대방이 응답하지 않습니다'); await wait(1600); }
+      if (api.end) api.end();
+    };
+    const spec = { id: 'talk:' + id, kind: 'talk', name: room.name, avatar: room.avatar, big: easyOn(), label: (D.kinds || {})[kind || 'voice'], script };
+    const cs = (G.phone && G.phone.callScreen) || (G.phoneApp && G.phoneApp._callScreen);
+    const done = () => {
+      const st = nowYmdHm();
+      const v = IV(); v.tcN = (v.tcN || 0) + 1;
+      const rid = 'tc' + v.tcN;
+      threadsIn(id).push({ id: rid, call: 'noAnswer', from: 'me', d: st.d, hm: st.hm });
+      if (G.vars) G.vars('talkCalls', ((G.state.vars.talkCalls | 0) + 1)); else G.state.vars.talkCalls = (G.state.vars.talkCalls | 0) + 1;
+      if (G.save) G.save();
+      const vw = inViews[id];
+      if (vw && vw.scr.isConnected) vw.api.add({ id: rid, t: st.d + ' ' + st.hm, from: 'me', call: 'noAnswer' }, { force: true });
+      if (G.bus) G.bus.emit('chat:msg', { thread: 'talk:' + id, id: rid });
+    };
+    if (!cs) { done(); return Promise.resolve(); }
+    let pr; try { pr = cs(spec); } catch (e) { console.error('[comms] callScreen', e); pr = null; }
+    return Promise.resolve(pr).then(done, done);
+  }
+  TK.call = talkCall;
+  function photoView(key) {
+    const body = el('div.cm3-photo', null, C.imgBox(key, 'cm3-photo-img'));
+    const scr = C.screen({ title: '', back: true, body, theme: 'dark', cls: 'cm3-photov' });
+    scr.dataset.scr = 'talk.photo';
+    C.pushScreen(scr, { anim: 'fade' });
+  }
+  function mailView() {
+    const M = (G.STORY.e1canon && G.STORY.e1canon.seaMail) || {};
+    const body = el('div.cm3-mail', null,
+      el('div.cm3-mail-h', null, el('b', null, M.title || ''), el('small', null, (M.from || '') + ' · ' + (M.sched || ''))),
+      el('div.cm3-mail-b', null, (M.body || []).map((l) => (l ? el('p', null, l) : el('p.cm3-mail-gap', null, '')))));
+    const scr = C.screen({ title: '', back: true, body, cls: 'cm3-mailv' });
+    scr.dataset.scr = 'talk.mail';
+    C.pushScreen(scr, { anim: 'up' });
+  }
+  function profileView(id) {
+    const room = roomOf(id); if (!room) return;
+    const P = (TD().profile || {})[id] || {};
+    const btns = P.btns || [];
+    const body = el('div.cm3-prof', null,
+      el('div.cm3-prof-bg', null, P.bg ? C.imgBox(P.bg, 'cm3-prof-bgi') : null),
+      el('div.cm3-prof-main', null, inAvatar(room, 96), el('b.cm3-prof-n', null, T(room.name)), P.status ? el('span.cm3-prof-s', null, T(P.status)) : null),
+      el('div.cm3-prof-btns', null,
+        btns[0] ? el('button.cm3-prof-b', { type: 'button', 'data-qa': 'talk.profile.chat', onclick: () => { C.tap(); const below = inViews[id] && inViews[id].scr.isConnected; if (G.phone && G.phone.pop) G.phone.pop(true); if (!below) TK.open(id); } }, el('i', { html: IN_SVG.chat }), T(btns[0])) : null,
+        btns[1] ? el('button.cm3-prof-b', { type: 'button', 'data-qa': 'talk.profile.call', onclick: () => { C.tap(); callMenu(id); } }, el('i', { html: IN_SVG.phone }), T(btns[1])) : null));
+    const scr = C.screen({ title: '', back: true, body, theme: 'dark', cls: 'cm3-profv' });
+    scr.dataset.scr = 'talk.profile.' + id;
+    C.pushScreen(scr, { anim: 'up' });
+  }
+  function callMenu(id) {
+    const cs = TD().callSheet || [];
+    return sheetPick([['voice', cs[0], 'talk.call.voice'], ['face', cs[1], 'talk.call.face'], ['cancel', cs[2], 'talk.call.cancel']]).then((v) => { if (v === 'voice' || v === 'face') talkCall(id, v); });
+  }
+  function roomMenu(scr) {
+    const items = (TD().roomMenu || []).map((label) => ({ label, onClick: () => {} }));
+    if (G.mdu && G.mdu.menu) G.mdu.menu(scr, items);
+  }
+  function inRoom(id) {
+    const room = roomOf(id);
+    if (!room) return null;
+    const D = TD();
+    const oneToOne = id === 'sea' || id === 'jimin';
+    const right = [];
+    if (oneToOne) right.push(el('button.so2-ib', { type: 'button', 'aria-label': '통화', 'data-qa': 'talk.call', html: IN_SVG.phone, onclick: () => { C.tap(); callMenu(id); } }));
+    let api = null;
+    right.push(el('button.so2-ib', { type: 'button', 'aria-label': '메뉴', 'data-qa': 'talk.menu', html: IN_SVG.menu, onclick: () => { C.tap(); roomMenu(api.scr); } }));
+    api = C.viewIn({
+      skin: 'talk', title: room.name, badge: room.members ? String(room.members) : null, scr: scrIdOf(id), qa: 'talk.room:' + id,
+      onTitle: D.profile && D.profile[id] ? () => profileView(id) : null,
+      unreadMark: true, names: !!room.group,
+      avatarFor: (m) => (room.group ? C.avatar({ name: m.name || '', bg: '#9fb0b8' }, 34) : el('button.cm3-avbtn', { type: 'button', onclick: () => { if (D.profile && D.profile[id]) { C.tap(); profileView(id); } } }, inAvatar(room, 34))),
+      foldLabel: foldLabelIn,
+      foldQa: (k) => (k === 'e1' ? '2025-09' : k),
+      callLabel: (m) => (D.callRow || {})[m.call] || '',
+      mailCard: D.mailCard,
+      onCall: (m) => { if (m.from === 'them') { const r = D.redial || []; sheetPick([['redial', r[0], 'talk.redial'], ['cancel', r[1], 'talk.redial.cancel']]).then((v) => { if (v === 'redial') talkCall(id, 'voice'); }); } },
+      onMail: () => mailView(),
+      onImg: (m) => photoView(m.img),
+    });
+    api.setItems(roomMsgs(id));
+    if ((D.input || {})[id]) {
+      api.composer({ ctx: 'talk:' + id, placeholder: D.inputPh || '', onSend: (text) => {
+        const st = nowYmdHm();
+        const v = IV(); v.tmN = (v.tmN || 0) + 1;
+        const mid = 'tm' + v.tmN;
+        const u = !!(D.unreadOnSend || {})[id];
+        threadsIn(id).push({ id: mid, from: 'me', d: st.d, hm: st.hm, u: u ? 1 : 0 });
+        sess.set('talk:' + id + ':' + mid, text);
+        if (G.save) G.save();
+        api.add({ id: mid, t: st.d + ' ' + st.hm, from: 'me', text, raw: true, unread: u }, { force: true });
+        if (G.bus) G.bus.emit('chat:msg', { thread: 'talk:' + id, id: mid });
+      } });
+    }
+    const scr = api.scr;
+    inViews[id] = { api, scr };
+    C.pushScreen(scr, { anim: 'slide', appId: 'talk', onClose: () => { api.close(); if (inViews[id] && inViews[id].scr === scr) delete inViews[id]; } });
+    requestAnimationFrame(() => api.scrollEnd(false));
+    setTimeout(() => api.scrollEnd(false), 60);
+    if (G.bus) G.bus.emit('chat:open', { thread: 'talk:' + id });
+    return scr;
+  }
+  function lastOf(id) {
+    const ex = threadsIn(id);
+    if (!ex.length) return null;
+    const x = ex[ex.length - 1];
+    if (x.call) return { text: (TD().callRow || {})[x.call] || '', d: x.d, hm: x.hm };
+    const t = sess.get('talk:' + id + ':' + x.id);
+    return t != null ? { text: t, d: x.d, hm: x.hm, raw: true } : null;
+  }
+  function chatRow(r) {
+    const lx = lastOf(r.id);
+    const when = lx ? C.fmtK(lx.d + ' ' + lx.hm) : T(r.when || '');
+    return el('button.so2-tk-row.cm3-trow', { type: 'button', 'data-qa': 'talk.thread:' + r.id, onclick: () => { C.tap(); TK.open(r.id); } },
+      inAvatar(r, 48),
+      el('span.so2-tk-main', null,
+        el('span.so2-tk-name', null, T(r.name), r.members ? el('small.cm3-members', null, String(r.members)) : null, r.pinned ? el('i.cm3-pin', { html: IN_SVG.pin }) : null),
+        el('span.so2-tk-prev', null, lx ? (lx.raw ? lx.text : T(lx.text)) : T(r.preview || ''))),
+      el('span.so2-tk-when', null, when));
+  }
+  function friendsBody() {
+    const F = TD().friends || {}, me = F.me || {};
+    const fav = (F.fav || []).map(roomOf).filter(Boolean);
+    return el('div.cm3-friends', null,
+      el('div.cm3-fh', null, T(me.head || '')),
+      el('div.cm3-frow.me', null, C.avatar({ img: me.avatar, name: me.name }, 56), el('span.cm3-fmain', null, el('b', null, T(me.name || '')), el('small', null, T(me.status || '')))),
+      fav.length ? el('div.cm3-fh', null, T(F.favHead || '')) : null,
+      fav.map((r) => el('button.cm3-frow', { type: 'button', 'data-qa': 'talk.friend:' + r.id, onclick: () => { C.tap(); profileView(r.id); } }, inAvatar(r, 44), el('span.cm3-fmain', null, el('b', null, T(r.name))))),
+      el('div.cm3-fh', null, T(F.head || '')),
+      (F.names || []).map((n) => el('div.cm3-frow', null, C.avatar({ name: n }, 44), el('span.cm3-fmain', null, el('b', null, T(n))))));
+  }
+  function moreBody() {
+    const M = TD().more || {};
+    const rows = M.rows || [];
+    return el('div.cm3-more', null,
+      rows[0] ? el('button.cm3-mrow', { type: 'button', 'data-qa': 'talk.more.settings', onclick: () => { C.tap(); talkSettings(); } }, el('span', null, T(rows[0])), el('i.cm3-chev', { html: '<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2"/></svg>' })) : null,
+      rows.slice(1).map((r) => el('div.cm3-mrow', null, el('span', null, T(r)))));
+  }
+  function talkSettings() {
+    const M = TD().more || {};
+    const body = el('div.cm3-more', null, (M.settings || []).map((r) => el('div.cm3-mrow', null, el('span', null, T(r)))));
+    const scr = C.screen({ title: T((M.rows || [])[0] || ''), back: true, body, cls: 'so2-tk cm3-tset' });
+    scr.dataset.scr = 'talk.settings';
+    C.pushScreen(scr, { anim: 'slide' });
+  }
+  function inRoot(tab) {
+    const D = TD();
+    let cur = tab || 'chats';
+    const bodyBox = el('div.cm3-troot');
+    const tabs = el('nav.cm3-ttabs');
+    const scr = C.screen({ title: '', back: true, body: bodyBox, footer: tabs, cls: 'so2-tk so2-tk-root cm3-tk' });
+    function render() {
+      bodyBox.innerHTML = ''; tabs.innerHTML = '';
+      (D.tabs || []).forEach(([k, l]) => tabs.appendChild(el('button.cm3-ttab' + (k === cur ? '.on' : ''), { type: 'button', 'data-qa': 'talk.tab:' + k, onclick: () => { if (k === cur) return; C.tap(); cur = k; render(); } }, T(l))));
+      const t = scr.querySelector('.sv-title'); if (t) t.textContent = T(((D.tabs || []).find((x) => x[0] === cur) || [])[1] || '톡');
+      scr.dataset.scr = cur === 'chats' ? 'talk.list' : 'talk.' + cur;
+      if (cur === 'chats') bodyBox.appendChild(el('div.so2-tk-list', null, (D.list || []).map(chatRow)));
+      else if (cur === 'friends') bodyBox.appendChild(friendsBody());
+      else bodyBox.appendChild(moreBody());
+    }
+    render();
+    C.pushScreen(scr, { appId: 'talk', onResume: () => { if (cur === 'chats') render(); } });
+    return scr;
+  }
+  TK.isOpen = function (id) {
+    const v = inViews[id];
+    if (!v || !v.scr.isConnected) return false;
+    try { const top = G.phone && G.phone.top && G.phone.top(); return !!(top && top.node === v.scr) && !document.hidden; } catch (e) { return false; }
+  };
+  TK.init = function () {};
+  // keep the ep2 functions, dispatch on the ep3 marker (ep2 data has no `mode` → old path byte-for-byte)
+  const rootOut = TK.root, openOut = TK.open;
+  TK.root = function () { return inMode() ? inRoot() : rootOut(); };
+  TK.open = function (id) { return inMode() ? inRoom(id) : openOut(id); };
+  // chat:isOpen for talk rooms until engine/apps/sms.js registers the shared hook (ARCH_EP3 §5.18)
+  if (G.hooks && G.hooks.set && !(G.hooks.has && G.hooks.has('chat:isOpen')) && inMode()) {
+    G.hooks.set('chat:isOpen', (th) => { const m = /^talk:(.+)$/.exec(String(th || '')); return m ? TK.isOpen(m[1]) : false; });
+  }
+
   if (G.app) {
     G.app('talk', {
       name: '톡',
       icon: G.ICONS && G.ICONS.talk,
-      badge: () => 0,   // all of {MAKER}'s three messages are already read — he read them (§4.2)
+      badge: () => 0,   // all of {MAKER}'s three messages are already read — he read them (§4.2) · ep3: no unread tonight (§4.5.1)
       open(p) {
+        if (inMode()) { inRoot(); if (p && p.thread && roomOf(p.thread)) inRoom(p.thread); return; }
         TK.root();
         if (p && p.thread && TK.thread(p.thread)) TK.open(p.thread);
       },

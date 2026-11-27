@@ -1,0 +1,17 @@
+[
+ {
+  "id": "G26",
+  "name": "g_p3_child_back",
+  "pass": 2,
+  "tier": 4,
+  "star": false,
+  "size": "1024x1024",
+  "quality": "low",
+  "prompt": "A smartphone photograph of an old 4x6-inch colour print from around 2008 lying on a light-wood table: the print fills most of the frame, one corner slightly curled, a soft band of glare across it; the print itself has warm compact-camera colours, gentle softness and a faint colour cast. Using the reference image only for the shape of the music box: the print shows a little girl of about six seen entirely from behind, with a chin-length straight black bob that covers her ears and the back of her neck and a small pink hair clip above her left ear, wearing a light pink short-sleeved T-shirt and a pale yellow skirt, sitting on the floor of a sunlit child's bedroom in front of a low white bookshelf, looking at a small open dark-walnut music box with a brass mechanism that stands on a white crocheted lace doily on the shelf; her face, cheeks and ears are not visible at all - only the back of her head, her hair and her back. Absolutely no text, letters, numbers, signage, labels, logos, brand marks, painted building numbers, screen interfaces or watermarks anywhere in the image; every tag, label area, screen, calendar page, clock face, book spine and paper is blank. No people and no faces unless explicitly described.",
+  "ref": "work/gen_ep3/ref_orgel.png",
+  "fidelity_doc": "low",
+  "force": true,
+  "retry": 1,
+  "retry_note": "AD finding p3_child_back: take t1 (kept as g_p3_child_back.t1.png) read as a boy (clipped short hair with a crown whorl, grey T-shirt, navy shorts) and showed an ear + a sliver of cheek; a procedural bob over t1 did not read as hair"
+ }
+]

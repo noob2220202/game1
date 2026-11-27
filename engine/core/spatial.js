@@ -21,6 +21,19 @@
  *   cue(id, opts) — every §7.2 / ARCH §4.13 cue id (registry at the bottom of this file)
  * Bus events listened (init): media:play · media:vol (speaker-mode arcs) · var:snow · users:switched (drone −100 cent, §6.1.5)
  * Persisted (vars.au): amb levels, warm, GSM {on, p}, tone previews (tones.js).
+ *
+ * Episode-3 registration options (ARCH_EP3 §4.2 · DESIGN_EP3 §7.1.7 — called by ep3/js/sound3.js at load; ep2 calls none of
+ * them, so every table / path below is exactly the ep2 one when they are absent):
+ *   defineVia(key, {lp, p1:[f,dB,Q], p2, sh, g, opens, face:[lpBase, lpRange, gBase]}) · defineIR(key, [len, decay, bright, early])
+ *        — new keys only (an existing key warns in DEBUG and is ignored)
+ *   defineAmb(id, factory(api) → layer, nominalDbfs)   api = { mkLayer, loopSrc, T() }   (new ids only)
+ *   TENSION_AMBS (default ['roofWind','drone'])         layers re-applied by tension(T); the drone auto-starts only when listed
+ *   defineMediaChain(kind, factory() → chain)           consulted by mediaChain(kind) before 'phone' | 'bt'
+ *   defineBuffer(id | 'prefix.*', fn(id) → Promise<AudioBuffer|null>)   consulted by buffer(id) first (the fn owns its cache)
+ *   definePrepare(fn) · defineRestore(fn)               replace the ep2 preparation list (+ the flag:END → hook.seahY render and
+ *                                                       the GSM restore) / the ep2 restore — ep3 never fetches a v2_* file
+ *   HUSH_ROOM (default 'room601')                       the ambience that stays at roomDb under hush
+ *   buffer(id) / voice resolve every /^v\d+_/ id through G.AUDIO_FILES (ep2: /^v2_/)
  * ========================================================= */
 (function () {
   'use strict';
@@ -36,6 +49,7 @@
   const flag = (n) => { try { return !!(G.flag && G.flag(n)); } catch (e) { return false; } };
   const gvar = (k) => { try { return G.vars ? G.vars(k) : (G.state && G.state.vars ? G.state.vars[k] : undefined); } catch (e) { return undefined; } };
   const def = (id, fn) => A.defineCue(id, fn);
+  let prepFn = null, restoreFn = null;               // ep3 definePrepare / defineRestore (see the bottom of this file)
 
   /* ---------------- calibration trims (§7.1.6 level targets, measured with haru.audio.meter) ---------------- */
   const CAL = A.CAL = {
@@ -80,6 +94,22 @@
     wall: { lp: 800, g: -12 },
   };
   const FACE = { inRoom: [700, 3500, 0.35], window: [700, 3500, 0.35], door: [3500, 1500, 0.7], doorVoice: [3500, 1500, 0.7], doorDirect: [3500, 1500, 0.7] };
+  /* ep3 registrations — new keys only (ep2 keys stay byte-identical) */
+  A.defineVia = function (key, spec) {
+    if (!key || !spec) return false;
+    if (VIA[key]) { warn('defineVia: "' + key + '" is an existing key — ignored'); return false; }
+    VIA[key] = { lp: spec.lp || 20000, p1: spec.p1 || null, p2: spec.p2 || null, sh: spec.sh || 0, g: spec.g || 0, opens: !!spec.opens };
+    if (Array.isArray(spec.face)) FACE[key] = spec.face.slice(0, 3);
+    return true;
+  };
+  A.hasVia = (key) => !!VIA[key];
+  A.viaGainDb = (key) => (VIA[key] ? VIA[key].g || 0 : 0);
+  A.defineIR = function (key, d) {
+    if (!key || !Array.isArray(d)) return false;
+    if (IRDEF[key]) { warn('defineIR: "' + key + '" is an existing key — ignored'); return false; }
+    IRDEF[key] = d.slice();
+    return true;
+  };
   const chains = {}, wets = {};
   let openness = 0, openTimer = null;
   function viaChain(via, bus) {
@@ -442,6 +472,20 @@
     return L;
   };
   const AMB_NOMINAL = { roofWind: -36, room601: -50, tank: -46, cityFar: -52, snow: -58, drone: -42 };   // dBFS at level 1 (§7.1.6, T = .5)
+  /* ep3 registration: defineAmb(id, factory(api) → layer, nominalDbfs) — new ids only */
+  A.defineAmb = function (id, factory, nominal) {
+    id = String(id || '').replace(/^amb\./, '');
+    if (!id || typeof factory !== 'function') return false;
+    if (AMB[id]) { warn('defineAmb: "' + id + '" is an existing id — ignored'); return false; }
+    AMB[id] = () => factory({ mkLayer, loopSrc, T: () => T });
+    AMB_NOMINAL[id] = nominal != null ? +nominal : -50;
+    return true;
+  };
+  A.hasAmb = (id) => !!AMB[String(id || '').replace(/^amb\./, '')];
+  A.ambNominal = (id) => AMB_NOMINAL[String(id || '').replace(/^amb\./, '')];
+  A.TENSION_AMBS = ['roofWind', 'drone'];           // ep3 sets ['air'] (the drone then never auto-starts — §6.1.1 · G17)
+  A.HUSH_ROOM = 'room601';                          // ep3 sets its room tone ('apt')
+  const hushRid = () => (A.HUSH_ROOM && AMB[A.HUSH_ROOM] ? A.HUSH_ROOM : 'room601');
   A.amb = function (id, on, o) {
     o = o || {};
     id = String(id || '').replace(/^amb\./, '');
@@ -459,16 +503,16 @@
     if (!L) return;
     L.level = lvl;
     if (o.lpScale != null && L.setSnow) L.setSnow(o.lpScale < 1 ? 2 : 0);
-    if (A._hush) L.hushMul = id === 'room601' ? hushRoom : 0;
+    if (A._hush) L.hushMul = id === hushRid() ? hushRoom : 0;
     L.apply(o.fade != null ? o.fade : 1.5);
     if (id === 'room601' && o.warm != null && L.warm) L.warm(!!o.warm);
   };
   A.tension = function (x) {
     T = clamp(+x || 0, 0, 1);
     if (!ok()) return;
-    const a = A._au();
-    if (!A.ambient.drone && !(a.amb && a.amb.drone === 0) && flag('M1') && !flag('M8')) A.amb('drone', true, { fade: 3 });
-    ['roofWind', 'drone'].forEach((k) => { const L = A.ambient[k]; if (L && L.level > 0) L.apply(3); });
+    const a = A._au(), list = Array.isArray(A.TENSION_AMBS) ? A.TENSION_AMBS : ['roofWind', 'drone'];
+    if (list.indexOf('drone') >= 0 && !A.ambient.drone && !(a.amb && a.amb.drone === 0) && flag('M1') && !flag('M8')) A.amb('drone', true, { fade: 3 });
+    list.forEach((k) => { const L = A.ambient[k]; if (L && L.level > 0) L.apply(3); });
     const D = A.ambient.drone; if (D && D.lp) D.lp.frequency.setTargetAtTime(160 + 900 * T, now(), 1.5);
   };
   A.getTension = () => T;
@@ -485,10 +529,11 @@
     if (hz && ms) roomLPTimer = setTimeout(() => { if (ok()) A.ambRoomLP.frequency.setTargetAtTime(20000, now(), 1.5); }, ms);
   };
   let hushRoom = db(-2);
-  A._hushAmb = function (on, roomDb) {
-    hushRoom = db((roomDb != null ? roomDb : -52) + 50);   // room601 nominal −50 dBFS → −52
-    if (on && !A.ambient.room601) A.amb('room601', 1, { fade: 0.1, restore: true });
-    Object.keys(A.ambient).forEach((id) => { const L = A.ambient[id]; L.hushMul = on ? (id === 'room601' ? hushRoom : 0) : null; L.apply(on ? 0.15 : 1.5); });
+  A._hushAmb = function (on, roomDb, fade) {
+    const rid = hushRid(), nom = AMB_NOMINAL[rid] != null ? AMB_NOMINAL[rid] : -50;
+    hushRoom = db((roomDb != null ? roomDb : -52) - nom);   // room601 nominal −50 dBFS → −52 (ep2) · ep3 roomDb −90 ⇒ ≈ 0
+    if (on && !A.ambient[rid] && hushRoom > db(-30)) A.amb(rid, 1, { fade: 0.1, restore: true });
+    Object.keys(A.ambient).forEach((id) => { const L = A.ambient[id]; L.hushMul = on ? (id === rid ? hushRoom : 0) : null; L.apply(fade != null ? fade : on ? 0.15 : 1.5); });
   };
 
   /* ---------------- heartbeat bed (§6.1.5; speaker mode → vignette pulse) ---------------- */
@@ -1016,9 +1061,12 @@
    * ========================================================= */
   const btChains = new Set();
   function btCorr(v) { const T = CAL.btCorr; for (let i = 0; i < T.length - 1; i++) if (v <= T[i + 1][0]) { const f = (v - T[i][0]) / (T[i + 1][0] - T[i][0]); return T[i][1] + (T[i + 1][1] - T[i][1]) * f; } return T[T.length - 1][1]; }
+  const MCH = {};                                    // ep3: defineMediaChain('ear' | 'table', factory)
+  A.defineMediaChain = function (kind, factory) { if (!kind || typeof factory !== 'function') return false; MCH[kind] = factory; return true; };
   A.mediaChain = function (kind) {
     const dummy = { input: null, setVolume() {}, dispose() {}, latency: 0, kind, analyser: null };
     if (!ok()) return dummy;
+    if (MCH[kind]) { try { const ch = MCH[kind](); if (ch && ch.input) return ch; } catch (er) { console.error('[audio] mediaChain ' + kind, er); } return dummy; }
     const c = A.ctx;
     const input = c.createGain();
     const mono = c.createGain(); mono.channelCount = 1; mono.channelCountMode = 'explicit'; mono.channelInterpretation = 'speakers';
@@ -1300,10 +1348,19 @@
   }
   const RENDERS = { 'rec.uri': renderRecUri, 'vid.move': renderVidMove, 'vid.roof': renderVidRoof, 'hook.seahY': renderHook, 'ringHaru7': renderRing7 };
   const bufCache = {};
+  const BUFDEF = {};                                 // ep3: defineBuffer(id | 'prefix.*', fn) — the fn owns its cache
+  A.defineBuffer = function (id, fn) { if (!id || typeof fn !== 'function') return false; BUFDEF[id] = fn; return true; };
+  function bufDef(id) {
+    if (BUFDEF[id]) return BUFDEF[id];
+    const k = Object.keys(BUFDEF).find((p) => p.slice(-2) === '.*' && id.indexOf(p.slice(0, -1)) === 0);
+    return k ? BUFDEF[k] : null;
+  }
   A.buffer = function (id) {
     if (id === 'jiminVM') return A.jiminVM();
+    const bd = id && typeof id === 'string' ? bufDef(id) : null;
+    if (bd) { try { return Promise.resolve(bd(id)).catch((e) => { console.error('[audio] buffer ' + id, e); return null; }); } catch (e) { console.error('[audio] buffer ' + id, e); return Promise.resolve(null); } }
     if (bufCache[id]) return bufCache[id];
-    if (!RENDERS[id]) { if (/^v2_/.test(id)) return A.voice(id); warn('buffer: unknown id', id); return Promise.resolve(null); }
+    if (!RENDERS[id]) { if (/^v\d+_/.test(id)) return A.voice(id); warn('buffer: unknown id', id); return Promise.resolve(null); }
     bufCache[id] = RENDERS[id]().catch((e) => { console.error('[audio] render ' + id, e); return null; });
     return bufCache[id];
   };
@@ -1504,23 +1561,29 @@
     on('media:vol', (p) => { if (!p || p.target !== 'bt') return; const s = step(p.v || 0); if (lastStep != null && s !== lastStep) { try { const st = G.media && G.media.state && G.media.state(); if (!st || (st.playing && st.target === 'bt')) arc(115); } catch (e) {} } lastStep = s; });
     on('var:snow', (p) => { const W = A.ambient.roofWind; if (W && W.setSnow) W.setSnow(p && p.v != null ? p.v : gvar('snow')); });
     on('users:switched', (p) => { if (!p) return; if (p.to === 'dash') A.droneDetune(-100, 2); else if (p.from === 'dash') A.droneDetune(0, 4); });
-    on('flag:END', () => { A.buffer('hook.seahY'); });
+    on('flag:END', () => { if (!prepFn) A.buffer('hook.seahY'); });    // ep3 (definePrepare): no ep2 hook render
     on('settings', () => {                         // 덜 무섭게 toggled live: drill −6 dB, no heartbeat (§6.1.8)
       if (D && D.state === 'run' && ok()) D.n.master.gain.setTargetAtTime(CAL.drill * (A.less() ? db(-6) : 1), now(), 0.3);
       if (A.less() && HB) A.heartbeat(false);
     });
   });
+  /* ep3: definePrepare(fn) replaces the ep2 list below (no v2_* fetch, no ep2 render, no flag:END hook render);
+     defineRestore(fn) replaces the ep2 restore (house layers live in the episode's own module) */
+  A.definePrepare = function (fn) { prepFn = typeof fn === 'function' ? fn : null; return !!prepFn; };
+  A.defineRestore = function (fn) { restoreFn = typeof fn === 'function' ? fn : null; return !!restoreFn; };
   A.restore = function () {
+    if (restoreFn) { if (ok()) { try { restoreFn(); } catch (e) { console.error('[audio] restore', e); } } return; }
     if (!ok() || !flag('M0')) return;
     const a = A._au(), hook = flag('HOOK') && !flag('hookDone');
     if (a.amb) Object.keys(a.amb).forEach((id) => { const lv = a.amb[id]; if (!(lv > 0)) return; if (hook && id !== 'room601') return; A.amb(id, lv, { fade: 1.2, warm: id === 'room601' ? !!a.warm : undefined, restore: true }); });
-    if (!hook && a.gsm && a.gsm.on && a.gsm.p > 0 && !GSM.node) { GSM.started = true; GSM.base = a.gsm.p; gsmBuild(); gsmRamp(GSM.base, 1500); }
+    if (!prepFn && !hook && a.gsm && a.gsm.on && a.gsm.p > 0 && !GSM.node) { GSM.started = true; GSM.base = a.gsm.p; gsmBuild(); gsmRamp(GSM.base, 1500); }
     if (gvar('user') === 'dash') A.droneDetune(-100, 0.1);
   };
   const idle = (fn, ms) => { if (window.requestIdleCallback) requestIdleCallback(fn, { timeout: ms || 3000 }); else setTimeout(fn, ms ? Math.min(ms, 2000) : 2000); };
   let prepped = false;
   A.prepare = function () {
     if (prepped || !A.ctx) return; prepped = true;
+    if (prepFn) { try { prepFn(); } catch (e) { console.error('[audio] prepare', e); } return; }
     setTimeout(() => { A.buffer('rec.uri').then(() => idle(() => A.buffer('vid.move').then(() => idle(() => A.buffer('vid.roof').then(() => idle(() => A.buffer('ringHaru7'))))))); }, 30);
     idle(() => { A.voice('v2_kang_door'); A.voice('v2_him_breath'); A.jiminVM(); }, 4000);
     if (flag('END')) idle(() => A.buffer('hook.seahY'), 6000);
