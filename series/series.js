@@ -45,7 +45,7 @@
 
   /* ---------- episodes (only homes that exist get a window; future ones stay unlabeled dark panes) ---------- */
   var EPS = [
-    { n: 1, room: '404', title: NREUL + ' 위한 방탈출!', sub: '', href: FILE ? '../index.html' : '../', rec: 'right', seen: [], sea: [] },
+    { n: 1, room: '404', title: NREUL + ' 위한 방탈출!', sub: '여기 있어', href: '../ep1.html', rec: 'right', seen: [], sea: [] },
     { n: 2, room: '601', title: NREUL + ' 위한 방탈출! 2', sub: '돌려줄게', href: FILE ? '../ep2/index.html' : '../ep2/', rec: 'left',
       seen: ['e2_piyo'], sea: ['sig_piyo', 'sig_fifth'] },
   ];

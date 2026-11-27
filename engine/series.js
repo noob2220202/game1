@@ -209,7 +209,7 @@
    * isReleased(n): ep1 → always true · a listed episode → Date.now() ≥ its instant, or the page URL carries ?preview=1
    * (the maker's phone test before release — no debug UI) · anything unlisted → false.
    * Readers: series/series.js (picker windows) · ep2/js/gate.js (ep2 gate) · js/main.js (ep1 P-3 link). */
-  var RELEASES = { 2: Date.UTC(2026, 11, 24, 12, 0) };
+  var RELEASES = { 2: 0 };   // no release date: every episode is open (client 2026-11-28)
   S.releases = RELEASES;
   S.isReleased = function (n) {
     n = n | 0;

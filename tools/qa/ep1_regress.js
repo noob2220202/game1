@@ -168,7 +168,7 @@ async function run(browser, base, httpOrigin) {
     await sleep(700);
   };
 
-  const URL1 = base === 'file' ? 'file:///' + path.join(ROOT, 'index.html').replace(/\\/g, '/') : httpOrigin + '/';
+  const URL1 = base === 'file' ? 'file:///' + path.join(ROOT, 'ep1.html').replace(/\\/g, '/') : httpOrigin + '/ep1.html';
   // R1–R6 come as one set: --expect=retcon|live fixes the expectation; auto takes it from the first seed read (R6 =
   // q_redev, at boot) and every later seed must match it — a partial retcon leak fails instead of being followed.
   let retcon = EXPECT === 'retcon' ? true : EXPECT === 'live' ? false : null;

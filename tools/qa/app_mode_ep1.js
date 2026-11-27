@@ -36,7 +36,7 @@ const ROOT = path.resolve(__dirname, '..', '..');
 const OUT = path.resolve(ARG.out && ARG.out !== true ? String(ARG.out) : path.join(ROOT, 'work', 'qa', 'appmode'));
 fs.mkdirSync(OUT, { recursive: true });
 const ONLY = (ARG.only ? String(ARG.only) : 'a,b,c,d').toLowerCase().split(',');
-const URL1 = 'file:///' + path.join(ROOT, 'index.html').split(path.sep).join('/');
+const URL1 = 'file:///' + path.join(ROOT, 'ep1.html').split(path.sep).join('/');
 const CENTRE_TOL = 4;
 const T_START = Date.now();
 const log = (...a) => console.log(('[' + ((Date.now() - T_START) / 1000).toFixed(1) + 's]').padEnd(9), ...a);

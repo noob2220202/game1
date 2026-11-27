@@ -63,6 +63,7 @@
     const inner = el('div.title-inner', null,
       el('div.title-kicker', null, 'AN ESCAPE ROOM FOR ' + (NAME === '하루' ? 'HARU' : NAME)),
       el('div.title-name', { html: `${NAME}${B ? '을' : '를'} 위한<br><em>방탈출!</em>` }),
+      el('div.title-ep-sub', null, '여기 있어'),
       el('div.title-sub', null, '새벽 3시 33분. 처음 보는 방.\n손에 쥔 건, 내 것이 아닌 휴대폰.'),
       el('div.title-btns', null,
         has ? el('button.title-btn.primary', { onclick: () => start(true) }, ended ? '엔딩 다시 보기' : '이어하기') : null,

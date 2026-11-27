@@ -242,7 +242,7 @@
     // credits: the title only (web and app)
     const maker = (window.CONFIG && window.CONFIG.MAKER_NAME) || '';
     const credits = el('div.end-credits', null,
-      el('div.ecr-title', { html: `${G.NAME}${hasB(G.NAME) ? '을' : '를'} 위한<br><em>방탈출!</em>` }));
+      el('div.ecr-title', { html: `${G.NAME}${hasB(G.NAME) ? '을' : '를'} 위한<br><em>방탈출!</em><span class="ecr-sub">여기 있어</span>` }));
     G.faceFrame = null;
     stage.appendChild(credits); requestAnimationFrame(() => credits.classList.add('in'));
     await sleep(9000);
