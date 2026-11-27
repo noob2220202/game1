@@ -5,6 +5,19 @@
   'use strict';
   const G = (window.G = window.G || {});
 
+  /* ---------------- app-store build switch (docs/APP_RELEASE.md) ----------------
+   * Same rule as ep2/js/config.ep2.js: G.APP = CONFIG.APP === true, or the ?app=1 preview off the release host.
+   * The real app build (CONFIG.APP === true) forces G.DEBUG off whatever CONFIG.DEBUG says, and leaves out window.haru
+   * and G.climax.debug. Under G.APP (build or preview) no debug visual renders (body.debug hotspot outlines) and the
+   * climax hold hint drops its '(PC: …)' aside. ep1 has no ?debug=1 switch: G.DEBUG is CONFIG.DEBUG on the web. */
+  {
+    const C = window.CONFIG || {};
+    const offProd = !/pengueverything\.cloud$/.test(location.hostname);
+    G.APP_BUILD = C.APP === true;
+    G.APP = G.APP_BUILD || (/[?&]app=1\b/.test(location.search) && offProd);
+    G.DEBUG = !G.APP_BUILD && !!C.DEBUG;
+  }
+
   /* ---------------- utils ---------------- */
   const U = (G.util = {});
   U.$ = (sel, root) => (root || document).querySelector(sel);

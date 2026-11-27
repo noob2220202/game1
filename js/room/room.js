@@ -112,7 +112,7 @@
     const knockBtn = el('button.rv-knock', { 'aria-label': '노크하기', html: ICON.knuckle + '<span>노크하기</span>' });
     const captionEl = el('div.rv-caption');
     root.append(stageEl, el('div.room-grain'), el('div.rv-vig'), el('div.cam-grid'), top, leftBtn, rightBtn, dirs, nightChip, qrChip, knockBtn, captionEl, hint, bottom);
-    if (opts.mode === 'lockscreen') root.appendChild(el('div.room-locknote', null, '🔒 잠금 상태 — 카메라만 사용 가능'));
+    if (opts.mode === 'lockscreen') root.appendChild(el('div.room-locknote', null, '🔒 잠금 상태'));
 
     const ov = G.phone.overlay(root, { onBack: () => close() });
     G.phone.statusTheme('light');

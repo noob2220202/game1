@@ -72,7 +72,7 @@
     wipe: '원격 초기화 중… (요청: 다른 기기)',
     frp: '이전 계정 인증 — 인증 코드를 문자로 보냈습니다',
     share: '강수진의 휴대전화 · 사진 4개를 보내려고 합니다',
-    exitAgain: '한 번 더 누르면 게임을 나갑니다',
+    exitAgain: '한 번 더 누르면 종료됩니다',
     noSwitch: '이 사용자로 전환할 수 없습니다',
     addUserQ: '새 사용자를 추가할까요?',
     addUserNeed: '사용자를 추가하려면 다온 계정이 필요합니다.',
@@ -101,10 +101,10 @@
     cloudLogin: '다온 클라우드 · 로그인이 필요합니다',
     resume: '🔈 소리 다시 켜기',
     soundCard: '소리가 들리지 않으면 무음 모드를 끄고 볼륨을 올려 주세요.',
-    restart2: '2편 진행이 지워집니다. 시리즈 기록은 남아요.',
+    restart2: '진행 상황이 지워집니다.',
     unplayed: '재생 안 됨',
     loading: '불러오는 중…',
-    recanonQ: '이번 플레이의 선택으로 바꿀까요? 다음 편은 바뀐 선택을 기억합니다.',
+    recanonQ: '이번 선택으로 바꿀까요?',
   };
   Object.freeze(E2.STR);
 
@@ -566,7 +566,7 @@
     bus.on('screen:push', () => retryCommit());
     bus.on('state:load', () => { nVisSince = null; ensureSchedules(); retryCommit(); });
     bus.on('state:reset', () => { nVisSince = null; E2.session.clear(); });
-    if (G.clock && G.clock.onTick) G.clock.onTick(() => { runSched(); evaluate(); if (G.DEBUG) debugTick(); });
+    if (G.clock && G.clock.onTick) G.clock.onTick(() => { runSched(); evaluate(); if (G.DEBUG && !G.APP) debugTick(); });
 
     recomputeFacts();
     ensureSchedules();
@@ -658,7 +658,7 @@
     return true;
   }
 
-  /* ---------------- DEBUG: budget meter + error lines (z 900) ---------------- */
+  /* ---------------- DEBUG: budget meter + error lines (z 900) — never drawn under G.APP (app build / ?app=1 preview) ---------------- */
   function countHis() {
     let n = 0; const seen = new Set();
     const cbf = (k) => E2.cb(k);
@@ -679,7 +679,7 @@
     try { walk(G.ROOM || {}, 0); } catch (e) {}       // the box note front '돌려줄게. —' (ledger #1) lives in G.ROOM.closeups
     return n;
   }
-  E2.budget = function () {
+  if (!G.APP || G.DEBUG) E2.budget = function () {   // QA only: left out of the app build (G.APP ∧ ¬G.DEBUG)
     const dir = G.state.vars.dir || {}, fired = dir.fired || {};
     const monos = ['mono1', 'mono2', 'mono3', 'mono4'].filter(flag).length + (flag('recapShown') && !(E2.cb('e1done')) ? 4 : 0);
     return {
@@ -692,7 +692,7 @@
   };
   let dbgBox = null, dbgErr = null, dbgN = 0;
   function debugUI() {
-    if (dbgBox || !document.body) return;
+    if (dbgBox || !document.body || G.APP) return;
     const host = document.getElementById('phone') || document.body;
     dbgBox = document.createElement('div'); dbgBox.className = 'c2-debug-meter'; dbgBox.setAttribute('data-qa', 'debug.meter');
     dbgErr = document.createElement('div'); dbgErr.className = 'c2-debug-err';
@@ -709,7 +709,7 @@
     dbgBox.textContent = `his ${b.hisLines}/25 · tone ${b.himTone}/11 · jump ${b.jumps}/1 · mono ${b.monos}/8 · tts ${b.tts}/4 · ${G.clock ? G.clock.hm() : ''} · ${Math.round(pmNow() / 1000)}s`;
   }
   function debugError(msg) {
-    if (!G.DEBUG) return;
+    if (!G.DEBUG || G.APP) return;
     try {
       debugUI(); if (!dbgErr) return;
       const line = document.createElement('div'); line.textContent = String(msg).slice(0, 240);
@@ -717,7 +717,7 @@
       while (dbgErr.childNodes.length > 5) dbgErr.removeChild(dbgErr.firstChild);
     } catch (e) {}
   }
-  if (G.DEBUG) {
+  if (G.DEBUG && !G.APP) {
     const ce = console.error.bind(console);
     console.error = function (...a) { ce(...a); debugError(a.map((x) => (x && x.message) || (typeof x === 'object' ? (() => { try { return JSON.stringify(x); } catch (e) { return String(x); } })() : String(x))).join(' ')); };
     W.addEventListener('error', (e) => debugError('error: ' + (e.message || e)));

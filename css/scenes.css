@@ -111,16 +111,17 @@ body.debug .room-spot { outline: 1px dashed rgba(255,0,0,.7); }
 .title-kicker { font-size: 11px; letter-spacing: 6px; color: #8a1d1d; }
 .title-name { font-family: var(--serif); font-size: 38px; font-weight: 700; color: #eee; letter-spacing: -1px; text-align: center; line-height: 1.2; text-shadow: 0 0 30px rgba(200,0,0,.25); animation: titleFlicker 6s infinite; }
 .title-name em { font-style: normal; color: #b91c1c; }
+.title-ep-sub { font-family: var(--hand); font-size: 30px; line-height: 1; color: #cfc6b8; transform: rotate(-2deg); margin-top: -6px; opacity: .92; text-align: center; }
 @keyframes titleFlicker { 0%,93%,100%{opacity:1} 94%{opacity:.3} 95%{opacity:1} 97%{opacity:.5} }
 .title-sub { font-size: 13px; color: #888; letter-spacing: 1px; text-align: center; line-height: 1.7; white-space: pre-line; word-break: keep-all; }
 .title-btns { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 300px; margin-top: 22px; }
 .title-btn { padding: 15px; border-radius: 14px; border: 1px solid #3a3a3a; color: #ddd; font-size: 15px; letter-spacing: 1px; background: rgba(20,20,20,.6); }
 .title-btn.primary { background: #7f1d1d; border-color: #991b1b; color: #fff; }
 .title-btn:active { transform: scale(.98); }
-.title-foot { font-size: 11px; color: #555; margin-top: 16px; text-align: center; line-height: 1.6; white-space: pre-line; word-break: keep-all; }
-.warn-box { font-size: 13px; line-height: 1.8; color: #aaa; text-align: left; background: rgba(255,255,255,.04); border: 1px solid #222; border-radius: 12px; padding: 14px 16px; word-break: keep-all; }
+.warn-box { width: 100%; font-size: 13px; line-height: 1.8; color: #aaa; text-align: center; background: rgba(255,255,255,.04); border: 1px solid #222; border-radius: 12px; padding: 14px 16px; word-break: keep-all; }
 .warn-box b { color: #ddd; }
 .opt-row { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 10px 2px; border-bottom: 1px solid #1d1d1d; font-size: 14px; color: #bbb; }
+.opt-note { display: block; font-size: 11px; color: #777; margin-top: 2px; }
 .seg { display: flex; border: 1px solid #333; border-radius: 8px; overflow: hidden; }
 .seg button { padding: 6px 10px; font-size: 12.5px; color: #888; }
 .seg button.on { background: #7f1d1d; color: #fff; }
@@ -237,9 +238,9 @@ body.debug .room-spot { outline: 1px dashed rgba(255,0,0,.7); }
 .end-card { background: #000; color: #ddd; display: flex; flex-direction: column; justify-content: center; padding: 40px 30px; }
 .end-card p { font-family: var(--serif); font-size: 16.5px; line-height: 1.9; margin: 0; text-align: center; word-break: keep-all; }
 .end-credits { background: rgba(0,0,0,.72); color: #ccc; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; padding: 30px; }
-.ecr-title { font-family: var(--serif); font-size: 34px; font-weight: 700; color: #eee; margin-bottom: 18px; line-height: 1.2; }
+.ecr-title { font-family: var(--serif); font-size: 34px; font-weight: 700; color: #eee; margin: 0; line-height: 1.2; }
 .ecr-title em { font-style: normal; color: #b91c1c; }
-.end-credits p { margin: 0; font-size: 15px; word-break: keep-all; } .end-credits p.dim { font-size: 12px; color: #888; margin-top: 6px; }
+.ecr-sub { display: block; font-family: var(--hand); font-size: 30px; font-weight: 400; line-height: 1; color: #cfc6b8; transform: rotate(-2deg); margin-top: 6px; opacity: .92; }
 .end-sting { background: #000; display: flex; flex-direction: column; justify-content: flex-start; padding: calc(var(--sb-h) + 16px) 12px; gap: 16px; }
 .es-banner { display: flex; justify-content: space-between; padding: 12px 16px; border-radius: 18px; background: rgba(40,40,44,.85); color: #eee; font-size: 14px; }
 .es-msg { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px 6px; }
@@ -251,4 +252,3 @@ body.debug .room-spot { outline: 1px dashed rgba(255,0,0,.7); }
 .el-sign { font-family: var(--hand); font-size: 24px; text-align: right; margin-top: 14px; color: #5a3d1f; }
 .el-btns { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 300px; }
 .banner.blurthumb .bn-body { filter: blur(0.3px); }
-.imm-note { font-size: 12.5px; color: #888; padding: 10px 0; text-align: center; }

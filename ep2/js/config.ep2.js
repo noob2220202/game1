@@ -1,6 +1,6 @@
 /* =========================================================
  * ep2/js/config.ep2.js — episode-2 constants (core · ARCH_EP2 §4.2, DESIGN_EP2 §9.1). Loads right after ../js/config.js,
- * before the engine. Defines: CONFIG.SAVE_KEY, G.AUDIO_BASE, G.EP (+ CLOCK, HOME, QS, DEFAULTS), G.STORY.names, G.DEBUG.
+ * before the engine. Defines: CONFIG.SAVE_KEY, G.AUDIO_BASE, G.EP (+ CLOCK, HOME, QS, DEFAULTS), G.STORY.names, G.APP, G.DEBUG.
  * Personalisation (PLAYER_NAME, MAKER_*) stays in the shared root js/config.js.
  * ========================================================= */
 window.CONFIG = window.CONFIG || {};
@@ -36,5 +36,14 @@ window.G = window.G || {};
     court: '서울서강지법',
   };
 
-  G.DEBUG = !!window.CONFIG.DEBUG || (/[?&]debug=1\b/.test(location.search) && !/pengueverything\.cloud$/.test(location.hostname));
+  // G.APP — the app-store build (docs/APP_RELEASE.md): CONFIG.APP === true, or the ?app=1 preview off the production host.
+  // Under G.APP: the credits show the title block only and no debug visual renders (meter, error lines, hotspot outlines,
+  // body.debug). The real app build (CONFIG.APP === true) also forces G.DEBUG off whatever CONFIG.DEBUG / ?debug=1 say, so
+  // no window.haru helper, series _fixture or skipTo is ever defined; debug-only APIs outside window.haru (G.ending.debugM8,
+  // G.clock._scale, G.audio.meter, G.fx.roomLook, G.e2.budget) are left out whenever G.APP && !G.DEBUG.
+  // The ?app=1 preview keeps the normal G.DEBUG rule, so QA can open ?app=1&debug=1 and still jump.
+  const offProd = !/pengueverything\.cloud$/.test(location.hostname);
+  const appBuild = window.CONFIG.APP === true;
+  G.APP = appBuild || (/[?&]app=1\b/.test(location.search) && offProd);
+  G.DEBUG = !appBuild && (!!window.CONFIG.DEBUG || (/[?&]debug=1\b/.test(location.search) && offProd));
 })(window.G);

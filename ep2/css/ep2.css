@@ -40,25 +40,20 @@
 .fl2-t-name { margin: 0; font-family: var(--serif); font-weight: 700; font-size: calc(34px * var(--ts, 1)); line-height: 1.22; letter-spacing: -1px; color: #ececec; text-shadow: 0 0 28px rgba(160, 0, 0, .22); word-break: keep-all; }
 .fl2-t-name em { font-style: normal; color: #c42222; }
 .fl2-t-sub { font-family: var(--hand); font-size: calc(30px * var(--ts, 1)); line-height: 1; color: #cfc6b8; transform: rotate(-2deg); margin-top: -2px; opacity: .92; }
-.fl2-t-by { font-size: calc(11.5px * var(--ts, 1)); letter-spacing: 1.2px; color: #77777d; margin-top: 2px; word-break: keep-all; }
 .fl2-t-btns { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 300px; margin-top: 22px; }
 .fl2-t-smalls { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 14px; min-height: 0; }
-.fl2-t-foot { font-size: calc(11px * var(--ts, 1)); color: #5c5c62; margin-top: 10px; letter-spacing: .3px; word-break: keep-all; }
-/* '이번 선택으로 바꿨어요.' — a live region kept off the layout while empty (no flex gap / no line); shown in the row where
-   the recanon button was (same 44 px), then faded and collapsed (scenes.js adds .fade, then drops .in) */
-.fl2-t-note { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.fl2-t-note.in { position: static; width: auto; height: auto; overflow: hidden; clip-path: none; white-space: normal; flex-basis: 100%; display: flex; align-items: center; justify-content: center;
-  min-height: 44px; max-height: 44px; font-size: calc(12.5px * var(--ts, 1)); color: #b4b4ba; letter-spacing: .3px; word-break: keep-all; animation: fl2Fade .3s ease both;
-  transition: opacity .35s ease, min-height .4s ease .3s, max-height .4s ease .3s; }
-.fl2-t-note.in.fade { opacity: 0; min-height: 0; max-height: 0; }
 
 /* ---------------- content warning · earphone test ---------------- */
 .fl2-pre { display: flex; align-items: center; justify-content: center; padding: calc(var(--sb-h, 30px) + 16px) 22px calc(var(--safe-bot, 0px) + 28px); background: radial-gradient(ellipse at 50% 30%, #101014 0, #000 70%); }
 .fl2-pre-in { width: 100%; max-width: 340px; display: flex; flex-direction: column; align-items: stretch; gap: 18px; }
-.fl2-warn { margin: 0; padding: 18px 18px; border-radius: 14px; background: rgba(255, 255, 255, .035); border: 1px solid #222226; font-size: calc(14.5px * var(--ts, 1)); line-height: 1.85; color: #b9b9be; word-break: keep-all; }
+.fl2-warn { margin: 0; padding: 18px 18px; border-radius: 14px; background: rgba(255, 255, 255, .035); border: 1px solid #222226; font-size: calc(14.5px * var(--ts, 1)); line-height: 1.85; color: #b9b9be; text-align: center; word-break: keep-all; }
 .fl2-ear { align-items: center; text-align: center; gap: 14px; }
 .fl2-ear-head { font-size: calc(19px * var(--ts, 1)); font-weight: 600; color: #e6e6ea; letter-spacing: .3px; }
-.fl2-ear-guide { font-size: calc(13.5px * var(--ts, 1)); color: #8f8f95; margin-top: -6px; }
+.fl2-ear-guide { font-size: calc(13.5px * var(--ts, 1)); line-height: 1.6; color: #8f8f95; margin-top: -6px; word-break: keep-all; }
+.fl2-ear-guide .fl2-nw { white-space: nowrap; }
+/* the test's result (scenes.js finish): the instruction line becomes the chosen mode ('✓ 이어폰' / '스피커'), kept at the
+   instruction's height (inline min-height) so the buttons below do not move */
+.fl2-ear-guide.res { display: flex; align-items: center; justify-content: center; color: #d8d8dc; font-weight: 600; letter-spacing: .3px; animation: fl2Fade .3s ease both; }
 .fl2-ear-sides { display: flex; gap: 12px; width: 100%; margin-top: 8px; }
 .fl2-ear-side { position: relative; flex: 1; min-height: 92px; border-radius: 18px; border: 1px solid #2f2f34; background: rgba(255, 255, 255, .03); color: #d0d0d4; font-size: calc(16px * var(--ts, 1)); display: flex; align-items: center; justify-content: center; gap: 8px; transition: background .2s, border-color .2s, opacity .2s; }
 .fl2-ear-side .arrow { font-size: 12px; color: #6d6d73; }
@@ -68,9 +63,9 @@
 .fl2-ear[data-ring="right"]:not(.done) .fl2-ear-side[data-qa="ear.right"] .arrow { animation: fl2Ring 1.2s ease-out 1; }
 @keyframes fl2Ring { 0% { color: #6d6d73; } 30% { color: #ddd; } 100% { color: #6d6d73; } }
 .fl2-ear-alt { display: flex; justify-content: center; gap: 6px; }
-.fl2-ear-res { min-height: 46px; font-size: calc(14px * var(--ts, 1)); line-height: 1.6; color: #d8d8dc; word-break: keep-all; display: flex; align-items: center; justify-content: center; }
-.fl2-ear-foot { font-size: calc(11.5px * var(--ts, 1)); color: #5f5f65; word-break: keep-all; }
-.fl2-ear .fl2-btn.primary { transition: opacity .3s, transform .1s; }
+.fl2-ear-alt .fl2-small { transition: opacity .2s; }
+.fl2-ear-alt .fl2-small:disabled { opacity: .35; }
+.fl2-ear .fl2-btn.primary { margin-top: 26px; transition: opacity .3s, transform .1s; }
 .fl2-ear .fl2-btn.primary.ready { box-shadow: 0 0 0 1px rgba(196, 34, 34, .4), 0 8px 30px rgba(127, 29, 29, .35); }
 
 /* ---------------- recap ---------------- */
@@ -92,11 +87,12 @@
 .fl2-togs { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; justify-content: flex-end; }
 .fl2-tog { min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid #333338; font-size: calc(12.5px * var(--ts, 1)); color: #8a8a90; }
 .fl2-tog.on { background: #7f1d1d; border-color: #9b2222; color: #fff; }
-.fl2-priv { padding: 8px 0 8px; border-bottom: 1px solid #1f1f23; display: flex; flex-direction: column; gap: 6px; }
-.fl2-privrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 48px; width: 100%; text-align: left; font-size: calc(14px * var(--ts, 1)); color: #d4d4d8; }
+/* '내가 보낸 말 다시 보이기' — a plain full-width row (label left, 켬/끔 pill right) */
+.fl2-privrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; width: 100%; text-align: left; font-size: calc(14px * var(--ts, 1)); color: #b6b6bb; }
 .fl2-switch { flex: none; min-width: 52px; height: 30px; border-radius: 15px; display: inline-flex; align-items: center; justify-content: center; font-size: calc(12px * var(--ts, 1)); background: #2a2a2f; color: #8a8a90; }
 .fl2-privrow.on .fl2-switch { background: #7f1d1d; color: #fff; }
-.fl2-pnote { margin: 0; font-size: calc(11.5px * var(--ts, 1)); line-height: 1.6; color: #6d6d73; word-break: keep-all; }
+/* one dim line under a row's control (the AI-voice line under 소리) */
+.fl2-prow .fl2-pnote { flex-basis: 100%; margin: -2px 0 6px; font-size: calc(11.5px * var(--ts, 1)); line-height: 1.6; color: #6d6d73; word-break: keep-all; }
 
 /* ---------------- ending cards (z 150) ---------------- */
 .fl2-card { position: absolute; inset: 0; z-index: 150; display: flex; flex-direction: column; background: rgba(5, 6, 9, .9); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); color: #ddd; opacity: 0; transition: opacity .55s ease, visibility .3s; font-family: var(--font); }
@@ -133,21 +129,18 @@
 /* ---------------- credits · check card (z 200) ---------------- */
 .fl2-credits { display: flex; align-items: center; justify-content: center; padding: 30px 26px; background: radial-gradient(ellipse at 50% 40%, #0c0c10 0, #000 70%); transition: opacity 1.2s ease; cursor: pointer; }
 .fl2-cred-in { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; max-width: 340px; }
-.fl2-cred-title { font-family: var(--serif); font-size: calc(22px * var(--ts, 1)); font-weight: 700; color: #ececec; line-height: 1.5; margin-bottom: 14px; word-break: keep-all; }
+/* the title block alone (ending.js credits()), centred in the scene — no bottom margin */
+.fl2-cred-title { font-family: var(--serif); font-size: calc(22px * var(--ts, 1)); font-weight: 700; color: #ececec; line-height: 1.5; margin: 0; word-break: keep-all; }
 /* two lines like the title screen (ending.js splits at the last ' · '): name line, then the subtitle a step smaller */
 .fl2-cred-l1, .fl2-cred-l2 { display: block; }
 .fl2-cred-l2 { margin-top: 4px; font-size: .82em; font-weight: 400; letter-spacing: 1px; color: #cfc6b8; }
-.fl2-credits p { margin: 0; font-size: calc(14.5px * var(--ts, 1)); color: #bdbdc2; line-height: 1.7; word-break: keep-all; }
-.fl2-credits p.dim { font-size: calc(12px * var(--ts, 1)); color: #77777d; margin-top: 6px; }
-.fl2-credits p.small { font-size: calc(11.5px * var(--ts, 1)); color: #5f5f65; margin-top: 6px; font-variant-numeric: tabular-nums; }
 .fl2-credits .fl2-cred-in > * { animation: fl2Rise 2.4s ease both; }
-.fl2-credits .fl2-cred-in > :nth-child(2) { animation-delay: 1.2s; } .fl2-credits .fl2-cred-in > :nth-child(3) { animation-delay: 2.4s; }
-.fl2-credits .fl2-cred-in > :nth-child(4) { animation-delay: 3.4s; } .fl2-credits .fl2-cred-in > :nth-child(5) { animation-delay: 4.4s; }
 @keyframes fl2Rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .fl2-check { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; padding: 30px 26px calc(var(--safe-bot, 0px) + 30px); background: #050506; transition: opacity .8s ease, background 1s; }
 .fl2-check-in { max-width: 360px; display: flex; flex-direction: column; gap: 10px; }
-.fl2-check-in p { margin: 0; font-size: calc(14.5px * var(--ts, 1)); line-height: 1.75; color: #cfcfd3; word-break: keep-all; }
-.fl2-check-in p:last-child { margin-top: 8px; color: #e8e8ea; font-weight: 600; }
+/* centred like the [계속] below it: a wrapped help line ('…피해: 112' / '여성긴급전화 1366') stays centred on the card */
+.fl2-check-in p { margin: 0; font-size: calc(14.5px * var(--ts, 1)); line-height: 1.75; color: #cfcfd3; text-align: center; word-break: keep-all; }
+.fl2-check-in p:last-child { color: #e8e8ea; font-weight: 600; }
 /* help line (ending.js checkLine / fitCheckLine): label + number never split; a wrapped part takes its own line, no '·' */
 .fl2-check-help .fl2-nw { white-space: nowrap; }
 .fl2-check-help .fl2-nw.wrap { white-space: normal; }

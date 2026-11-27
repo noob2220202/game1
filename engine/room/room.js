@@ -320,7 +320,7 @@
 
     /* ---------- DOM ---------- */
     const root = el('div.rm2-room.rv' + (eye ? '.rm2-eyeview' : '.rm2-cam'));
-    if (DEBUG()) root.classList.add('rm2-debug');
+    if (DEBUG() && !G.APP) root.classList.add('rm2-debug');   // hotspot outlines — never under G.APP (app build / ?app=1)
     root.dataset.status = 'light';
     const stage = el('div.rv-stage');
     const turnWrap = el('div.rv-turn');

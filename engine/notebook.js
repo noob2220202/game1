@@ -96,7 +96,7 @@
   }
 
   /* ---------- DOM state ---------- */
-  let fab = null, wrap = null, sheet = null, body = null, tabsEl = null, statsEl = null, ticker = 0;
+  let fab = null, wrap = null, sheet = null, body = null, tabsEl = null, ticker = 0;
   let tab = 'todo', selObj = null, justRevealed = null, removeBack = null, memoField = null, memoSaveT = 0;
   let inited = false, fabShown = false, holdingNow = false, pendingRender = false;
   function soft() { if (!wrap) return; if (holdingNow) { pendingRender = true; return; } render(); }
@@ -199,7 +199,7 @@
     if (!wrap) return;
     const w = wrap;
     if (memoField) { flushMemo(); safe(() => memoField.blur && memoField.blur()); }
-    wrap = null; sheet = null; body = null; tabsEl = null; statsEl = null; memoField = null;
+    wrap = null; sheet = null; body = null; tabsEl = null; memoField = null;
     clearInterval(ticker);
     if (typeof removeBack === 'function') safe(removeBack); removeBack = null;
     w.classList.remove('in'); w.classList.add('out');
@@ -229,22 +229,14 @@
       b.addEventListener('click', () => { if (tab === id) return; sfx('pageTurn'); if (memoField) flushMemo(); tab = id; render(); if (body) body.scrollTop = 0; });
       tabsEl.appendChild(b);
     });
-    if (tab === 'memo' && memoField && sameTab) { updateStats(); return; }   // never rebuild the field under the player's fingers
+    if (tab === 'memo' && memoField && sameTab) return;   // never rebuild the field under the player's fingers
     memoField = null;
     body.innerHTML = '';
     body.dataset.tab = tab;
     if (tab === 'todo') renderTodo();
     else if (tab === 'hint') renderHint();
     else renderMemo();
-    statsEl = el('div.nbk-stats');
-    body.appendChild(statsEl);
-    updateStats();
     if (sameTab) body.scrollTop = keepScroll;
-  }
-  function updateStats() {
-    if (!statsEl) return;
-    const mins = Math.floor(playMs() / 60000);
-    statsEl.textContent = `플레이 ${mins}분 · 힌트 ${state().hintsUsed || 0}회`;
   }
 
   /* ----- 할 일 ----- */
@@ -263,7 +255,7 @@
         kind === 'done' ? { html: svg('<path d="M5 12.5l4.2 4L19 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>') } : null);
       const b = el('button.nbk-obj.' + kind + (o.optional ? '.opt' : ''), { 'data-qa': 'nb.card:' + o.id },
         box,
-        el('span.nbk-obj-t', null, titleOf(o), o.optional ? el('small.nbk-optional', null, ' (선택)') : null),
+        el('span.nbk-obj-t', null, titleOf(o)),
         el('span.nbk-obj-go', { html: svg('<path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>') }));
       b.addEventListener('click', () => { sfx('pageTurn'); selObj = o.id; tab = 'hint'; render(); if (body) body.scrollTop = 0; });
       if (fresh) { doneSeen[o.id] = 1; penned = true; }
@@ -312,7 +304,6 @@
       box.appendChild(holdCard(o, n));
     });
     body.appendChild(box);
-    body.appendChild(el('div.nbk-line.small', null, '힌트는 1분 간격으로 하나씩 열려요. 봐도 불이익은 없어요.'));
   }
   const RING_LEN = 94.25;   // 2πr, r = 15
   function ringSvg(frac) {
@@ -360,9 +351,7 @@
     return card;
   }
   function tick() {
-    if (!body) return;
-    updateStats();
-    if (tab !== 'hint') return;
+    if (!body || tab !== 'hint') return;
     let reload = false;
     body.querySelectorAll('.nbk-hint.waiting').forEach((c) => {
       const left = waitLeft(c.dataset.obj, +c.dataset.tier);

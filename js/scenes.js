@@ -59,10 +59,8 @@
     inner.append(
       el('div.title-kicker', null, 'SETUP'),
       el('div', { style: { fontFamily: 'var(--serif)', fontSize: '20px', color: '#ddd', marginBottom: '6px', textAlign: 'center' } }, '몰입 설정'),
-      row('🎧 이어폰 테스트', '이 게임의 소리에는 방향이 있습니다', earBtn),
-      el('div.imm-note', null, '🔆 화면 밝기를 올리고, 어두운 곳에서 해주세요.'),
-      el('div', { style: { fontSize: '11.5px', color: '#666', textAlign: 'center', margin: '8px 0' } }, '이 게임은 어떤 데이터도 서버로 보내지 않습니다.'),
-      el('button.title-btn.primary', { style: { width: '100%' }, onclick: () => { scr.remove(); done(); } }, '시작'));
+      row('🎧 이어폰 테스트', '이어폰을 끼고 눌러 주세요', earBtn),
+      el('button.title-btn.primary', { style: { width: '100%', marginTop: '8px' }, onclick: () => { scr.remove(); done(); } }, '시작'));
 
     async function earTest(btn) {
       G.audio.unlock();
@@ -78,9 +76,9 @@
       };
       btn.textContent = '…';
       await knock(-1); const a1 = await ask('어느 쪽에서 들렸나요?');
-      if (a1 !== 0) { s.audioMode = 'speaker'; G.saveSettings(); btn.textContent = '스피커'; G.phone.toast('스피커 모드: 방향은 화면 표시로 알려드려요'); return; }
+      if (a1 !== 0) { s.audioMode = 'speaker'; G.saveSettings(); btn.textContent = '스피커'; return; }
       await knock(1); const a2 = await ask('이번엔?');
-      if (a2 !== 1) { s.audioMode = 'speaker'; btn.textContent = '스피커'; } else { s.audioMode = 'ear'; btn.textContent = '✓ 이어폰'; G.phone.toast('좋아요. 이 게임의 소리에는 방향이 있습니다.'); }
+      if (a2 !== 1) { s.audioMode = 'speaker'; btn.textContent = '스피커'; } else { s.audioMode = 'ear'; btn.textContent = '✓ 이어폰'; }
       G.saveSettings();
     }
   };
@@ -241,15 +239,10 @@
     await sleep(9000 + lines.length * 400);
     const nx2 = el('button.end-next', null, '계속'); card.appendChild(nx2); await waitTap(nx2);
     card.classList.remove('in'); await sleep(700); card.remove();
-    // credits
+    // credits: the title only (web and app)
     const maker = (window.CONFIG && window.CONFIG.MAKER_NAME) || '';
-    const mins = Math.round(G.state.playMs / 60000);
     const credits = el('div.end-credits', null,
-      el('div.ecr-title', { html: `${G.NAME}${hasB(G.NAME) ? '을' : '를'} 위한<br><em>방탈출!</em>` }),
-      el('p', null, '기획·제작 ', el('b', null, maker)), el('p', null, '주인공 ', el('b', null, G.NAME)),
-      el('p.dim', null, '목소리: AI 음성 · 사진: AI 생성 + 직접 편집 · 소리: 전부 직접 합성'),
-      el('p.dim', null, `플레이 ${mins}분 · 힌트 ${G.state.hintsUsed || 0}회`),
-      el('p.dim', null, '이 게임은 아무 데이터도 보내지 않았어요. 카메라도, 마이크도 쓰지 않았어요.'));
+      el('div.ecr-title', { html: `${G.NAME}${hasB(G.NAME) ? '을' : '를'} 위한<br><em>방탈출!</em><span class="ecr-sub">여기 있어</span>` }));
     G.faceFrame = null;
     stage.appendChild(credits); requestAnimationFrame(() => credits.classList.add('in'));
     await sleep(9000);
@@ -284,7 +277,7 @@
     const text = `나 404호에서 탈출했어. 비번은 472906이었어. · ${G.NAME}`;
     const url = location.origin && location.origin !== 'null' ? location.origin + location.pathname : 'https://haru.pengueverything.cloud/';
     try { if (navigator.share) { await navigator.share({ title: '하루를 위한 방탈출!', text, url }); return; } } catch (e) { return; }
-    try { await navigator.clipboard.writeText(text + ' ' + url); G.phone.toast('복사했어요. 친구에게 붙여넣어 보내 주세요.'); } catch (e) { G.phone.toast(text); }
+    try { await navigator.clipboard.writeText(text + ' ' + url); G.phone.toast('복사했어요.'); } catch (e) { G.phone.toast(text); }
   }
   function waitTap(node) { return new Promise((res) => node.addEventListener('click', () => { G.audio.sfx.tap(); res(); }, { once: true })); }
   function birds(sec) {

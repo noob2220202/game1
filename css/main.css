@@ -37,8 +37,6 @@ img { -webkit-user-drag: none; user-select: none; }
   :root { --sb-h: 44px; }
   .home-bar { bottom: 6px !important; }
 }
-.desk-hint { position: fixed; left: 24px; bottom: 20px; color: #555; font-size: 12px; line-height: 1.6; max-width: 240px; }
-@media (max-width: 599px), (max-height: 639px) { .desk-hint { display: none; } }
 
 /* ---------------- layers ---------------- */
 .layer { position: absolute; inset: 0; }

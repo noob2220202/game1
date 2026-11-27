@@ -56,9 +56,6 @@
    plain .kb, which is the keyboard's own class in core.css (it would hide the whole sheet). */
 .nbk-sheet.nbk-kbopen { height: 100%; border-radius: 0; padding-top: var(--safe-top, 0px); }
 .nbk-sheet.nbk-kbopen .nbk-body { padding-bottom: calc(var(--kbh, 300px) + 24px); }
-/* the stats footer ('플레이 n분 · 힌트 n회') follows the memo field, which ends right at the keyboard's top edge — while typing
-   it would show cut in half above the key rows, so it steps aside (space kept: no jump when the keyboard closes) */
-.nbk-sheet.nbk-kbopen .nbk-stats, #phone.kb-open .nbk-sheet .nbk-stats { visibility: hidden; }
 
 .nbk-sec { font-family: var(--hand); font-size: calc(24px * var(--ts, 1)); line-height: 34px; margin-top: 10px; color: #8a2c1d; word-break: keep-all; }
 .nbk-sec.grey { color: #a39077; }
@@ -77,14 +74,12 @@
 .nbk-box.fresh svg path { stroke-dasharray: 26; stroke-dashoffset: 26; animation: nbkTick .55s .25s ease-out forwards; }
 @keyframes nbkTick { to { stroke-dashoffset: 0; } }
 .nbk-obj-t { flex: 1; min-width: 0; word-break: keep-all; }
-.nbk-optional { font-family: var(--font); font-size: calc(11.5px * var(--ts, 1)); color: #a08a6c; letter-spacing: .2px; white-space: nowrap; }
 .nbk-obj-go { flex: none; width: 18px; color: #b9a183; }
 .nbk-obj-go svg { width: 16px; height: 16px; }
 .nbk-obj.done { color: #a39077; }
 .nbk-obj.done .nbk-obj-t { text-decoration: line-through; text-decoration-color: rgba(178, 59, 42, .55); }
 .nbk-obj.grey { color: #b3a48e; }
 .nbk-obj.grey .nbk-box { border-color: #c9b9a0; }
-.nbk-stats { font-size: calc(11.5px * var(--ts, 1)); color: #a08a6c; margin-top: 22px; font-variant-numeric: tabular-nums; }
 
 /* 힌트 */
 .nbk-chips { display: flex; gap: 6px; overflow-x: auto; padding: 8px 0 4px; margin-right: -18px; scrollbar-width: none; }

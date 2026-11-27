@@ -14,7 +14,8 @@
  * END: hook 'end:reached' ({right}) — called by social at the exact moment `…{N} 씨구나.` / `…괜찮아요. 형사님이 {N} 씨
  *   맞대요.` is appended → answeredRight (if right), stage e2_jimin, flag END, G.e2.commit().
  *
- * API: G.ending = { init(), resume(step), debugM8() }
+ * API: G.ending = { init(), resume(step), debugM8() }  (debugM8 is left out when G.APP ∧ ¬G.DEBUG — the app build)
+ * Credits: the title block alone on the web and in the app build; the check card: the help line alone (client 2026-11-27).
  * Flags set: M8 doorOpened peepholeTaped(off) dashChoiceDone pol1Shown nearbyTaken phoneChoiceDone jiminReturn
  *            answeredRight kangWrapDone END · vars: endStep, footprints(2) · stage (via G.e2.stage): e2_dash e2_phone e2_jimin
  * Bus out: 'end:step' {step}. Sched: 'end:m8'. Hooks set: 'end:reached'. data-qa: card.continue card.chip:<id>
@@ -380,8 +381,6 @@
     safe(() => G.notebook && G.notebook.show && G.notebook.show(false));
     amb('room601', false, { fade: 4 }); amb('tank', false, { fade: 4 }); amb('cityFar', false, { fade: 4 });
     amb('roofWind', true, { gainDb: -18, fade: 4 });
-    const mins = Math.round(((G.state && G.state.playMs) || 0) / 60000);
-    const stats = String(d.stats || '플레이 {m}분 · 힌트 {n}회').replace('{m}', mins).replace('{n}', (G.state && G.state.hintsUsed) || 0);
     // two block lines like the title screen — `{N를} 위한 방탈출! 2` / `돌려줄게` — so no line ever starts or ends with the
     // '·' (the full string is wider than a 360 px phone at 100 %). Line 1 keeps '방탈출! 2' together (no lone '2').
     const ttl = String(T(d.title || '{N를} 위한 방탈출! 2 · 돌려줄게'));
@@ -391,23 +390,11 @@
       ? el('div.fl2-cred-title', null,
         el('span.fl2-cred-l1', null, glue(ttl.slice(0, cut))), el('span.fl2-cred-l2', null, ttl.slice(cut + 3)))
       : el('div.fl2-cred-title', null, glue(ttl));
-    // the small print `목소리: AI 음성 · 사진: … · 소리: 전부 직접 합성` uses the check-card help-line layout: each
-    // 'label: value' part stays whole, a part that wraps takes its own line and its '·' goes (360 px at 130 %)
-    const voiceNode = checkLine(d.voice || ''); voiceNode.classList.add('dim');
-    const scr = el('div.fl2-scene.fl2-credits', { 'data-qa': 'credits.skip', role: 'button' },
-      el('div.fl2-cred-in', null,
-        titleNode,
-        el('p.fl2-cred-maker', null, T(d.maker || '만든 사람 {MAKER} · {N}에게')),
-        voiceNode,
-        el('p.small', null, stats),
-        el('p.dim', null, d.data || '')));
+    // the title block alone, centred in the scene — web and app build alike (client 2026-11-27: no maker / voice / stats /
+    // data lines anywhere)
+    const scr = el('div.fl2-scene.fl2-credits', { 'data-qa': 'credits.skip', role: 'button' }, el('div.fl2-cred-in', null, titleNode));
     screenEl().appendChild(scr);
     requestAnimationFrame(() => scr.classList.add('in'));
-    const fitV = () => fitCheckLine(voiceNode);
-    requestAnimationFrame(() => requestAnimationFrame(fitV));
-    safe(() => { if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => requestAnimationFrame(fitV)); });
-    window.addEventListener('resize', fitV);
-    const offSetV = G.bus ? G.bus.on('settings', () => requestAnimationFrame(fitV)) : null;
     const rb = safe(() => (G.phone && G.phone.pushBack ? G.phone.pushBack(() => true) : null), null);
     await wait(1600);
     cue('piano.two'); sub('S25');
@@ -417,8 +404,6 @@
       wait(d.ms || 20000).then(fin);
     });
     setStep('cred');
-    window.removeEventListener('resize', fitV);
-    if (typeof offSetV === 'function') safe(offSetV);
     if (typeof rb === 'function') safe(rb);
     scr.classList.remove('in'); scr.classList.add('out');
     setTimeout(() => scr.remove(), 700);
@@ -557,6 +542,6 @@
     showThread(pendingThread(step));
     await runFrom(step, { resumedTail: flag('END') });
   };
-  EN.debugM8 = function () { return m8Sequence(); };
+  if (!G.APP || G.DEBUG) EN.debugM8 = function () { return m8Sequence(); };   // debug runner (haru.skipTo B20): not in the app build
   EN.isCardUp = function () { return !!Card.root; };
 })();

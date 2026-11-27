@@ -2,11 +2,8 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#000000">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="description" content="새벽 3시 33분, 처음 보는 방. 손에 쥔 건 내 것이 아닌 휴대폰. — 하루를 위한 방탈출!">
   <meta property="og:title" content="하루를 위한 방탈출!">
   <meta property="og:description" content="새벽 3시 33분. 내 것이 아닌 휴대폰. 잠긴 문. 옷장에서 들리는 소리.">
@@ -18,76 +15,14 @@
   <link rel="icon" href="assets/img/icon.png">
   <link rel="apple-touch-icon" href="assets/img/icon.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Nanum+Pen+Script&family=Gaegu:wght@400;700&display=swap">
-  <link rel="stylesheet" href="css/main.css">
-  <link rel="stylesheet" href="css/apps.css">
-  <link rel="stylesheet" href="css/scenes.css">
-  <link rel="stylesheet" href="css/room.css">
-  <link rel="stylesheet" href="css/haesol.css">
-  <link rel="stylesheet" href="css/notebook.css">
+  <style>html,body{margin:0;height:100%;background:#000}</style>
+  <script>
+    (function () {
+      var L = window.location;
+      L.replace('series/' + (L.protocol === 'file:' ? 'index.html' : '') + L.search);
+    })();
+  </script>
+  <noscript><meta http-equiv="refresh" content="0; url=series/"></noscript>
 </head>
-<body>
-  <div id="stage">
-    <div id="phone">
-      <div id="screen"></div>
-      <div id="fx-layer"></div>
-    </div>
-    <div class="desk-hint">🎧 이어폰을 끼고, 어두운 곳에서 플레이하세요.<br>휴대폰으로 접속하면 더 무섭습니다.</div>
-  </div>
-  <noscript><p style="color:#aaa;padding:40px;text-align:center">이 게임은 JavaScript가 필요합니다.</p></noscript>
-
-  <script src="js/config.js"></script>
-  <script src="js/core/base.js"></script>
-  <script src="js/core/audio.js"></script>
-  <script src="js/core/spatial.js"></script>
-  <script src="js/core/fx.js"></script>
-  <script src="js/core/icons.js"></script>
-  <script src="js/core/phone.js"></script>
-  <script src="js/core/widgets.js"></script>
-  <script src="js/core/keyboard.js"></script>
-  <script src="js/data/assets.js"></script>
-  <script src="js/data/talk.js"></script>
-  <script src="js/data/sms.js"></script>
-  <script src="js/data/phone.js"></script>
-  <script src="js/data/moment.js"></script>
-  <script src="js/data/browser.js"></script>
-  <script src="js/data/calendar.js"></script>
-  <script src="js/data/clock.js"></script>
-  <script src="js/data/settings.js"></script>
-  <script src="js/data/gallery.js"></script>
-  <script src="js/data/mail.js"></script>
-  <script src="js/data/memos.js"></script>
-  <script src="js/data/recordings.js"></script>
-  <script src="js/data/objectives.js"></script>
-  <script src="js/room/roomdata.js"></script>
-  <script src="js/room/room.js"></script>
-  <script src="js/room/door.js"></script>
-  <script src="js/room/climax.js"></script>
-  <script src="js/apps/lock.js"></script>
-  <script src="js/apps/phone.js"></script>
-  <script src="js/apps/sms.js"></script>
-  <script src="js/apps/talk.js"></script>
-  <script src="js/apps/moment.js"></script>
-  <script src="js/apps/gallery.js"></script>
-  <script src="js/apps/camera.js"></script>
-  <script src="js/apps/memo.js"></script>
-  <script src="js/apps/recorder.js"></script>
-  <script src="js/apps/calculator.js"></script>
-  <script src="js/apps/haesol.js"></script>
-  <script src="js/apps/settings.js"></script>
-  <script src="js/apps/mail.js"></script>
-  <script src="js/apps/browser.js"></script>
-  <script src="js/apps/calendar.js"></script>
-  <script src="js/apps/clock.js"></script>
-  <script src="js/notebook.js"></script>
-  <script src="js/data/beats.js"></script>
-  <script src="js/director.js"></script>
-  <script src="engine/series.js"></script>
-  <script src="js/scenes.js"></script>
-  <script src="js/main.js"></script>
-</body>
+<body></body>
 </html>

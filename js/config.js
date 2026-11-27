@@ -26,6 +26,8 @@ window.CONFIG = {
   // 선택: 모먼트 핸들(@ 없이). 비우면 핸들 줄을 그리지 않습니다
   MAKER_HANDLE: '',
 
+  // 앱(스토어) 빌드: true면 1·2편 모두 디버그 표시와 콘솔 도우미(window.haru)가 빠집니다. 웹은 false.
+  APP: false,
   // 디버그: true면 핫스팟 테두리 표시 + 콘솔 치트 사용 가능
   DEBUG: false,
 };

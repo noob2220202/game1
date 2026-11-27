@@ -254,7 +254,7 @@
   function offerMonoOff() {
     if (offer || !isMono()) return;
     const card = el('div.rc-offer', { role: 'alertdialog' },
-      el('div.rc-offer-t', null, '모노 오디오를 끌까요?', el('small', null, '방향이 있는 소리가 중요해요')),
+      el('div.rc-offer-t', null, '모노 오디오를 끌까요?'),
       el('button.rc-offer-b', null, '끄기'));
     const at = Date.now();
     const close = () => { if (!offer) return; clearInterval(offer.iv); card.classList.remove('in'); setTimeout(() => card.remove(), 300); offer = null; };
