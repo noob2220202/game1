@@ -133,6 +133,28 @@
     forceTick();                                     // (a resume past hold + 40 s fires at once)
   }
 
+  /* ---------------- dread on the phone layer: from the bip the home / app layers sink to ~40 % brightness, in proportion to the
+   * tension T (~.6 shade at the .92 peak), and come back at the patrol. Only the layer under the cards, the notebook tab,
+   * the banners and the subtitles: nothing the player needs is hidden. A black plate in #screen (z 40 < overlays 50 < tab 60). ---------------- */
+  const DIM = { el: null, op: -1 };
+  function dimOn() { return flag('M6') && flag('bip') && !flag('patrol') && !flag('M7') && !flag('HOOK') && !flag('END'); }
+  function dimTick(instant) {
+    try {
+      const want = dimOn() ? Math.min(0.62, 0.65 * ((G.director && G.director.T && G.director.T()) || 0)) : 0;
+      if (!DIM.el || !DIM.el.isConnected) {
+        if (want <= 0) return;
+        const scr = document.getElementById('screen');
+        if (!scr) return;
+        DIM.el = document.createElement('div'); DIM.el.className = 'dr3-dim'; DIM.op = 0;
+        scr.appendChild(DIM.el);
+      }
+      if (Math.abs(want - DIM.op) < 0.02 && !(want === 0 && DIM.op !== 0)) return;
+      if (instant) { DIM.el.style.transition = 'none'; DIM.el.style.opacity = want; void DIM.el.offsetWidth; DIM.el.style.transition = ''; }
+      else DIM.el.style.opacity = want;
+      DIM.op = want;
+    } catch (e) {}
+  }
+
   /* ---------------- the 04:40 sequence (§3.12 table · §6.2 ledger — t from 04:40:00) ---------------- */
   const STEPS = [
     { t: 0.9, id: 'bip' }, { t: 2.2, id: 'dash' }, { t: 4.4, id: 'bark' }, { t: 9, id: 'mom9' }, { t: 11.5, id: 'hall' },
@@ -184,6 +206,7 @@
     /* t 0.9 — '삐삐삐' (same pitch ×3, behind the steel door) + the panel LED blinks red ×3 in the same beat (§8.3-5) */
     bip() {
       setFlag('bip');
+      dimTick();
       cue('door.err3', { src: 'keypad' });
       try { G.room && G.room.led && G.room.led('err3'); } catch (e) {}
       sub('S06');
@@ -256,6 +279,7 @@
     /* t 140 — 04:55 two pairs of steps in the corridor · the fire door · 콩이: ears only (no sound) */
     patrol() {
       setFlag('patrol');
+      dimTick();
       cue('firedoor.latch', { src: 'firedoor' });
       cue('hall.steps2', { src: 'hallOut' });
       sub('S08');
@@ -312,6 +336,20 @@
     if (ci >= idx('patrolCall') && ci < STEPS.length) roomSet('momBlanket', true);
     setFlag('jiminUp');
     roomRefresh();
+    dimTick(true);
+    redrawCard(ci);
+  }
+  /** a reload mid-sequence: the last situation card is drawn again (one card, never the whole table), so the sequence reads */
+  function redrawCard(ci) {
+    if (ci < idx('back') || ci >= idx('sms')) return;
+    const d = SP(), f = (n) => flag(n);
+    const last = (a) => { a = [].concat(a || []); for (let i = a.length - 1; i >= 0; i--) if (a[i] && a[i].text) return a[i]; return null; };
+    let c = null;
+    if (ci >= idx('patrolCall')) c = last(d.t152);
+    else if (ci >= idx('jidae')) c = last(d.t100);
+    else if (ci >= idx('call112')) c = last(typeof d.t46 === 'function' ? d.t46(f) : d.t46);
+    else c = last(d.t30);
+    if (c) play([Object.assign({}, c)], '0440r');
   }
   DOOR.resume = function () {
     if (flag('M7')) { running = false; return; }
@@ -355,6 +393,6 @@
     on('flag:kang502', () => schedM7());
     on('flag:M7', () => { running = false; S.cancel('door:done'); S.cancel('door:max'); STEPS.forEach((x) => { if (x.id !== 'kongiBack') S.cancel('door:t' + x.t); }); });
     on('room:view', (e) => { if (e && e.view === 'r3_door' && e.mode === 'camera') seeDoor(); });
-    on('tick', () => { deferTick(); forceTick(); localRun(); });
+    on('tick', () => { dimTick(); deferTick(); forceTick(); localRun(); });
   };
 })();

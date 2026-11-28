@@ -722,7 +722,7 @@ const WANT_CB = Object.assign({ A: EP1 === 'done', A1: EP1 === 'done' },
       const seen = (s) => log2.some((x) => x.indexOf(s) >= 0);
       const cbE = endSnap.cb || {};
       check('cb.A: M0 first line ' + (cbE.A ? 'A' : 'neutral'), cbE.A ? seen('그날 이후로 이 시간엔 전화 안 해요') && !seen('나는 이 시간에 늘 깨요') : seen('나는 이 시간에 늘 깨요') && !seen('그날 이후로 이 시간엔'));
-      const bWant = { yes: '오르골 얘기 답해 줬을 때부터요', no: '그날 끝내 대답은 안 했잖아요', none: '같이 오니까 덜 무서워요' };
+      const bWant = { yes: '오르골 얘기 답해 줬을 때부터요', no: '그날 끝내 대답은 안 했잖아요', none: '콩이도 들었나 봐요' };
       check('cb.B = ' + cbE.B + ': the 04:40 chip reply', seen(bWant[cbE.B]) && Object.keys(bWant).filter((k) => k !== cbE.B).every((k) => !seen(bWant[k])));
       check('cb.D: M7 line ' + (cbE.D ? '다섯째 음' : 'hum card'), cbE.D ? seen('그 노래 끝까지 들었어요?') && !seen('엄마가 오르골 노래를 흥얼거린다.') : seen('엄마가 오르골 노래를 흥얼거린다.') && !seen('그 노래 끝까지 들었어요?'));
       endSnap.cardLog = log2;

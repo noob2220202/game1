@@ -720,7 +720,8 @@
     const btnLike = MU.iconBtn(IC3.heart, '좋아요', 'viewer.like', () => { if (!it) return; liked[it.id] = !liked[it.id]; btnLike.classList.toggle('on', !!liked[it.id]); });
     const bar = el('div.md2-v-bot.md3-v-bar', null, btnPrev, btnInfo, btnLike, btnNext);   // the date needs the whole top row
     // the photo uses the whole screen (1× = the screen width, §3.10 '702' size note); date / caption / buttons float over it
-    const scr = el('section.md2-viewer.md2-scr.md3-viewer.md3-gal', { dataset: { theme: 'dark', status: 'light' } }, stage, top, el('div.md3-v-foot', null, cap, bar));
+    const foot = el('div.md3-v-foot', null, cap, bar);
+    const scr = el('section.md2-viewer.md2-scr.md3-viewer.md3-gal', { dataset: { theme: 'dark', status: 'light' } }, stage, top, foot);
     scr.body = stage;
     if (ctx.album) scr.dataset.album = ctx.album;
     MU.noMenu(scr);
@@ -794,6 +795,8 @@
       const cur = it;
       const rows = cur.shared ? [[L.up || '', cur.up || ''], [L.bom || '', cur.bom || '']] : [infoLine(new Date(cur.t)), GD().cameraLabel || ''];
       info = MU.panel(scr, rows, { cls: 'dark.md3-info', onClose: () => { info = null; MU.emit('gallery:photo', { photo: photoId(cur), open: false, info: true, door: !!cur.door }); } });
+      // the sheet sits above the button bar so prev / next stay tappable while ⓘ is open
+      try { const lift = scr.clientHeight - (foot.offsetTop + bar.offsetTop); if (lift > 0 && lift < scr.clientHeight / 2) info.node.style.bottom = lift + 'px'; } catch (e) {}
       MU.emit('gallery:photo', { photo: photoId(cur), open: true, info: true, door: !!cur.door });
       if (cur.shared && cur.door && /sagongsa/.test(String(cur.bom || ''))) {   // §3.10: the `봄  sagongsa` row of a 현관 photo
         const row = info.node.querySelectorAll('.md2-pi')[1];

@@ -503,9 +503,30 @@
     pumpMono();
   }
 
+  /** the detective's answer to the 05:02 chip (N08 'kask') arrives 40 s after the player sends it — a fast sender lands it a second
+   *  before M7 (kang502 + 45 s) and the text ding steps on the move into the memory scene. From kang502 + 35 s until END that one
+   *  reply is delivered silently (thread + badge, no banner · no ding) — the tail shows it anyway. Installed once on G.sms. */
+  function guardKaskDing() {
+    try {
+      const S = G.sms;
+      if (!S || typeof S.deliver !== 'function' || S.deliver.__kaskGuard) return;
+      const d = S.deliver;
+      const w = function (id, o) {
+        if (id === 'kask' && flag('kang502') && !flag('END')) {
+          const t = pm('kang502');
+          if (flag('M7') || (t != null && pmNow() >= t + 35000)) o = Object.assign({}, o, { silent: true });
+        }
+        return d.call(this, id, o);
+      };
+      w.__kaskGuard = true;
+      S.deliver = w;
+    } catch (e) { dwarn('kaskGuard', e && e.message); }
+  }
+
   let inited = false;
   E3.init = function () {
     if (inited) return; inited = true;
+    guardKaskDing();
     E3.sched.on('e3:m6due', (d) => {
       if (flag('M6')) return;
       const dueAt = (d && d.dueAt) || E3.m6Due() || Math.round(pmNow());
@@ -523,13 +544,14 @@
     });
     bus.on('flag', (name) => {
       if (name === 'M5') scheduleM6();
+      if (name === 'kang502') guardKaskDing();
       if (name === 'M6') { E3.sched.cancel('e3:m6due'); E3.sched.cancel('e3:m6fb'); }
       evaluate();
     });
     bus.on('rec:text', (e) => { if (e && e.id === 'sea0333' && e.open === false && flag('nameKnown') && !flag('mono1')) E3.mono('mono1'); });
     bus.on('gallery:photo', (e) => { if (e && e.door === true && e.open === false && flag('albumDone') && !flag('mono2')) E3.mono('mono2'); });
     bus.on('screen:push', () => retryCommit());
-    bus.on('state:load', () => { scheduleM6(); retryCommit(); });
+    bus.on('state:load', () => { guardKaskDing(); scheduleM6(); retryCommit(); });
     bus.on('state:reset', () => { E3.session.clear(); });
     if (G.clock && G.clock.onTick) G.clock.onTick(() => { runSched(); evaluate(); if (G.DEBUG && !G.APP) debugTick(); });
     scheduleM6();

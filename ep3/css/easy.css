@@ -283,3 +283,16 @@
   #phone { transition: none; }
 }
 body.reduce-shake .ez3-rs-b.accept span { animation: none; }
+
+/* ---------------- tap targets ≥ 44 px (settings slider / switch) ---------------- */
+.sh2-slider { height: 44px; }
+.sh2-toggle::before { top: -7px; bottom: -6px; left: -8px; right: -8px; }
+
+/* ---------------- 세아 방 문 (0° view): a faint warm light along the half-open door edge — no text ---------------- */
+.rm3-spot[data-id="srdoor"]::before { content: ''; position: absolute; left: 40%; right: 0; top: 2%; height: 96%; pointer-events: none; border-radius: 2px;
+  background: radial-gradient(circle at 38% 83%, rgba(255, 236, 190, .95) 0, rgba(255, 220, 160, .55) 4px, rgba(255, 205, 130, 0) 22px),
+    linear-gradient(90deg, rgba(255, 205, 130, 0) 30%, rgba(255, 205, 130, .30) 70%, rgba(255, 214, 150, .42));
+  mix-blend-mode: screen; opacity: .5; animation: ez3-doorglow 5.2s ease-in-out infinite; }
+@keyframes ez3-doorglow { 0%, 100% { opacity: .3; } 50% { opacity: .85; } }
+@media (prefers-reduced-motion: reduce) { .rm3-spot[data-id="srdoor"]::before { animation: none; opacity: .4; } }
+.rm3-debug .rm3-spot[data-id="srdoor"]::before { display: none; }

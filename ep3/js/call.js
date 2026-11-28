@@ -4,9 +4,9 @@
  *   sched 'call:pre' at max(pm(M0) + 90 000, pm(momLine1) + 25 000) → t −20 preroll (clock 03:32 · B03: phone.flip / cb.A
  *   glass.set + situation card · eye hotspots off until the handover) → t 0 = M1 + callRing (clock 03:33 via the M1 row) +
  *   G.audio.vibrate('ring3') ONCE (audio drops it when 덜 무섭게) + ring.talk · buzz.table · S01 → 0.4 kongi.sniff → 1.2 eye
- *   c3_phone_ring + E9 easy ring screen (G.easy.ringScreen, phase 'ring') → 2.0 card → 4.8 chair → 6.0 callAnswered · ring stops ·
+ *   c3_phone_ring + E9 easy ring screen (G.easy.ringScreen, phase 'ring') → (card clears ≈2.5 · rings 2–4 over no text) → 4.8 chair → 6.0 callAnswered · ring stops · card ·
  *   0.6 s dissolve to r3_kitchen (엄마's back) · E9 phase 'call' → 6.6 leak.earpiece + v3_mom_call live (speech 7.0 · 9.0 · 11.0 —
- *   S02 S03 S04) → 14.6 S05 · 15.0 / 19.5 cards · 18.6 mom.gasp → 39.0 callEnded · talk.end · E9 'ended' 0:33 → 40.5 breath.mom
+ *   S02 S03 S04) → 14.6 S05 · 15.0 card · 18.6 mom.gasp → 39.0 callEnded · talk.end · E9 'ended' 0:33 → 40.5 breath.mom
  *   + 엄마 card → 43.0 clock jump 'callEnd' (03:34) · phone.set · c3_phone_ring `통화 종료 · 0:33` 1.5 s → screen off → ≈50
  *   phone.slide + c3_mom_hands + card → the 03:35 handover cards (gap 1.6 s · tap = next; easyCard / recCard drawn → notebook
  *   cards via vars.fl.cardsDrawn) → B06 sounds (chair · slippers 270° → 30° · door.sr · switch.lamp · kongi.settle) →
@@ -154,8 +154,7 @@
       roomSet('phoneGlow', A ? 'off' : 'ring');
       const ringLines = (typeof c.ring === 'function' ? c.ring(cb) : c.ring) || [];
       const g2 = ringLines.map((x, i) => ({ text: x, at: i * 1.2 }));
-      g2.push({ text: c.t2, at: 2.0 }, { text: c.t6, at: 6.0 });
-      timed(g2, 3000);
+      timed(g2, 300);      // the ring line(s) clear by ≈2.5 s: rings 2–4 (1.6–4.8) play over an empty screen · the t2 card is not drawn
       if (!(await to(0.4))) return;
       cue('kongi.sniff', { src: 'kongiSr' });
       if (!(await to(1.2))) return;
@@ -170,6 +169,7 @@
       if (!(await to(6.0))) return;
       // t 6.0 — 엄마 answers: the ring stops mid-pattern, 0.6 s of silence (the recording's r 0.0–0.6)
       setFlag('callAnswered'); setSeq('call');
+      timed([{ text: c.t6, at: 6.0 }], 3000);
       safe(() => { if (ring && typeof ring.stop === 'function') ring.stop(0.008); });
       roomSet('phoneGlow', 'call');
       if (ringNode && ringNode.isConnected) ringScreen(ringNode, { phase: 'call', sec: 0 });
@@ -183,7 +183,7 @@
       if (!(await to(11.0))) return; sub('S04', { az: 270 });
       if (!(await to(14.6))) return; sub('S05', { az: 270 });
       if (!(await to(15.0))) return;
-      timed([{ text: c.t15, at: 15.0 }, { text: c.t19, at: 19.5 }], 4200);
+      timed([{ text: c.t15, at: 15.0 }], 1800);      // observation only · gone before the gasp · the t19 card is not drawn — mom.gasp at 18.6 carries it
       if (!(await to(18.6))) return;
       cue('mom.gasp', { src: 'momSeat' });
       if (!(await to(39.0))) return;

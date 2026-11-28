@@ -194,3 +194,7 @@ body.reduce-shake .fl3-t-bg { animation: none; }
 .cr3-rname .cr3-tok { white-space: nowrap; }
 /* notebook: a real close target */
 .nbk-head .nbk-close { font-size: 15px; font-weight: 700; color: #5a3f22; min-width: 52px; min-height: 44px; padding: 10px 12px; display: inline-flex; align-items: center; justify-content: center; align-self: center; }
+
+/* 04:40 dread: the phone layer sinks while the door sequence runs (door.js · z 40: under the overlays 50, banners 70, ✎ tab 60, cards 150) */
+.dr3-dim { position: absolute; inset: 0; z-index: 40; background: #000; opacity: 0; pointer-events: none; transition: opacity 1.2s ease; }
+@media (prefers-reduced-motion: reduce) { .dr3-dim { transition: none; } }

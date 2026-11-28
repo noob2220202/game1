@@ -37,9 +37,40 @@
   }
   // the '퍽' of boiler.fire lands ≈ 0.8 s after the relay click (딸깍 → 틱틱틱 0.6 s → 퍽) — glow and subtitle sit on it (§6.3 · §7.4)
   const PUH_MS = 800;
+  /** M8 is "only the house" (§6.2 M8 row: 보일러 · 세계 사건 0): the boiler's own tail — boiler.fire schedules pipe.floor 30 s after the fire —
+   *  must not land inside it. The cue registry entry is wrapped once; from M8 on (until END) pipe.floor is a no-op. climax.js fades the pump. */
+  function guardTail() {
+    try {
+      const a = A(), reg = a && a._cues, f = reg && reg['pipe.floor'];
+      if (!f || f.__m8guard) return;
+      const g = function (o) { if (flag('M8') && !flag('END')) return undefined; return f.apply(this, arguments); };
+      g.__m8guard = true;
+      reg['pipe.floor'] = g;
+    } catch (e) { console.error('[beats] guardTail', e); }
+  }
   function boiler(n, subId) {
+    guardTail();
     cue('boiler.fire', { n, src: 'boiler' });
     setTimeout(() => { pulse('boiler'); if (subId) sub(subId); }, PUH_MS);
+  }
+
+  function markD(id) { try { if (G.director && G.director.mark) G.director.mark(id); } catch (e) {} }
+  const HOUSE_IDS = ['W06', 'W07', 'W08', 'W09', 'W10'];
+  /** a W06–W10 record — director-owned world beat that waits (when) for a quiet moment instead of using defer:'wait' (which would count as a show beat) */
+  function houseBeat(id, ms, offsetMs, play, note) {
+    return { id, cls: 'micro', kind: 'world', owner: 'director', where: 'any', defer: 'world', note,
+      when: (s) => {
+        if (!s.flag('gotPhone') || !s.flag(ms) || s.flag('M5') || s.flag('M6')) return false;
+        if (s.pm() < s.pmOf(ms) + offsetMs) return false;
+        try { if (!G.director || !G.director.safe('micro')) return false; } catch (e) { return false; }
+        const p = s.pm();
+        for (const x of HOUSE_IDS) { const f = s.firedAt(x); if (f != null && p < f + 45000) return false; }   // ≥ 45 s between house beats
+        const w5 = s.firedAt('W05');
+        if (w5 != null && p < w5 + 80000) return false;                                              // the 04:10 boiler + its 30 s pipe tail stay alone
+        return true;
+      },
+      until: (s) => s.flag('M5') || s.flag('M6'),
+      run: () => { play(); } };
   }
 
   /* ---------- beats (§6.2) ---------- */
@@ -66,6 +97,27 @@
       until: (s) => s.flag('M8'),
       delayMs: (s) => (jumpedOver(s, '04:10') ? 2000 : 0),
       run: () => { boiler(1, 'S10'); } },
+
+    /* W06–W10 — low-key house beats between 03:41 and 04:40 (DESIGN §6.2 style: a sound first, never a caption, never a card, never information).
+     * Anchored on milestones (playMs), so they follow the player's own pace: M2 + 3:00 · M2 + 6:00 · M3 + 2:30 · M4 + 2:00 · M4 + 4:30.
+     * Existing cues only (§6.1.6 recipes · same levels · none in the front-door zone 335°–25° ≥ 3.5 m · 0 jumps · 0 vibrate · 0 text).
+     * Each waits for the micro-safe zones (director.safe('micro') — S1–S10 incl. cards · chips · recording · notebook · text screen),
+     * keeps ≥ 45 s from the previous micro-beat · ≥ 80 s after the 04:10 boiler (its pipe tail) · stops at M5 (M6 is 60 s later). Fired once (vars.dir.fired). */
+    houseBeat('W06', 'M2', 180000, () => cue('kongi.settle', { src: 'kongiSr' }), 'kongi lies down again'),
+    houseBeat('W07', 'M2', 360000, () => {
+      if (where() === 'sr') cue('m.creak', { az: 80, dist: 1.8, el: 10, listener: 'LS' });
+      else { cue('m.upstairs', { az: 200, dist: 4, el: 70 }); markD('m.upstairs'); }          // the neighbour (once — the same record the random micro list keeps)
+    }, 'upstairs neighbour'),
+    houseBeat('W08', 'M3', 150000, () => {
+      if (where() === 'sr') cue('m.srWindow', { az: 160, dist: 1.7, listener: 'LS' });
+      else cue('m.gust', { az: 90, dist: 3 });
+    }, 'a gust on the veranda glass'),
+    houseBeat('W09', 'M4', 120000, () => cue('m.kongiSigh', { src: 'kongiSr' }), 'kongi sighs'),
+    houseBeat('W10', 'M4', 270000, () => {
+      if (where() === 'sr') cue('m.creak', { az: 120, dist: 1.6, listener: 'LS' });
+      else if (!flag('jiminUp')) cue('m.jiminTurn', { az: 185, dist: 2.4, el: -10 });
+      else cue('m.fridgeTick', { az: 255, dist: 3.5, el: 0 });
+    }, 'jimin turns on the sofa (sr: a house creak)'),
 
     { id: 'B11', cls: 'relief', kind: 'show', owner: 'core', note: 'mono2 — first close of a door photo after albumDone (G.e3.mono queue · M6 window rule)' },
     { id: 'B12', cls: 'micro', kind: 'world', owner: 'door', defer: 'm6', note: 'M5 + 60 s wait → M6 defer ≤ 40 s (S1 S2 S4 S7 S8 S9 clear 3 s) — room door.js' },

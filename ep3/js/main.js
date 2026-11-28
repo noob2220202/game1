@@ -186,6 +186,8 @@
     const raw = (G.OBJECTIVES && G.OBJECTIVES.titleExceptions) || ['call', 'phone', 'soup@gotPhone'];
     const always = new Set(), when = {};
     raw.forEach((x) => { const [id, f] = String(x).split('@'); if (f) when[id] = f; else always.add(id); });
+    // cards already on at boot were restored from the save: their line was drawn before the reload, so they are not re-checked
+    (G.OBJECTIVES || []).forEach((o) => { try { if (!o.show || o.show()) okIds.add(o.id); } catch (e) {} });
     setInterval(() => {
       if (!(G.notebook && G.notebook.isOpen && G.notebook.isOpen())) return;
       (G.OBJECTIVES || []).forEach((o) => {

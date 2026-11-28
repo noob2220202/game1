@@ -132,13 +132,13 @@
   const CAL3 = {                                    // measured 2026-11-27 (Chromium · iPhone 13 profile · facing the source · medians)
     'mom.idle': -2.5, 'm.creak': 4.5, 'm.fridgeTick': -0.5, 'm.kongiSigh': -1, 'm.jiminTurn': 0, 'm.carFar': -13.5, 'm.gust': -1,
     'm.upstairs': -5.5, 'm.srWindow': -20, 'pipe.floor': -3.5,
-    'mom.srIdle': 4, 'kongi.sniff': 0, 'kongi.tail': { L0: -3, LT: -3.5 }, 'kongi.claws': 0.5, 'kongi.bark2': { L0: -4, LS: -4 }, 'kongi.settle': -3.5, 'kongi.sigh': -2.5,
+    'mom.srIdle': 4, 'kongi.sniff': 0, 'kongi.tail': { L0: -3, LT: -3.5 }, 'kongi.claws': 0.5, 'kongi.bark2': { L0: -3, LS: 2.5 }, 'kongi.settle': -3.5, 'kongi.sigh': -2.5,
     'kongi.bell': -4.5, 'kongi.trot': -1.5, 'kongi.stand': -3.5,
     'chair.creak': 0, 'cloth.rustle': 0, 'door.sr': 2, 'mom.gasp': -6, 'breath.mom': -2, 'mom.slippers': -3, 'jimin.wake': -3.5, 'jimin.murmur': -1.5,
     'buzz.jimin': -11, 'chair.turn': 0, 'mom.exhale': -4, 'hand.mouth': -6, 'steps.jimin': -5.5, 'chair.self': -8, 'bed.creak': 1,
-    'ring.talk': -8, 'buzz.table': -11.5, 'talk.end': -7.5, 'phone.flip': 2, 'phone.set': 1.5, 'phone.slide': -4.5, 'glass.set': -5.5,
+    'ring.talk': -5.5, 'buzz.table': -11.5, 'talk.end': -7.5, 'phone.flip': 2, 'phone.set': 1.5, 'phone.slide': -4.5, 'glass.set': -5.5,
     'sms.mom': -4, 'talk.dial': -4.5, 'call.ringback': -5.5, 'call.connect': -4.5, 'call.end': -4.5, 'call.beep': -4.5, 'call.line': -4.5, 'ez.unfold': -4.5, 'ez.fold': -4.5,
-    'door.err3': { L0: -3.5, LS: -1.5 }, 'hall.steps2': -6, 'firedoor.latch': -3, 'firedoor.clunk': -5.5, 'bus.far': -15.5,
+    'door.err3': { L0: 0.5, LS: 11.5 }, 'hall.steps2': -6, 'firedoor.latch': -3, 'firedoor.clunk': -5.5, 'bus.far': -15.5,
     'switch.light': 0.5, 'switch.lamp': 1.5, 'stove.ignite': -1.5, 'ladle': -4.5, 'bowl.set': -7.5, 'spoons': -6,
     'piano.ab': -6, 'boiler.fire': -3.5, 'hum.mom': -5.5,
     'rec.ear': -4.5, 'leak.earpiece': -7, 'rec.table': -9,
@@ -1035,13 +1035,28 @@
   def('call.end', () => { if (!ok()) return; const out = uiOut('call.end', -30, 300, 3400), t = now() + 0.01; A.osc('sine', 620, t, 0.15, 1, out, { a: 0.005, r: 0.02 }); A.osc('sine', 480, t + 0.18, 0.2, 1, out, { a: 0.005, r: 0.03 }); });
   def('call.beep', (o) => { if (!ok()) return; const out = uiOut('call.beep', -30, 300, 3400), t = now() + 0.01; A.osc('sine', (o && o.hz) || 1000, t, (o && o.s) || 0.5, 1, out, { a: 0.005, r: 0.01 }); });
   /* sms.mom '딩동': F♯6 → 0.16 s → D6 (bell partials f · 2.76f · 5.4f) · HP 500 — peak −16 (the −14 master cap wins over §7.1.6's −12) */
+  /* level (final-review polish): the ding sits ≈ −29 dBFS at the master (peak), 20 ms attack, so it rises < +18 dB over the quiet room
+     (50 ms RMS) — and a further −4 dB while the 04:40 sequence (M6 → M7) or the walk to the kitchen (M8 → END) is running */
+  const dingDuck = () => ((flag('M6') && !flag('M7')) || (flag('M8') && !flag('END')) ? -4 : 0);
   def('sms.mom', (o) => {
     if (!ok()) return;
-    const out = uiOut('sms.mom', -16 + ((o && o.gainDb) || 0), 500, 9000), t = now() + 0.01;
+    const out = uiOut('sms.mom', -25.5 + dingDuck() + ((o && o.gainDb) || 0), 500, 9000), t = now() + 0.01;
     [[1479.98, 0, 0.35], [1174.66, 0.16, 0.5]].forEach(([f, dt, tau]) => {
-      tone(f, t + dt, tau * 4, 0.62, out, { a: 0.002 }); tone(f * 2.76, t + dt, tau * 2.5, 0.62 * 0.22, out, { a: 0.001 }); tone(f * 5.4, t + dt, tau * 1.2, 0.62 * 0.07, out, { a: 0.001 });
+      tone(f, t + dt, tau * 4, 0.62, out, { a: 0.02 }); tone(f * 2.76, t + dt, tau * 2.5, 0.62 * 0.22, out, { a: 0.012 }); tone(f * 5.4, t + dt, tau * 1.2, 0.62 * 0.07, out, { a: 0.006 });
     });
   });
+  /* msg.inapp (engine cue shared with ep2): the in-chat tick that follows a sent text — −9 dB (and the same M6 → M7 / M8 → END duck) so it
+     stays < +18 dB over the quiet room like sms.mom */
+  (() => {
+    const eng = A._cues && A._cues['msg.inapp'];
+    if (typeof eng === 'function') def('msg.inapp', (o) => eng(Object.assign({}, o, { gainDb: ((o && o.gainDb) || 0) - 9 + dingDuck() })));
+  })();
+  /* earphone-test bell (engine cue, shared with ep2): ep3 plays it at −22 dBFS (pre-compressor peak) instead of the engine's −13 —
+     under the master cap and level with the 04:40 door bips (−24), so the player's volume setting matches what matters later */
+  (() => {
+    const eng = A._cues && A._cues['bell.small'];
+    if (typeof eng === 'function') def('bell.small', (o) => eng(Object.assign({}, o, { gainDb: ((o && o.gainDb) || 0) - 8.6 })));
+  })();
   def('ez.unfold', () => { if (!ok()) return; A.sfx.tap && A.sfx.tap(); const out = uiOut('ez.unfold', -44, 300, 9000); click(now() + 0.03, 1, out, 2200, 1.5, 0.006); });
   def('ez.fold', () => { if (!ok()) return; A.sfx.tap && A.sfx.tap(); const out = uiOut('ez.fold', -44, 300, 9000); click(now() + 0.03, 1, out, 1800, 1.5, 0.006); });
   ['tap', 'key', 'back', 'msgSend', 'error', 'unlock', 'whoosh', 'pen', 'pageTurn'].forEach((n) => def('ui.' + n, () => { try { A.sfx[n] && A.sfx[n](); } catch (e) {} }));
@@ -1202,7 +1217,7 @@
     const c = A.ctx, t = k.t;
     click(t, db(-18), k.n, 2500, 2, 0.0015); tone(900, t, 0.01, db(-18) * 0.5, k.n);
     for (let i = 0; i < 8; i++) A.noise(t + 0.15 + i / 13, 0.001, db(-22) * rnd(0.5, 0.8) * nbw(20000), k.n, { filters: [{ type: 'highpass', freq: 3000 }] });
-    const tp = t + 0.8, puff = c.createGain(); puff.gain.value = 1;
+    const tp = t + 0.8, puff = c.createGain(); puff.gain.value = n3 ? db(11) : 1;   // hook '퍽' lifted to the §7.2 -22 at the listener
     if (lessOn) { const lp = A.filter('lowpass', 200, 0.7); puff.connect(lp); lp.connect(k.n); } else puff.connect(k.n);
     if (spk()) {                                    // speaker mode: 80 Hz → 160 + 240 Hz (−4 dB) + LP 600 noise strike (§6.4-①)
       tone(160, tp, 0.15, 0.8, puff, { a: 0.008 }); tone(240, tp, 0.15, 0.8 * db(-4), puff, { a: 0.008 });
@@ -1218,8 +1233,8 @@
     // the pump (persisted: vars.au.pump = { from, until } in playMs)
     const a = A._au(), p0 = pmNow();
     a.pump = { from: p0 + 5000, until: n3 ? -1 : p0 + 5000 + 15 * 60000 }; A._saveSoon();
-    setTimeout(() => { A.amb('boilerPump', true, { fade: 2, gainDb: lessOn ? -9 : 0 }); }, 5000);
-    if (!n3) setTimeout(() => A.cue('pipe.floor', { dur: 40 }), 30000);
+    setTimeout(() => { if (flag('M8') && !flag('END')) return; A.amb('boilerPump', true, { fade: 2, gainDb: lessOn ? -9 : 0 }); }, 5000);
+    if (!n3) setTimeout(() => { if (flag('M8') && !flag('END')) return; A.cue('pipe.floor', { dur: 40 }); }, 30000);
   });
   /* the pump stops by itself 15 min (playMs) after it started — checked on the core tick */
   function pumpAlive() { const p = A._au().pump; return !!(p && (p.until === -1 || pmNow() < p.until)); }

@@ -90,9 +90,20 @@
 
   /* ======================= M8 (05:15) — 엄마 at the table · {N} sits opposite · '…세아 소리, 들었어요?' → playArmed ======================= */
   let m8Running = false;
+  /** §6.2 M8 row: 보일러 · 세계 사건 0 — the second boiler's pump (amb.boilerPump, 15 min) is faded out as M8 begins and its persisted
+   *  window is closed so a reload does not bring it back (beats.js guards the boiler's pipe.floor tail the same way). */
+  function quietBoiler() {
+    try {
+      const A = G.audio; if (!A) return;
+      const au = A._au && A._au();
+      if (au && au.pump && au.pump.until !== -1) { au.pump.until = Math.min(au.pump.until, pmNow()); A._saveSoon && A._saveSoon(); }
+      if (A.amb) A.amb('boilerPump', false, { fade: 3 });
+    } catch (e) {}
+  }
   async function startM8(resumed) {
     if (m8Running || !flag('M8') || flag('playArmed') && !resumed) return;
     m8Running = true;
+    if (!flag('END')) quietBoiler();
     seq().m8 = 'cards'; save();
     emit('climax:m8cards', {});
     mark('B16');
@@ -311,6 +322,9 @@
   CX.init = function () {
     if (inited) return; inited = true;
     S.on('climax:', (data, id) => { if (id === 'climax:back') sitBack(); });
+    on('flag:M8', () => { if (!flag('END')) quietBoiler(); });
+    on('state:load', () => { if (flag('M8') && !flag('END')) { quietBoiler(); setTimeout(quietBoiler, 1500); } });   // reload inside M8 / the armed table
+    if (flag('M8') && !flag('END')) setTimeout(quietBoiler, 1500);
     on('flag:M8', () => setTimeout(() => { if (!seq().m8 && !flag('END') && !flag('playArmed')) startM8(false); }, 0));   // (a jump past M8 / an armed jump skips the cards)
     on('rec:session', onSession);
     on('rec:time', onTime);

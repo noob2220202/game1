@@ -46,6 +46,11 @@
   function show(eye, x) { return F().eyeShow ? F().eyeShow(eye, x) : Promise.resolve(); }
   function dim(eye, lv, ms) { return safe(() => (eye && eye.dim ? Promise.resolve(eye.dim(lv, ms)).catch(() => null) : wait(ms || 0)), Promise.resolve()); }
   function scr() { return document.getElementById('screen'); }
+  /** the ✎ tab stays off the END / settle / 06:00 cuts (the hook and the credits hide it the same way); back for the 05:55 phone home */
+  function nbTab(on) {
+    if (!on) safe(() => G.notebook && G.notebook.close && G.notebook.close());
+    safe(() => G.notebook && G.notebook.show && G.notebook.show(!!on));
+  }
   function D() { return (G.STORY && G.STORY.ending) || {}; }
   function vset(k, v) { try { if (G.vars) G.vars(k, v); else G.state.vars[k] = v; } catch (e) {} }
   function vget(k) { try { return G.vars ? G.vars(k) : G.state.vars[k]; } catch (e) { return undefined; } }
@@ -221,6 +226,7 @@
     safe(() => G.phone && G.phone.closeAll && G.phone.closeAll(true));   // the app stack under the eye view → home
     await closeEye(600);
     safe(() => G.phone && G.phone.home && G.phone.home());
+    nbTab(true);
     await play(withGaps(lines.slice(1)), { id: 'end:tail' });
     if (my !== chainGen) return;
     let choice = safe(() => (G.state && G.state.stage ? G.state.stage.easyBack : null), null);
@@ -369,6 +375,7 @@
       for (; i < ORDER.length; i++) {
         if (my !== chainGen) return;
         const s = ORDER[i];
+        if (s === 'e0530' || s === 'e0530c' || s === 'e0535' || s === 'e0540' || s === 'e0545' || s === 'e0600') nbTab(false);
         if (s === 'e0530') { if (!flag('END')) await endSequence(my); else if (!vget('endStep')) setStep('e0530'); }
         else if (s === 'e0530c') { if (vget('endStep') === 'e0530' && eye && !endResumed) await afterEndLine(my); else setStep('e0530c'); }
         else if (s === 'e0535') await t0535(my);

@@ -457,7 +457,7 @@
   }
   function bindEasySurface(n) {
     let sy = null, pid = null, ptype = 'touch';
-    const skip = (t) => !!(t && t.closest && t.closest('.lk-bottom, button'));
+    const skip = (t) => !!(t && t.closest && t.closest('button'));   // the whole lock surface swipes; only the buttons (긴급 통화 · camera) are excluded
     const reset = () => { const top = n.querySelector('.lk-top'); if (top) top.style.transform = ''; n.style.removeProperty('--lk-fade'); };
     n.addEventListener('pointerdown', (e) => {
       if (unlocking || opened || skip(e.target)) return;

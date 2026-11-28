@@ -17,7 +17,7 @@
     tail: { // §3.15 / §4.12.2 — order fixed; lazy lines read cb and flags
       t0535: [{ who: null, text: '지민이 부엌 입구에서 식탁으로 와 앉는다.', id: 'jiminSits' },
         { who: '지민', text: (cb) => (f('jiminChipSent') ? null : ({ yes: '그날 오르골 얘기 답해 줬을 때부터요, {N} 씨 말은 그냥 믿어져요.',
-          no: '그날 끝내 대답은 안 했잖아요. 그래도 오늘 보니까 알겠어요. {N} 씨 맞아요.', none: '{N} 씨랑 같이 오니까 덜 무서워요.' })[cb('B')] || null) },
+          no: '그날 끝내 대답은 안 했잖아요. 그래도 오늘 보니까 알겠어요. {N} 씨 맞아요.', none: null })[cb('B')] || null) },
         { who: null, text: '엄마가 미역국을 네 그릇 뜬다. 한 그릇은 빈 자리 앞에 놓는다.', id: 'soupServed' },
         { who: '엄마', text: '세아 생일엔 늘 이렇게 놨어요. 작년에도요.' }, { who: '엄마', text: '세아가 좋아하던 거예요. 소고기 많이 넣었어요.' },
         { id: 'eat', chips: [{ id: 'eat', label: '잘 먹겠습니다.', edit: true, verb: 'say' }] },
