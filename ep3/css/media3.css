@@ -42,7 +42,8 @@
 .md3-av { flex: none; width: 36px; height: 36px; border-radius: 50%; overflow: hidden; background: #b9b9c0; color: #fff; display: inline-flex; align-items: center;
   justify-content: center; font-size: 15px; font-weight: 600; box-shadow: 0 0 0 2px var(--md-bg); margin-left: -8px; }
 .md3-av:first-child { margin-left: 0; }
-.md3-av.black { background: #000; }
+.md3-av.black { background: #b4b8be url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'%3E%3Ccircle cx='18' cy='14' r='6' fill='%23fff' fill-opacity='.9'/%3E%3Cpath d='M5 36c0-8 6-12 13-12s13 4 13 12z' fill='%23fff' fill-opacity='.9'/%3E%3C/svg%3E") center/100% 100% no-repeat; }   /* anonymous default profile: grey disc, white silhouette */
+.md3-av.black img { display: none; }
 .md3-av img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .md3-av.big { width: 48px; height: 48px; margin-left: 0; font-size: 19px; }
 
@@ -74,7 +75,7 @@ button.md3-act-r:active { background: rgba(127,127,127,.08); }
 .md3-v-foot { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; display: flex; flex-direction: column; padding-top: 28px;
   background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,.62) 34%, rgba(0,0,0,.72)); pointer-events: none; }
 .md3-v-foot > * { pointer-events: auto; }
-.md3-v-date { flex: 0 1 auto; min-width: 0; padding-left: 2px; font-size: calc(15px * var(--ts, 1)); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.md3-v-date { flex: 0 1 auto; min-width: 0; padding-left: 2px; font-size: calc(15px * var(--ts, 1)); font-weight: 600; line-height: 1.3; word-break: keep-all; overflow-wrap: anywhere; }
 .md3-v-stage { touch-action: none; }
 .md3-zoom { position: absolute; inset: 0; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; cursor: zoom-in; }
 .md3-zoomed .md3-zoom { cursor: grab; }

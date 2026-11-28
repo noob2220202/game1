@@ -676,7 +676,8 @@
     const calls = msgs.filter((m) => m.call).length, texts = msgs.filter((m) => !m.call).length;
     if (key === 'e1') return String(fh.e1 || '{m}').replace('{m}', texts);
     const d = C.parseT(msgs[0].t);
-    return `${d.getFullYear()}년 ${d.getMonth() + 1}월 · 보이스톡 ${calls}` + (texts ? ` · 메시지 ${texts}` : '');
+    const NB = ' ';   // tokens stay whole at large text sizes
+    return `${d.getFullYear()}년${NB}${d.getMonth() + 1}월 · 보이스톡${NB}${calls}` + (texts ? ` · 메시지${NB}${texts}` : '');
   }
   function sheetPick(buttons) {   // buttons: [[value, label, qa]] → Promise<value|null>
     if (!(G.phone && G.phone.sheet)) return Promise.resolve(buttons[0] ? buttons[0][0] : null);

@@ -86,9 +86,9 @@
     const body = el('div.md2-br-start', null,
       el('div.md2-br-logo', null, T(S.logo || '')),
       searchPill(''),
-      el('div.md2-br-sec', null, T(S.recentTitle || '')),
+      (S.recentN === 0 ? null : el('div.md2-br-sec', null, T(S.recentTitle || ''))),
       recent,
-      el('div.md2-br-tabs', null, T(S.tabs || '')));
+      (S.tabs ? el('div.md2-br-tabs', null, T(S.tabs)) : null));
     scr = MU.screen({ title: '', cls: 'md2-br', body, right: [moreBtn(() => scr)] });
     tag3(scr, 'browser.start');
     MU.push(scr);

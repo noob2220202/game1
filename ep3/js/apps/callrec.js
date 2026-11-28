@@ -464,8 +464,7 @@
       const d = pd(rec.d);
       box.appendChild(el('div.cr3-thead', null,
         el('b', null, T(rec.textHead || `${rec.who} · ${mss(rec.dur)}`)),
-        el('span', null, d ? `${fmtDay(rec.d)} ${fmt12(rec.hm)}` : ''),
-        el('small', null, T(UI().textHead || '{$textNote}'))));
+        el('span', null, d ? `${fmtDay(rec.d)} ${fmt12(rec.hm)}` : '')));
       const list = el('div.cr3-lines');
       rows = (rec.lines || []).map((ln) => {
         const sp = ln.sp === 'me' ? T(UI().me || '나') : ln.sp === 'them' ? T(rec.who) : '';
@@ -527,9 +526,14 @@
 
   /* ---------------- C3 list · C11 voice ---------------- */
   function groups(recs) { const out = []; recs.forEach((r) => { const g = out[out.length - 1]; if (g && g.d === r.d) g.items.push(r); else out.push({ d: r.d, items: [r] }); }); return out; }
+  /** title pieces split at ' · ': the dot travels with the token after it (textContent unchanged) */
+  function titleToks(rec) {
+    const parts = titleOf(rec).split(' · ');
+    return parts.map((t, i) => el('span.cr3-tok', null, i ? '· ' + t : t + (parts.length > 1 ? ' ' : '')));
+  }
   function recRow(rec, scr) {
     const main = el('button.cr3-ritem', { type: 'button', 'data-qa': 'rec.item:' + rec.id },
-      el('span.cr3-rname', null, titleOf(rec)), el('span.cr3-rhm', null, fmt12(rec.hm)), el('span.cr3-rdur', null, mss(rec.dur)));
+      el('span.cr3-rname', null, titleToks(rec)), el('span.cr3-rhm', null, fmt12(rec.hm)), el('span.cr3-rdur', null, mss(rec.dur)));
     main.addEventListener('click', () => { if (main._lp) { main._lp = false; return; } sfx('tap'); CR.openPlayer(rec.id); });
     let lpT = 0;
     main.addEventListener('pointerdown', () => { clearTimeout(lpT); lpT = setTimeout(() => { main._lp = true; sfx('tap'); moreSheet(rec.id); }, 600); });
@@ -604,8 +608,7 @@
         const opts = u.recWhich || [];
         sheet({ buttons: opts.map((o, i) => ['w' + i, o, 'callrec.rec.which:' + i]) }).then((val) => { if (!val) return; const t = opts[+String(val).slice(1)]; CMV().recWhich = t; save(); whichV.textContent = T(t); });
       }, { tail: whichV }),
-      rowBtn('callrec.row:list', (rs[2] || [])[0], null, () => CR.open('rec.list')),
-      el('div.cr3-foot', null, T(u.recFoot || '{$recFoot}')));
+      rowBtn('callrec.row:list', (rs[2] || [])[0], null, () => CR.open('rec.list')));
     push(screen('rec.settings', u.recTitle || '', body));
   }
 

@@ -178,3 +178,19 @@ body.less-scary .fl3-e9-yes, body.reduce-flash .fl3-e9-yes { animation: none; }
   .fl3-t-bg, .fl3-e9-yes { animation: none; }
 }
 body.reduce-shake .fl3-t-bg { animation: none; }
+
+/* ---------------- layout polish (text size up to 130%, 360 px) ---------------- */
+/* photo viewer top: one line over a scrim, clear of the back arrow and the notebook tab */
+.md3-viewer .md3-v-top { background: linear-gradient(rgba(0,0,0,.62), rgba(0,0,0,.32) 62%, rgba(0,0,0,0)); }
+.md3-viewer .md3-v-top .md3-v-date { flex: 1 1 0; min-width: 0; padding: 0 8px 0 2px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; word-break: normal; overflow-wrap: normal; text-shadow: 0 1px 3px rgba(0,0,0,.55); }
+.md3-info .md2-pi-v { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
+/* members list: names never split mid-word; the role / join date stays whole */
+.md3-mem-n { min-width: 0; overflow-wrap: normal; word-break: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.md3-mem-r { flex: 0 0 auto; max-width: 56%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
+.md3-memd-l { overflow-wrap: normal; }
+/* talk fold pill + recording row: count tokens travel whole */
+.cm3-fold-l { overflow-wrap: normal; word-break: keep-all; }
+.cr3-rname { overflow-wrap: normal; }
+.cr3-rname .cr3-tok { white-space: nowrap; }
+/* notebook: a real close target */
+.nbk-head .nbk-close { font-size: 15px; font-weight: 700; color: #5a3f22; min-width: 52px; min-height: 44px; padding: 10px 12px; display: inline-flex; align-items: center; justify-content: center; align-self: center; }

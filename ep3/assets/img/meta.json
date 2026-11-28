@@ -32,7 +32,7 @@
   "x3_hook_empty": "3038 px of collar / bell filled from the wall; white hook pasted back (83 px) + lip arc 9 px where the collar crossed it",
   "c3_shoes_nocollar": "14823 px of collar / bell filled; white hook pasted back (764 px) + lip arc 30 px",
   "c3_drawing": "6 notes, the fifth 120 px above the top line (smiling face); text = DOM",
-  "c3_doorframe": "12 lines, label-box intersections 0, leader x label crossings 0, 5 pencil leaders, dots drawn as 3.5–4 px graphite; hands: mom STAND-IN (brush.ttf missing — procedural slanted sansb hand), Seah STAND-IN (gamja.ttf missing — procedural upright rounded sans hand); pen.ttf not used",
+  "c3_doorframe": "12 lines, label-box intersections 0, leader x label crossings 0, 5 pencil leaders, dots drawn as 3.5–4 px graphite; hands: mom Nanum Brush Script, Seah Gamja Flower; pen.ttf not used",
   "c3_window": "2 windows lit (warm 255,208,150 + curtain folds + bloom σ6) over the pane bounding box, mullion / sash bars kept at 0.35x the fill ({'a': 419, 'b': 415} px); sky untouched (still night)",
   "p3_kongi_1130": "702 digit height 20.0 px of 1024 (target ≈ 17–20), each digit ≈ 8.2 px wide (plate squeezed x0.6 along the door face) -> 7.6 CSS px at 1x (390) · 13.7 at 1.8x; metal plate (150,150,156) / digits (78,78,84), blur .9, noise σ4, JPEG pass; hook collar removed (13036 px)",
   "meta_art": "og = t3_title crop y .58 + sansb 64 / sans 40 white 85 %; icons = square crop (phone + lamp bokeh), no text"
@@ -868,9 +868,9 @@
     "text": "7 · 09.1.24",
     "box": [
      0.5301,
-     0.7033,
-     0.6776,
-     0.7242
+     0.7063,
+     0.661,
+     0.7212
     ],
     "dy_px": 0.0,
     "leader": false
@@ -881,9 +881,9 @@
     "text": "8 · 10.1.24",
     "box": [
      0.5359,
-     0.6441,
-     0.6912,
-     0.6655
+     0.6476,
+     0.658,
+     0.662
     ],
     "dy_px": 0.0,
     "leader": false
@@ -894,9 +894,9 @@
     "text": "9 · 11.1.24",
     "box": [
      0.5357,
-     0.573,
-     0.6851,
-     0.5945
+     0.5766,
+     0.6558,
+     0.5909
     ],
     "dy_px": 0.0,
     "leader": false
@@ -907,9 +907,9 @@
     "text": "10 · 12.1.24",
     "box": [
      0.543,
-     0.5102,
-     0.6954,
-     0.5324
+     0.5145,
+     0.6729,
+     0.5281
     ],
     "dy_px": 0.0,
     "leader": false
@@ -920,9 +920,9 @@
     "text": "11 · 13.1.24",
     "box": [
      0.5399,
-     0.4436,
-     0.6952,
-     0.465
+     0.4471,
+     0.6649,
+     0.4615
     ],
     "dy_px": 0.0,
     "leader": false
@@ -933,9 +933,9 @@
     "text": "ㅅㅇ 12 · 14.1.24",
     "box": [
      0.5392,
-     0.3719,
+     0.3736,
      0.6954,
-     0.3889
+     0.3872
     ],
     "dy_px": 0.0,
     "leader": false
@@ -946,9 +946,9 @@
     "text": "ㅅㅇ 13 · 15.1.24",
     "box": [
      0.5447,
-     0.3101,
+     0.312,
      0.696,
-     0.327
+     0.3251
     ],
     "dy_px": 0.0,
     "leader": false
@@ -959,11 +959,11 @@
     "text": "ㅅㅇ 14 · 16.1.24",
     "box": [
      0.5589,
-     0.2895,
+     0.2836,
      0.6956,
-     0.3064
+     0.298
     ],
-    "dy_px": 17.9,
+    "dy_px": 6.9,
     "leader": true
    },
    {
@@ -972,11 +972,11 @@
     "text": "ㅅㅇ 15 · 17.1.24",
     "box": [
      0.5589,
-     0.2706,
+     0.2687,
      0.6956,
-     0.2875
+     0.2817
     ],
-    "dy_px": 18.7,
+    "dy_px": 12.7,
     "leader": true
    },
    {
@@ -985,9 +985,9 @@
     "text": "ㅅㅇ 16 · 18.1.24",
     "box": [
      0.5589,
-     0.2517,
+     0.2537,
      0.6956,
-     0.2686
+     0.2667
     ],
     "dy_px": 9.4,
     "leader": true
@@ -998,11 +998,11 @@
     "text": "ㅅㅇ 17 · 19.1.24",
     "box": [
      0.5589,
-     0.2328,
+     0.238,
      0.6956,
-     0.2498
+     0.2517
     ],
-    "dy_px": -12.8,
+    "dy_px": -7.3,
     "leader": true
    },
    {
@@ -1011,11 +1011,11 @@
     "text": "ㅅㅇ 18 · 20.1.24",
     "box": [
      0.5589,
-     0.2126,
+     0.2224,
      0.6956,
-     0.2309
+     0.2361
     ],
-    "dy_px": -33.0,
+    "dy_px": -21.6,
     "leader": true
    }
   ]

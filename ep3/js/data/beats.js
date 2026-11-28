@@ -39,7 +39,7 @@
   const PUH_MS = 800;
   function boiler(n, subId) {
     cue('boiler.fire', { n, src: 'boiler' });
-    setTimeout(() => { pulse('boiler'); if (subId) sub(subId, { az: 90 }); }, PUH_MS);
+    setTimeout(() => { pulse('boiler'); if (subId) sub(subId); }, PUH_MS);
   }
 
   /* ---------- beats (§6.2) ---------- */
@@ -74,7 +74,7 @@
 
     /* W11 — 05:10 boiler 2, or memoryDone + 6 s while still before M8 (§6.1.7 · §0.3 D15) · S11 mood */
     { id: 'W11', cls: 'micro', kind: 'world', owner: 'director', where: 'any', defer: 'world',
-      when: (s) => s.flag('M7') && !s.flag('M8') && (s.passed('05:10') || (s.flag('memoryDone') && s.pm() >= s.pmOf('memoryDone') + 6000)),
+      when: (s) => s.flag('M7') && !s.flag('M8') && !(s.flag('memoryStart') && !s.flag('memoryDone')) && ((s.passed('05:10') && (!s.flag('memoryStart') || s.pm() >= s.pmOf('memoryDone') + 6000)) || (s.flag('memoryDone') && s.pm() >= s.pmOf('memoryDone') + 6000)),
       until: (s) => s.flag('M8'),
       run: () => { boiler(2, 'S11'); } },
 

@@ -72,7 +72,7 @@
     recTitle: '통화 녹음',
     recSettings: [['통화 자동 녹음', '켜짐', '꺼짐'], ['녹음할 통화', '모든 통화'], ['녹음된 통화', '']],
     recWhich: ['모든 통화', '저장되지 않은 번호', '선택한 번호'],
-    recFoot: '{$recFoot}',
+
     listTitle: '녹음된 통화',
     more: ['텍스트 변환', '세부 정보'],
     textTitle: '텍스트 변환', textHead: '{$textNote}', converting: '{$converting}', loading: '{$loading}',

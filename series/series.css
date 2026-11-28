@@ -125,3 +125,11 @@ body.pk-leave .pk { opacity: 0; }
   .pk { transition: none; }
   .pk-dlg-in { animation: none; }
 }
+
+/* short phones (360x640 class): a smaller building keeps all three rows and the footer above the fold */
+@media (max-height: 700px) {
+  .pk { padding-top: calc(var(--safe-top) + 16px); padding-bottom: calc(var(--safe-bot) + 12px); }
+  .pk-bldg { margin-top: 10px; width: min(100%, 340px, calc(42vh * 320 / 360)); width: min(100%, 340px, calc(42dvh * 320 / 360)); }
+  .pk-list { margin-top: 14px; }
+  .pk-foot { margin-top: 8px; }
+}

@@ -193,12 +193,14 @@
       amb('breath.kongi', false, { fade: 0.4 });
       cue('kongi.claws', { path: [{ dt: 0, src: P.kongiSr }, { dt: 2.0, src: P.kongiDoor }] });
       roomSet('kongi', 'door');
+      sub('S23run');
     },
     /* t 4.4 — two short barks (덜 무섭게: one — audio) */
     bark() { cue('kongi.bark2', { src: P.kongiDoor }); sub(less() ? 'S07less' : 'S07'); },
     /* t 9 — 세아 방 door hinge · 엄마 leaves the bed (her slippers lead the picture) */
     mom9() {
       cue('door.sr', { src: P.srDoor });
+      sub('S18door');
       if ((V().where || 'lv') === 'sr') cue('bed.creak', { src: 'srMom' });
       cue('mom.slippers', { path: [{ dt: 0, src: P.srDoor }, { dt: 2.5, src: P.hallIn }] });
       roomSet('srGap', 0.35);
@@ -222,7 +224,8 @@
     jiminQ() { setFlag('jiminUp'); play(SP().t16, '0440'); },
     /* t 18 — chip [밖에서 누가 도어락을 눌렀어요. 저도 들었어요. ✎] [말하기] / [두기] (20 s → 두기 · callback B) */
     async chip() {
-      const d = SP(), c = d.chip;
+      const d = SP();
+      const c = d.chip && Object.assign({}, d.chip, { timeoutMs: Math.min(d.chip.timeoutMs || 10000, 10000) });   // 10 s: the keep-reply lands before the t 30 card (§3.12 order)
       if (!c) return;
       const r = await play([c], '0440');
       const pick = r && r.picks ? r.picks[c.id] : null;
@@ -261,6 +264,7 @@
     /* t 152 — 04:57 the patrol calls 지민 back · the blanket on 엄마's shoulders · 지민 leans by the kitchen entrance */
     patrolCall() {
       cue('buzz.jimin', { src: 'momPhone' });
+      sub('S19');
       const lines = [].concat(SP().t152 || []);
       const k = lines.findIndex((s) => s && s.id === 'blanket');
       const run = { id: 'blanketRun', run: () => { roomSet('momBlanket', true); cue('cloth.rustle', { src: P.momSeat }); } };
@@ -276,6 +280,7 @@
     /* t 182 — 05:03 콩이 walks back to the 세아 방 door · a sigh */
     kongiBack() {
       cue('kongi.claws', { path: [{ dt: 0, src: P.kongiDoor }, { dt: 2.4, src: P.kongiSr }], walk: true });
+      sub('S23walk');
       setTimeout(() => { roomSet('kongi', 'sleep'); setFlag('kongiBack'); }, 400);
       setTimeout(() => { cue('kongi.sigh', { src: P.kongiSr }); amb('breath.kongi', true, { fade: 1.2 }); }, 3000);
     },

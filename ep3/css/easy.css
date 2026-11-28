@@ -131,7 +131,7 @@
 .ez3-scr .sv-back { color: #2a241d; }
 .ez3-pbody { display: flex; flex-direction: column; min-height: 100%; }
 .ez3-tabs { position: sticky; top: 0; z-index: 2; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 6px 14px 10px; background: #fbf8f3; }
-.ez3-tab { min-height: 56px; border-radius: 18px; background: #efe7da; font-size: calc(17px * var(--ts)); font-weight: 700; color: #5a5044; word-break: keep-all; line-height: 1.15; padding: 4px; }
+.ez3-tab { min-height: 56px; border-radius: 18px; background: #efe7da; font-size: clamp(14px, calc(17px * var(--ts)), 5vw); white-space: nowrap; font-weight: 700; color: #5a5044; word-break: keep-all; line-height: 1.15; padding: 4px; }
 .ez3-tab.on { background: #2e7d4f; color: #fff; }
 .ez3-pane { flex: 1; display: flex; flex-direction: column; }
 /* keypad */
@@ -174,15 +174,15 @@
 .ez3-detail { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 26px 18px 30px; }
 .ez3-dname { font-size: calc(26px * var(--ts)); font-weight: 700; text-align: center; word-break: keep-all; }
 .ez3-dbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 360px; margin-top: 18px; }
-.ez3-dbtn { min-height: 72px; border-radius: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: calc(19px * var(--ts)); font-weight: 700; color: #fff; }
-.ez3-dbtn span { width: 30px; height: 30px; display: flex; } .ez3-dbtn span svg { width: 100%; height: 100%; }
+.ez3-dbtn { box-sizing: border-box; min-height: 80px; padding: 10px 6px 8px; border-radius: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: calc(19px * var(--ts)); font-weight: 700; color: #fff; }
+.ez3-dbtn span { width: 30px; height: 30px; flex: none; display: flex; } .ez3-dbtn span svg { width: 100%; height: 100%; }
 .ez3-dbtn.call { background: #2fb75b; } .ez3-dbtn.sms { background: #3478f6; }
 .ez3-dbtn:active { filter: brightness(.92); }
 /* row sheet `전화 걸기` · `문자 보내기` */
 .ez3-sheet .sht-title { font-size: calc(19px * var(--ts)); }
 .ez3-sbtns { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
 .ez3-sbtn { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 64px; border-radius: 20px; font-size: calc(18px * var(--ts)); font-weight: 700; color: #fff; }
-.ez3-sbtn span { width: 26px; height: 26px; display: flex; } .ez3-sbtn span svg { width: 100%; height: 100%; }
+.ez3-sbtn span { width: 26px; height: 26px; flex: none; display: flex; } .ez3-sbtn span svg { width: 100%; height: 100%; }
 .ez3-sbtn.call { background: #2fb75b; } .ez3-sbtn.sms { background: #3478f6; }
 /* E5 쉬운 문자 */
 .ez3-sms .sv-body { display: flex; flex-direction: column; }
@@ -245,8 +245,8 @@
  * mobile (the phone is the whole screen): a left-edge tab in the app header row, the mirror of the ✎ tab — every header keeps
  *   a 44 px left gutter while it is drawn (#screen.sh3-gut), so no back button sits under it.
  * desktop (framed phone): a pill with the words outside the frame, top-left, under the ⏸ frame button. */
-.sh3-show { position: absolute; z-index: 60; left: 0; top: calc(var(--sb-h) + 4px); width: 30px; height: 44px; padding: 0 0 0 2px; border-radius: 0 12px 12px 0; background: linear-gradient(160deg, #6a4148, #46282e); border: 1px solid rgba(255, 220, 200, .22); border-left: 0; color: #f6e4d8; display: flex; align-items: center; justify-content: center; box-shadow: 3px 4px 14px rgba(0, 0, 0, .35); opacity: 0; transform: translateX(-36px); transition: transform .3s cubic-bezier(.2, .9, .3, 1), opacity .25s; touch-action: manipulation; -webkit-touch-callout: none; }
-.sh3-show::before { content: ''; position: absolute; top: -2px; bottom: -2px; left: 0; right: -14px; }
+.sh3-show { position: absolute; z-index: 60; left: 0; top: calc(var(--sb-h) + 16px); width: 30px; height: 44px; padding: 0 0 0 2px; border-radius: 0 12px 12px 0; background: linear-gradient(160deg, #6a4148, #46282e); border: 1px solid rgba(255, 220, 200, .22); border-left: 0; color: #f6e4d8; display: flex; align-items: center; justify-content: center; box-shadow: 3px 4px 14px rgba(0, 0, 0, .35); opacity: 0; transform: translateX(-36px); transition: transform .3s cubic-bezier(.2, .9, .3, 1), opacity .25s; touch-action: manipulation; -webkit-touch-callout: none; }
+.sh3-show::before { content: ''; position: absolute; top: -2px; bottom: -2px; left: 0; right: -14px; }   /* tab y = status bar + 16 px: clear of the 44 px ⏸ box at the top-left */
 .sh3-show.in { opacity: 1; transform: none; }
 .sh3-show[hidden] { display: none; }
 .sh3-show-i { width: 20px; height: 20px; display: flex; pointer-events: none; }

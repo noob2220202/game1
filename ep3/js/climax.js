@@ -124,9 +124,15 @@
   }
 
   /* ======================= judging (§9.6 contract — events from comms callrec) ======================= */
-  const J = { headFired: {}, cur: null, pos: {}, pausedAt: null, pausedSess: null, waitShown: {}, busy: false, done: false };
+  const J = { left: {}, headFired: {}, cur: null, pos: {}, pausedAt: null, pausedSess: null, waitShown: {}, busy: false, done: false };
   const away = () => pmNow() < (V().momAwayUntil || 0);
   function live() { return flag('playArmed') && !flag('played') && !flag('playFallback') && !J.done; }
+  /** a session that was ever carried away from the table (out !== 'table') is not heard by 엄마 — judged like the sink-away rule (§3.14) */
+  function heardAway(e) {
+    if (e.out !== 'table') J.left[e.sess] = 1;
+    if (J.left[e.sess]) e.away = true;
+    return !!e.away;
+  }
   function track(e) {
     const playing = e.state === 'play' || e.state === 'resume' || (e.state == null && J.cur && J.cur.sess === e.sess && J.cur.playing);
     J.cur = { sess: e.sess, a: e.a, b: e.b, out: e.out, away: !!e.away, by: e.by, line: e.line, playing: e.state ? playing : true };
@@ -134,6 +140,7 @@
   }
   function onSession(e) {
     if (!e || e.id !== 'sea0333' || !flag('playArmed') || flag('played') || flag('playFallback') || J.done) return;
+    heardAway(e);
     track(e);
     if (e.state === 'play' && e.by === 'line' && e.line === 21) {                       // a grey-line session after playArmed: no sigName
       try { if (G.hooks && G.hooks.has && G.hooks.has('callrec:noSig')) G.hooks.call('callrec:noSig', e.sess); } catch (err) {}
@@ -151,6 +158,7 @@
   /** 'rec:time' {id, t, sess, a, b, out, away} (100 ms) — the head rule (ARCH G67) + the position-bound cards / body sounds */
   function onTime(e) {
     if (!e || e.id !== 'sea0333' || !live()) return;
+    heardAway(e);
     if (!J.cur || J.cur.sess !== e.sess) J.cur = { sess: e.sess, a: e.a, b: e.b, out: e.out, away: !!e.away, playing: true };
     else { J.cur.b = e.b; J.cur.out = e.out; J.cur.away = !!e.away; J.cur.playing = true; }
     if (J.pausedSess === e.sess) { J.pausedAt = null; J.pausedSess = null; }

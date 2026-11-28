@@ -2,7 +2,7 @@
  * ep3 data · browser.js (owner: media) → G.STORY.browser (v:3) — read by engine/apps/browser.js (folder 인터넷).
  * DESIGN_EP3 §4.8.4 인터넷 · §5.2 📁 인터넷 · §0.3 D16 (device how-to searches → {$noResult} — hard mode: the only
  * hint channel is the notebook) · §5.6 (끈다: 2편 기록 19줄 · 다른 기기 탭 · QR).
- * Start `다온` · search `검색어 입력` · `최근 방문` 0 · `열린 탭 0` · ⋮ › `기록` → `방문 기록이 없습니다`
+ * Start `다온` · search `검색어 입력` · `최근 방문` 0 · ⋮ › `기록` → `방문 기록이 없습니다`
  * (the player's own searches of tonight stack under `오늘` — text in the session store only, never the save).
  * Fixed results: normalised partial match (engine rule — the longest key contained in the query wins, then a key
  * containing a ≥ 2-char query); `noResult` = exact device how-to / clue words that always answer {$noResult}.
@@ -18,7 +18,7 @@
 
   G.STORY.browser = {
     v: 3,
-    start: { logo: '다온', placeholder: '검색어 입력', recentTitle: '최근 방문', recentN: 0, tabs: '열린 탭 0' },
+    start: { logo: '다온', placeholder: '검색어 입력', recentTitle: '최근 방문', recentN: 0, tabs: '' },
     menu: ['기록'], historyTitle: '기록', today: '오늘', historyEmpty: '방문 기록이 없습니다',
     history: [],
 

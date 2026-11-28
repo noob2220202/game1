@@ -79,7 +79,7 @@
   const PLACE = {
     keypad: { L0: [0, 5.4, -5, 'frontDoor', 'irHall', 0.25], LT: [19, 5.7, -5, 'frontDoor', 'irHall', 0.25], LS: [190, 6.9, -5, 'srFront', 'irHall', 0.25] },
     hallIn: { L0: [8, 4.2, 5, 'inRoom', 'irLiving', 0.3], LT: [17, 4.9, 5, 'inRoom', 'irLiving', 0.3], LS: [192, 4.2, 5, 'srDoor', 'irLiving', 0.3] },
-    hook: { L0: [354, 4.7, 5, 'inRoom', 'irLiving', 0.3], LT: [10, 5.3, 5, 'inRoom', 'irLiving', 0.3], LS: [190, 4.6, 5, 'srDoor', 'irLiving', 0.3] },
+    hook: { L0: [354, 4.7, 5, 'inRoom', 'irLiving', 0.3], LT: [18, 5.0, 5, 'inRoom', 'irLiving', 0.3], LS: [190, 4.6, 5, 'srDoor', 'irLiving', 0.3] },
     kongiDoor: { L0: [2, 4.6, -10, 'inRoom', 'irLiving', 0.35], LT: [20, 5.0, -10, 'inRoom', 'irLiving', 0.35], LS: [192, 4.4, -10, 'srDoor', 'irLiving', 0.35] },
     hallOut: { L0: [0, 6.2, 0, 'hallOut', 'irHall', 0.45], LT: [17, 6.6, 0, 'hallOut', 'irHall', 0.45], LS: [191, 8.5, 0, 'srFront', 'irHall', 0.45] },
     firedoor: { L0: [345, 8, 0, 'hallOut', 'irStair', 0.5], LT: [359, 7.7, 0, 'hallOut', 'irStair', 0.5], LS: [186, 10, 0, 'srFront', 'irStair', 0.5] },
@@ -1180,6 +1180,20 @@
       A.noise(t0 + dt, 0.006, 0.2, felt, { filters: [{ type: 'lowpass', freq: 2000 }] });
     });
   });
+  /** fixed-seed LP noise strike: identical samples every play, so the '퍽' peak does not wander with a random buffer offset */
+  let punchBuf = null, punchCtx = null;
+  function punchNoise(t, dur, peak, out, freq) {
+    const c = A.ctx;
+    if (!punchBuf || punchCtx !== c) {
+      punchCtx = c; punchBuf = c.createBuffer(1, Math.ceil(c.sampleRate * 0.3), c.sampleRate);
+      const d = punchBuf.getChannelData(0); let x = 20240610;
+      for (let i = 0; i < d.length; i++) { x = (Math.imul(x, 1664525) + 1013904223) >>> 0; d[i] = (x / 2147483648) - 1; }
+    }
+    const src = c.createBufferSource(); src.buffer = punchBuf;
+    const f = A.filter('lowpass', freq, 0.8), g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(peak, t + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f); f.connect(g); g.connect(out); src.start(t, 0); src.stop(t + dur + 0.05);
+  }
   /* boiler.fire — relay '딸깍' → igniter ×8 (≈13 Hz) → +0.80 '퍽' → +0.90 fan 4 s → pump (+5 s, 15 min · hook: until leaving) */
   def('boiler.fire', (o) => {
     const n3 = (o.n || 1) >= 3, lessOn = n3 && isLess(o);
@@ -1195,7 +1209,7 @@
       A.noise(tp, 0.08, 0.5 * nbw(600), puff, { filters: [{ type: 'lowpass', freq: 600 }] });
     } else {
       tone(80, tp, 0.15, 1, puff, { a: 0.008 });
-      A.noise(tp, 0.08, 0.5 * nbw(200), puff, { filters: [{ type: 'lowpass', freq: 200 }] });
+      punchNoise(tp, 0.08, 0.5 * nbw(200), puff, 200);
       tone(40, tp, 0.25, db(-10), puff, { a: 0.02 });
     }
     const fan = c.createGain(); fan.gain.value = 1; fan.connect(k.n);

@@ -61,7 +61,7 @@
 
 /* ---------------- hotspots (≥ 44 CSS px at any zoom through ::after) ---------------- */
 .rm3-spot { position: absolute; border-radius: calc(8px * var(--iz, 1)); background: transparent; }
-.rm3-spot::after { content: ''; position: absolute; left: 50%; top: 50%; width: max(100%, calc(44px * var(--iz, 1))); height: max(100%, calc(44px * var(--iz, 1))); transform: translate(-50%, -50%); }
+.rm3-spot::after { content: ''; position: absolute; left: 50%; top: 50%; width: max(100%, 44px, calc(44px * var(--iz, 1))); height: max(100%, 44px, calc(44px * var(--iz, 1))); transform: translate(-50%, -50%); }
 .rm3-spot:active { background: rgba(255,255,255,.06); }
 .rm3-spot.rm3-flip { display: flex; align-items: center; justify-content: center; color: rgba(60,50,35,.0); }
 .rm3-spot.rm3-flip svg { width: 40%; height: 40%; opacity: 0; }
@@ -178,7 +178,7 @@
 .rm3-btn svg { width: 22px; height: 22px; }
 .rm3-flashbtn.on { color: #ffd60a; }
 .rm3-dots { display: flex; align-items: center; }
-.rm3-dot { width: 26px; height: 44px; display: flex; align-items: center; justify-content: center; }
+.rm3-dot { width: 44px; margin: 0 -9px; height: 44px; display: flex; align-items: center; justify-content: center; }
 .rm3-dot i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.35); transition: background .2s; }
 .rm3-dot.on i { background: #ffd60a; }
 .rm3-turnbtn { position: absolute; top: 44%; width: 44px; height: 64px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.85);
@@ -237,5 +237,6 @@
 .rm3-room.rm3-calm .rm3-pglow .ceil.pulse { animation: none; opacity: .8; }
 @media (prefers-reduced-motion: reduce) {
   .rm3-turn.turn-r, .rm3-turn.turn-l, .rm3-flame, .rm3-pglow .ceil.pulse { animation: none; }
+  .rm3-led { animation: none; opacity: .4; }
   .rm3-steam i { animation: none; opacity: .6; }
 }

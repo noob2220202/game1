@@ -17,6 +17,8 @@
 > Workplace: the git worktree `C:\Users\Admin\game1\work\ep3wt` (branch `ep3`). Never touch the main checkout (`C:\Users\Admin\game1`
 > outside `work\ep3wt`). Build agents do not run state-changing git commands (no commit/checkout/reset/stash/branch/merge/push).
 
+> **2026-11-28 (DESIGN_EP3 §12.7) — 이 계약에서 더는 맞지 않는 것.** 아래 본문의 옛 문장에는 `(12.7에서 삭제/변경)`을 달아 두었고 지우지 않았다. 요약: (1) 공개 시각 · `Date.UTC` · `?preview=1` 우회 · 공개 전 반환은 없다 — `RELEASES = { 2: 0, 3: 0 }`이고 `gate.js`는 `G.series.isReleased(3)`이 참일 때만 여는 잠금 없는 gate이며 엔진이 없거나 거짓이면 선택 화면(`../series/`)으로 닫힌다(§5.5) · (2) 크레딧은 제목 한 줄, 점검 카드는 112 · 1366 한 줄 + `계속`, 경고는 한 줄, 타이틀의 시간 · 이어폰 권장 줄 · 데스크톱 안내 줄 · 이어폰 테스트의 결과 줄과 바닥 글 · `게임 속 단순화` 줄은 없다 · (3) 루트 `index.html`은 선택 화면으로 가고 1편은 `ep1.html` · (4) 타이틀 · 선택 화면 부제는 1·2편과 같은 손글씨. 현행 문자열의 정본은 `ep3/js/data/*.js`와 DESIGN_EP3 §12.7이다.
+
 ---
 
 ## ARCH §1 — CLIENT OVERRIDE (supersedes DESIGN, this file, and any task brief)
@@ -54,7 +56,7 @@
 >   ignition). Master peak ≤ −14 dBFS, no 50 ms RMS rise > +18 dB over the previous 250 ms, screen transitions ≥ 0.4 s, no shake class,
 >   no forced rotation, no `silenceDrop`, no `cls:'jump'`, no `sting.*` cue, no scare on any failure path (§6.1.0 · §6.4-③).
 > - Gender of {N} is never fixed: no pronouns/titles/clothes/age/job; text uses tokens only (ARCH §1.1). {MAKER} appears **only** in the
->   credits line `만든 사람 {MAKER} · {N}에게`; no invented private facts; **no new CONFIG keys** (`CONFIG.LETTERS.ep3` is not read).
+>   credits line `만든 사람 {MAKER} · {N}에게`; no invented private facts; **no new CONFIG keys** (`CONFIG.LETTERS.ep3` is not read). (12.7에서 삭제/변경 — 크레딧은 제목 한 줄뿐, 화면에 {MAKER} 0)
 >   No Daejeon dong/complex names anywhere (`{daejeon}` = `대전 서구` only, §0.1 #26). Faces of 엄마 · 지민 · young 세아 = 0. 콩이 is
 >   never hurt or threatened. No sentence or staging blames 엄마 — the subject is always "그".
 
@@ -89,7 +91,7 @@ G.STORY.names = { eunpyeong:'은평구', mapo:'마포구', eunpyeongOrg:'은평�
 /                                   ep1 LIVE — unchanged by ep3 (allowed diff stays: js/config.js keys + P-1…P-4, already applied)
 ├─ js/config.js                     NOT edited (ep3 adds no CONFIG key; reads PLAYER_NAME · MAKER_NAME only)
 ├─ engine/                          shared engine (ep2 fork). ep3 adds data-gated options only (ARCH §4)
-│  ├─ series.js                     core — RELEASES[3] · DEFAULTS.e3_easyBack · SEEN_KEYS +3 (also loaded by ep1 + series/)
+│  ├─ series.js                     core — RELEASES[3] · DEFAULTS.e3_easyBack · SEEN_KEYS +3 (also loaded by ep1 + series/) (12.7에서 변경 — `RELEASES = { 2: 0, 3: 0 }`, 날짜 0)
 │  ├─ core/  base.js(core, no change) audio.js(audio) spatial.js(audio) media.js(audio ★) fx.js(core) icons.js(core)
 │  │         phone.js(shell) widgets.js(core) keyboard.js(core)
 │  ├─ apps/  lock.js(shell) settings.js(shell) · phone.js(comms) talk.js(comms) sms.js(comms, NEW) moment.js(comms, not loaded)
@@ -206,7 +208,7 @@ icon `assets/img/icon_ep3.png`, `manifest.webmanifest` (`name 하루를 위한 �
 standalone · portrait · icons 512/192 maskable — §9.9). Viewport/apple metas copied from `ep2/index.html`. Fonts: the same CDN links and
 versions as ep2 (Pretendard 1.3.9 jsDelivr · Google Fonts Gowun Batang · Gaegu) **plus `Nanum+Brush+Script` and `Gamja+Flower` in the
 same Google Fonts link**, non-blocking (`media="print"` → `all` on load + `<noscript>` copy). **Nanum Pen Script is not linked in ep3**
-(§0.3 D30 — it is "his hand"). **No `<link rel=preload>`** (the gate must be able to bounce a pre-release visit first). Then:
+(§0.3 D30 — it is "his hand"). **No `<link rel=preload>`** (the gate must be able to bounce a pre-release visit first). Then: (12.7에서 변경 — ep3는 Nanum Pen Script도 링크한다: 타이틀 · 선택 화면 부제만 1·2편과 같은 손글씨. 엄마 · 세아의 손은 그대로 Brush · Gamja. `pre-release visit` 걱정도 없다 — 공개 전 방문 자체가 없다)
 ```
 ../engine/css/main.css → ../engine/css/apps.css → ../engine/css/room.css → ../engine/css/notebook.css
 → ../ep2/css/core.css → ../ep2/css/shell.css → ../ep2/css/media.css            (read-only — engine JS classes c2- sh2- md2- live there)
@@ -256,13 +258,13 @@ srspill ceilglow momshadow`) · flow `fl3-`. Overriding ep2 CSS = a later rule i
 | **flow** | `engine/notebook.js` · `engine/director.js` · `engine/css/notebook.css` · ★`ep3/index.html` · ★`ep3/manifest.webmanifest` · ★`ep3/js/scenes.js` · ★`ep3/js/call.js` · ★`ep3/js/ending.js` · ★`ep3/js/hook.js` · ★`ep3/js/main.js` · ★`ep3/js/data/cards.js` · ★`ep3/js/data/ending.js` · ★`ep3/js/data/objectives.js` · ★`ep3/js/data/beats.js` · ★`ep3/css/ep3.css` |
 | **assets** (running; not reassigned) | `tools/*_ep3*` (`prep_ep3.py` `post_ep3.py` `qa_ep3.py` `jobs_ep3_pass1..3.json` `tts_ep3.json`) · `ep3/assets/**` · `ep3/js/data/assets.js` (`G.IMG` · `G.IMGMETA` · `G.AUDIO_FILES` · `G.AUDIO_META` · `G.PRELOAD_GROUPS` — ARCH §6.1) |
 
-Nobody edits: `index.html` `js/**` `css/**` `assets/**` at the repo root (ep1 live), `ep2/**`, `docs/**` (the lead edits docs).
+Nobody edits: `index.html` `js/**` `css/**` `assets/**` at the repo root (ep1 live), `ep2/**`, `docs/**` (the lead edits docs). (12.7에서 변경 — 루트 `index.html`은 `series/` 선택 화면으로 보내는 얇은 페이지이고 1편은 `ep1.html`로 옮겼다. 3편 작업이 이 파일들을 고치지 않는 규칙은 같다)
 
 ### 3.2 Owner scopes (every DESIGN item has exactly one owner)
 
 **core** — the platform and the series plumbing. Implements: `config.ep3.js` exactly as §9.1 with this file's additions (`G.EP`,
 `G.EP.CLOCK`, `G.EP.HOME` getter, `G.EP.LOCK`, `G.EP.STATUS`, `G.EP.QS`, `G.EP.KBD`, `G.EP.mediaRoute`, `G.EP.DEFAULTS`, `G.STORY.names`,
-`G.DEBUG`, `G.EP.VIB`); `gate.js` (§9.9 — copy of `ep2/js/gate.js` with `isReleased(3)` and `fl3-*` classes); `flags.js` = the §2.5/§9.2 state
+`G.DEBUG`, `G.EP.VIB`); `gate.js` (§9.9 — copy of `ep2/js/gate.js` with `isReleased(3)` and `fl3-*` classes); `flags.js` = the §2.5/§9.2 state (12.7에서 변경 — `isReleased(3)`은 항상 참인 잠금 없는 gate. 현행 계약은 §5.5 끝의 12.7 줄)
 dictionary (`G.F`, `G.F.ALL`, `G.VARS`, `G.applyVarDefaults` — stage `{e3_played:true, e3_dnd:false, easyBack:null}`, ARCH §5.4);
 `e3.js` = `G.e3` (+ `G.e2 = G.ep = G.e3`, `window.E3`): system-string whitelist `STR` (§10 A), `MONO` (mono1 · mono2 · recap 4 lines
 §2.4 · §3.0), monologue queue with the M6-window drop rule (§6.1.3 · §0.3 D4), image resolver (§8.3-1 rules), `cb` computation and
@@ -276,7 +278,7 @@ battery decay (§2.1 · §9.1), `momAt` writer, `G.sd` (ep2 helper set), the `wi
 two-hands-phone show icon — engine SVG, no emoji glyphs §5.0-5; `sms` `files` `weather` already exist); `keyboard.js` (predict bar
 forced off by `G.EP.KBD.predict === false` — §9.5-1 · §0.3 D38 — and no key haptic under `G.EP.VIB`); `widgets.js` (only the additive
 `G.ui.inputSource` for the S1 keypads — ARCH §4.2); `engine/series.js` build-first diff (§3.17.2 · §9.3:
-`DEFAULTS.e3_easyBack:false`, `SEEN_KEYS += e3_height e3_radio e3_cake`, `RELEASES[3] = Date.UTC(2027, 0, 23, 12, 0)`); root picker
+`DEFAULTS.e3_easyBack:false`, `SEEN_KEYS += e3_height e3_radio e3_cake`, `RELEASES[3] = Date.UTC(2027, 0, 23, 12, 0)`); root picker (12.7에서 삭제/변경 — `RELEASES[3] = 0`)
 `series/series.js` + `series.css` (§9.9: EPS row 3 with `rec:'left'`, `WINS['702']`, second building x 278–316, 16 floors, lights =
 `eps["3"]` done/canon, ♪ = `seen.e3_grey ∨ sea ∋ sig_name`); `deploy/Caddyfile` + README (§9.9 배포 · §10 K); `core3.css` (cards,
 chips, mono/recap styling over black); QA drivers `tools/qa/ep3_speedrun.js` · `ep3_branches.js` (ARCH §7.4, written last).
@@ -352,7 +354,7 @@ cards, turn-away 40 s, tail line, 240 s fallback, success chip, `stage.e3_played
 playFallback`; `setpiece.js` holds the door/memory/climax card scripts; `room3.css`.
 
 **flow** — the story's spine. `index.html`, manifest, `ep3.css`; `scenes.js`: §3.0 title (`다른 이야기` link, `훅 다시 보기`,
-`이번 선택을 이야기로 남기기`, in-app card, desktop line), content warning, earphone test (`bell.small` 270° → 90°), recap card (cb.E),
+`이번 선택을 이야기로 남기기`, in-app card, desktop line), content warning, earphone test (`bell.small` 270° → 90°), recap card (cb.E), (12.7에서 변경 — `훅 다시 보기` → `06:10 다시 보기` · `이번 선택을 이야기로 남기기` → `이번 선택 남기기` · desktop line 삭제 · `bell.small` 안내는 `종소리를 들어 보세요.` 한 줄)
 pause menu (§4.0), **M0 cold open** (B01 layering, eye view via room, 엄마 first line + taps + `momLine1`, `B02`); `call.js`: §3.1 M1
 trigger, preroll `B03`, the 03:33 set piece `B04` second by second, `B05`, the 03:35 handover cards `B06`, `handover`, clock 03:35 —
 sets `M1 callRing callAnswered callEnded handover`; `ending.js`: END sequence `B18` (sets `END` + `G.e3.commit()`), tail 05:35–06:00
@@ -369,7 +371,7 @@ credits, check, hook strings).
 ### 3.3 Engine files — owner, ep3 change, what ep2 relies on
 | engine file | owner | ep3 change | ep2 relies on (must stay identical when the ep3 switch is absent) | ep3 switch |
 |---|---|---|---|---|
-| `series.js` | core | 3 table lines (RELEASES[3], DEFAULTS.e3_easyBack, SEEN_KEYS +3) | every API; ep1 P-2 `endEp1`; picker `isReleased(2)` | none (registration) |
+| `series.js` | core | 3 table lines (RELEASES[3], DEFAULTS.e3_easyBack, SEEN_KEYS +3) | every API; ep1 P-2 `endEp1`; picker `isReleased(2)` | none (registration) (12.7에서 변경 — `RELEASES[3] = 0`) |
 | `core/base.js` | core | **none** | `G.T`, clock (beat/card/fixed), save, flags, `freshStage()` + `G.applyVarDefaults` | — |
 | `core/fx.js` | core | `edgeShake` no-op when `G.EP.noShake` | mono, sub, black, vignette, shake (B14) | `G.EP.noShake` |
 | `core/icons.js` | core | add icons (additive keys only — `sms` `files` `weather` **already exist** and are reused as is) | existing keys | — |
@@ -475,8 +477,8 @@ credits, check, hook strings).
 ### 4.2 Per engine file — what ep3 adds and what ep2 relies on there
 - **`engine/series.js` (core)** — only the three registrations of §9.3 (exact):
   `DEFAULTS` += `e3_easyBack: false` (keep `e3_played: true, e3_dnd: false`) · `SEEN_KEYS` += `'e3_height', 'e3_radio', 'e3_cake'`
-  (keep `e3_block e3_dndLog e3_grey`) · `RELEASES = { 2: Date.UTC(2026, 11, 24, 12, 0), 3: Date.UTC(2027, 0, 23, 12, 0) }`. No other
-  diff (no date string, no `21:00`). ep2/ep1 rely on: `ensure backfillEp1 endEp1 ep s seen sea stage commit patch isReleased
+  (keep `e3_block e3_dndLog e3_grey`) · `RELEASES = { 2: Date.UTC(2026, 11, 24, 12, 0), 3: Date.UTC(2027, 0, 23, 12, 0) }`. No other (12.7에서 삭제/변경 — 현행 `RELEASES = { 2: 0, 3: 0 }`)
+  diff (no date string, no `21:00`). ep2/ep1 rely on: `ensure backfillEp1 endEp1 ep s seen sea stage commit patch isReleased (12.7에서 삭제/변경 — 공개일 자체가 없어 이 점검은 무의미하다)
   releases _fixture` (DEBUG only when `G.DEBUG` is set before load — ep3's `config.ep3.js` sets it). DESIGN §9.3 S12 is the
   watchdog profile for this diff.
 - **`engine/core/base.js` (core)** — **no change.** ep3 relies on: `G.clock` with `G.EP.CLOCK` rows found by flag name (the
@@ -734,17 +736,17 @@ handover · flow ending `jump('05:35')` · `'05:40'` · `'05:55'` · `'06:00'` p
 1 min / 15 s to 05:04.
 
 **`G.e3.STR`** (exact strings; keys are the API — = DESIGN §10 A allow-list + §4.0 common phone strings):
-`noResult "'{q}'에 대한 검색 결과가 없습니다."` · `converting '텍스트로 바꾸는 중…'` · `textNote '자동 변환이에요. 흐린 글자는 정확하지 않을 수 있어요.'` ·
+`noResult "'{q}'에 대한 검색 결과가 없습니다."` · `converting '텍스트로 바꾸는 중…'` ·
 `connecting '연결 중…'` · `callEnd '통화 종료'` · `noAnswer '상대방이 응답하지 않습니다'` · `connFail '연결 실패'` ·
 `powerOff '전화기가 꺼져 있어 삐 소리 후 음성사서함으로 연결됩니다.'` · `swipeOpen '위로 밀어서 열기'` · `emergency '긴급 통화'` ·
 `photoDeleted '삭제된 사진입니다'` · `memoEmpty '메모 없음'` · `noRec '녹음 없음'` · `noChat '대화 내용이 없습니다'` · `noEvent '일정 없음'` ·
-`noNotif '알림 없음'` · `noBlocked '직접 차단한 번호 없음'` · `dndLogFoot '최근 365개의 기록만 보관합니다.'` ·
-`recFoot '녹음 파일은 이 휴대전화에만 저장됩니다.'` · `recAuto '통화가 끝나면 자동으로 녹음됩니다.'` ·
+`noNotif '알림 없음'` · `noBlocked '직접 차단한 번호 없음'` ·
+`recAuto '통화가 끝나면 자동으로 녹음됩니다.'` ·
 `spamShort '스팸으로 신고된 번호의 전화와 문자를 자동으로 막습니다.'` ·
 `spamLong '스팸으로 신고된 번호의 전화와 문자를 자동으로 막습니다. 막은 전화는 울리지 않고 최근 기록에 남지 않습니다.'` ·
 `easyDesc '더 큰 글씨와 단순한 홈 화면, 단순한 앱 화면을 사용합니다.'` · `repeatCall '3분 안에 같은 번호로 다시 걸려 오면 울립니다.'` ·
 `loading '불러오는 중…'` · `exitAgain '한 번 더 누르면 게임을 나갑니다'` · `resume '🔈 소리 다시 켜기'` ·
-`restart3 '3편 진행이 지워집니다. 시리즈 기록은 남아요.'` · `recanonQ '이번 플레이의 선택으로 바꿀까요? 다음 편은 바뀐 선택을 기억합니다.'` ·
+`restart3 '3편 진행이 지워집니다. 시리즈 기록은 남아요.'` · `recanonQ '이번 플레이의 선택으로 바꿀까요? 다음 편은 바뀐 선택을 기억합니다.'` · (12.7에서 삭제/변경 — 현행: `exitAgain '한 번 더 누르면 종료됩니다'` · `restart3 '진행 상황이 지워집니다.'` · `recanonQ '이번 선택으로 바꿀까요?'`)
 `soundCard '소리가 들리지 않으면 무음 모드를 끄고 볼륨을 올려 주세요.'`.
 (ep2 keys still read by engine code paths that ep3 never reaches — `pinWrong` `noSimCall` … — are **absent** on purpose: if one is
 ever drawn, the engine fallback string shows up in the §10 A whitelist scan and is a bug. Add a key only with a DESIGN reference.)
@@ -833,6 +835,7 @@ Stage (`G.state.stage`, written only via `G.e3.stage`): `e3_played` (room climax
   first executing code after `../engine/series.js`; before release and without `?debug=1`/`?preview=1` → hide body → `window.stop()`
   → `location.replace('../series/')` (`file:` → `../series/index.html`); no ep3 save, no `eps.3 started`, no listener, no timer, no
   storage; exposes `G.gate = { released() → bool, titleLink(node) }` for the title's single `다른 이야기` link (keeps `?preview=1`,
+  - (12.7에서 삭제/변경 — 위 `before release … ?debug=1`/`?preview=1` 줄은 폐기. 현행: `gate.js`는 `G.series.isReleased(3)`이 참일 때만 열린다(`RELEASES = { 2: 0, 3: 0 }`이라 늘 참 = 잠금 없는 inert gate). **엔진이 없거나 `isReleased`가 없거나 거짓이면 닫힌다(fail-closed)**: body 숨김 → `window.stop()` → `location.replace('../series/')`(`file:` → `../series/index.html`) — 저장 · 리스너 · 타이머 0. `?debug=1`/`?preview=1` 우회 없음. `title.series` 링크에 `?preview=1` 꼬리 없음. `main.js`의 `released()` 두 번째 잠금은 `G.gate.released()`만 읽고 `gate.js`가 없으면 닫힌다(그대로). 근거: `ep3/js/gate.js` · `ep3/js/main.js` · DESIGN_EP3 §12.7.)
   data-qa `title.series`).
 - Root picker (`series/series.js`, `series.css`) = the §9.9 block verbatim (EPS row `{ n: 3, room: '702', title: NREUL + ' 위한 방탈출!
   3', sub: '엄마의 번호', href: FILE ? '../ep3/index.html' : '../ep3/', rec: 'left', seen: ['e3_grey'], sea: ['sig_name'] }`, `B2 = { x:
@@ -1166,7 +1169,7 @@ Hook cut (§6.4-①): `G.fx.black(2000)` + `G.audio.hush(true, {roomDb:-90})` �
 
 ### 5.15 Notebook (flow · `engine/notebook.js`) — `G.notebook`, `G.OBJECTIVES`
 Engine API unchanged (ARCH2 §4.17): `init open close isOpen refresh current show` + no-op `note lead leadDone flash autoHint`;
-bus `notebook:open {tab}` · `notebook:close` · `hint {id, tier}`; hold 2 s; T2 = T1 + 60 s; T3 = T2 + 60 s; stats `플레이 {m}분 ·
+bus `notebook:open {tab}` · `notebook:close` · `hint {id, tier}`; hold 2 s; T2 = T1 + 60 s; T3 = T2 + 60 s; stats `플레이 {m}분 · (12.7에서 삭제 — 통계 줄 · `힌트는 1분 간격…` 바닥 글 · `(선택)`은 엔진 수첩에서 지워졌다)
 힌트 {n}회`; empty hint tab `지금은 힌트가 필요 없어 보인다.`. Objective record (ARCH §6.21):
 `{ id, title, optional, greyAfter, show() → bool, done() → bool, hints:[T1, T2, T3] }` — `greyAfter:'M8'` for `block` `dnd` `album`.
 `G.OBJECTIVES.titleExceptions = ['call', 'phone', 'soup@gotPhone']` (the engine ignores it; flow `main.js` runs the DEBUG title
@@ -1399,6 +1402,7 @@ dog_park dog_bed avatar_sea avatar_mom avatar_jimin avatar_sagongsa kongi_santa`
 ### 6.2 `data/cards.js` (flow) → `G.STORY.cards` — readers: flow (scenes, call)
 ```js
 G.STORY.cards = {
+  // (12.7에서 삭제/변경 — 현행 문자열은 `ep3/js/data/cards.js`: title.small · 데스크톱 안내 줄 삭제 · hookReplay '06:10 다시 보기' · recanon '이번 선택 남기기' · warn ['실종·스토킹·감금·납치 소재가 나옵니다.', '계속'] · ear.line '종소리를 들어 보세요.' · ear.okLine · speakerLine · foot 삭제 · pause 소리 행 ['소리','이어폰','스피커'] + 그 아래 '목소리는 AI 음성입니다.' 한 줄. 아래 원문은 이력)
   title: { name:'{N를} 위한 방탈출! 3', sub:'엄마의 번호', start:'시작', cont:'이어하기', small:'약 45분 · 이어폰 권장', series:'다른 이야기',
            hookReplay:'훅 다시 보기', recanon:'이번 선택을 이야기로 남기기', fresh:'처음부터',
            inapp:["카카오톡 안에서는 소리가 제대로 나오지 않을 수 있어요. 오른쪽 위 ⋯ → '다른 브라우저로 열기'를 눌러 주세요.", '그냥 할래요'] },
@@ -1460,6 +1464,7 @@ G.STORY.ending = {
     big: [ { who:null, text:'{N가} 설정을 열어 쉬운 모드를 켠다. 홈 화면이 다시 큰 아이콘 여섯 개가 된다.' }, { who:'엄마', text:'…세아가 해 준 거랑 똑같네요.' } ],
     keep: [ { who:'엄마', text:'이게 원래 모양이에요? …천천히 배울게요. 세아 오면 물어보고요.' } ],
     t0600: { who:null, text:'일요일 아침 여섯 시. 창밖은 아직 어둡다. 건너편 동에 불이 둘 켜져 있다.' }, next:'계속' },
+  // (12.7에서 삭제/변경 — 현행 `ep3/js/data/ending.js`: credits = ['{N를} 위한 방탈출! 3 · 엄마의 번호'] 한 줄 · check = ['스토킹·디지털 성범죄 피해: 112 · 여성긴급전화 1366'] 한 줄 + checkNext '계속'. 아래 credits[1..5] · check[0..2]는 이력)
   credits: ['{N를} 위한 방탈출! 3 · 엄마의 번호', '만든 사람 {MAKER} · {N}에게', '목소리: AI 음성 · 사진: AI 생성 + 직접 편집 · 소리: 전부 직접 합성',
             '통화 녹음·텍스트 변환의 동작은 게임 속 단순화입니다.', '이 게임은 아무 데이터도 보내지 않았어요.', '플레이 {m}분 · 힌트 {n}회'],
   check: ["가족 폰에 스팸 차단을 켜 드렸다면, 가끔 '차단된 통화·메시지' 기록을 같이 열어 보세요.", '가족·공유 앨범의 멤버 목록에 모르는 계정이 없는지 확인하세요.',
@@ -1589,7 +1594,7 @@ G.STORY.settings = {
   // (§3.3 / §4.7.1 table: easy '녹음' → one row `통화 자동 녹음 — 전화`; standard '녹음' → `통화 녹음 — 전화 설정` · `녹음된 통화 — 전화 설정`)
   dnd: { now:['지금 사용', false], schedule:['매일 오후 11:00 – 오전 7:00', '사용 안 함'], exceptions:[['전화 · 반복 전화 허용','켜짐','{$repeatCall}'], ['알림 · 없음','']],
          last:'마지막 사용 · 2025.11.24 오전 7:00', logRow:'사용 기록' },
-  dndLog: { from:'2024-11-24', to:'2025-11-23', kind:'일정', foot:'{$dndLogFoot}' },   // generated daily rows: `2025.11.23 (일) 오후 11:00 – 11.24 (월) 오전 7:00   일정`
+  dndLog: { from:'2024-11-24', to:'2025-11-23', kind:'일정' },   // generated daily rows: `2025.11.23 (일) 오후 11:00 – 11.24 (월) 오전 7:00   일정`
   about: [['이름','엄마 폰'], ['전화번호','010-0718-2215'], ['SIM','있음']],
   kbd: [['예측 텍스트','꺼짐']],
   /* sound · wifi · bt · battery (`72%` only) · access · wallpaper · lock · general rows = §4.7.4 (view-only, progress 0) */
@@ -1693,8 +1698,8 @@ G.STORY.recordings = [
 ];
 G.STORY.callrecUI = {
   settings:['번호 차단','통화 녹음','스팸 보호','빠른 거절 메시지','벨소리 및 진동'],
-  recSettings:[['통화 자동 녹음','켜짐'], ['녹음할 통화','모든 통화'], ['녹음된 통화','›']], recFoot:'{$recFoot}',
-  more:['텍스트 변환','세부 정보'], textHead:'{$textNote}', converting:'{$converting}', playerSub:'[통화 녹음 — 허밍]', plainSub:'[통화 소리]',
+  recSettings:[['통화 자동 녹음','켜짐'], ['녹음할 통화','모든 통화'], ['녹음된 통화','›']],
+  more:['텍스트 변환','세부 정보'], converting:'{$converting}', playerSub:'[통화 녹음 — 허밍]', plainSub:'[통화 소리]',
   reject:['지금은 통화할 수 없어요.','잠시 후 다시 걸게요.','회의 중이에요.','운전 중이에요.'],
   ring:[['벨소리','기본 벨소리'], ['진동 패턴','기본'], ['전화 받을 때 진동','켜짐']], spamRow:'스팸 및 사기 의심 전화 차단  사용 중 ›',
   voice:{ head:'음성 녹음', chips:['전체','일반','통화 녹음'], empty:'{$noRec}' },
@@ -1924,7 +1929,7 @@ Snapshot `s` (engine) + ep3 helpers in the data file: `where()` (= `G.e3.where()
 `G.IMGMETA` rects (room — `haru.rects()`), a corner budget meter (core: his lines = 1, jumps 0, stings ≤ 1, monos ≤ 6, vibrate calls),
 missing-hook warnings, the §10 A title/whitelist auto-check (flow `main.js`), and enables `window.haru`. URL helpers (DEBUG only):
 `?debug=1&series=S5` injects a §9.3 profile (S1–S13) before `seriesBoot` (core, engine `_fixture`) · `?debug=1&jump=M5` calls
-`haru.jump('M5')` after boot (flow main) · `?debug=1&name=지은` sets the player name before boot (core) · `?preview=1` passes the
+`haru.jump('M5')` after boot (flow main) · `?debug=1&name=지은` sets the player name before boot (core) · `?preview=1` passes the (12.7에서 삭제 — `?preview=1` 우회는 없다. 잠금 자체가 없다)
 release gate (no debug UI).
 
 ### 7.2 `window.haru` (core creates it in `e3.js` at load; owners add their helpers in their own files, only when `G.DEBUG`)
@@ -2078,7 +2083,7 @@ fallbacks (`하루` `지은` `민준` one-syllable · 6-syllable · Latin) · re
 | 1 | scripts load | all | data defined, apps registered, `gate.js` lets the page through (released / debug / preview) |
 | 2 | `G.main.boot()` | flow | ARCH §5.1 init order; settings (`--ts`), `body.ep3`, preload `G.PRELOAD_GROUPS.title` then `start` (§9.8) |
 | 3 | `G.e3.seriesBoot()` | core | §9.3 ① (`ensure` + `backfillEp1` → `cbPreview`, `ep3Done`) |
-| 4 | title | flow scenes | `{N를} 위한 방탈출! 3` · `엄마의 번호` · [시작] (· [이어하기] · `훅 다시 보기` · `이번 선택을 이야기로 남기기` when applicable) · `약 45분 · 이어폰 권장` · `다른 이야기` (`G.gate.titleLink`) · in-app web-view card · **no `made by` line** (§0.3 D23) |
+| 4 | title | flow scenes | `{N를} 위한 방탈출! 3` · `엄마의 번호` · [시작] (· [이어하기] · `훅 다시 보기` · `이번 선택을 이야기로 남기기` when applicable) · `약 45분 · 이어폰 권장` · `다른 이야기` (`G.gate.titleLink`) · in-app web-view card · **no `made by` line** (§0.3 D23) (12.7에서 삭제/변경 — `약 45분 · 이어폰 권장` 삭제 · `훅 다시 보기` → `06:10 다시 보기` · `이번 선택을 이야기로 남기기` → `이번 선택 남기기` · 데스크톱 안내 줄 삭제) |
 | 5 | content warning [계속] | flow scenes | **`G.audio.unlock()`** here (gesture — the test bell must already play) |
 | 6 | earphone test | flow scenes + audio | `bell.small` 270° → 90°; [들려요] / [스피커예요] (`audioMode 'speaker'`) / [안 들려요] or 8 s → sound card [다시 듣기] [소리 없이 할게요] → [시작] |
 | 7 | [시작] | flow → core | `G.audio.unlock()` again (idempotent) + start TTS decode and the `rec.sea0333` render; `G.flag('introDone')`; `G.e3.seriesStart()` (cb frozen, `eps.3 started`); `G.clock.start()` |
@@ -2104,8 +2109,8 @@ fallbacks (`하루` `지은` `민준` one-syllable · 6-syllable · Latin) · re
 | `memoryStart ∧ ¬memoryDone` | memory cards from line 1 | room memory |
 | `M8` | 엄마 at the table · `playArmed` kept · `playFails` kept · 240 s timer = `max(remaining, 120 s)` · `vars.play` dropped (new session) | room climax |
 | `END ∧ ¬HOOK` | next tail card from `vars.endStep` (commit never doubled; retried if `¬committed`); a pending chip is shown again | flow ending, core |
-| `HOOK ∧ ¬hookDone` | ending screen with `훅 다시 보기`; `¬patched` ⇒ boot patches from `stage` (§9.3 ⑤) | flow hook, core |
-| `hookDone` | title with `훅 다시 보기` · `처음부터` (confirm `{$restart3}` [취소] [지우기] → `G.resetSave()` + session store clear; the series record stays) | flow |
+| `HOOK ∧ ¬hookDone` | ending screen with `훅 다시 보기`; `¬patched` ⇒ boot patches from `stage` (§9.3 ⑤) | flow hook, core (12.7에서 변경 — 문구 `06:10 다시 보기`) |
+| `hookDone` | title with `훅 다시 보기` · `처음부터` (confirm `{$restart3}` [취소] [지우기] → `G.resetSave()` + session store clear; the series record stays) | flow (12.7에서 변경 — 문구 `06:10 다시 보기`, data-qa `title.hookReplay` 그대로) |
 Hidden tab: director · playMs · clock · audio stop (a playing recording pauses; the callrec session survives); on return 0.8 s fade in,
 no text, no sting (§6.1.8).
 

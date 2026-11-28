@@ -58,7 +58,7 @@
   E3.STR = Object.freeze({
     noResult: "'{q}'에 대한 검색 결과가 없습니다.",
     converting: '텍스트로 바꾸는 중…',
-    textNote: '자동 변환 · 흐린 글자는 인식이 불확실한 부분입니다.',
+    textNote: '',   // footnote dropped (no-meta rule); key kept so data tokens resolve to nothing
     connecting: '연결 중…',
     callEnd: '통화 종료',
     noAnswer: '상대방이 응답하지 않습니다',
@@ -73,8 +73,8 @@
     noEvent: '일정 없음',
     noNotif: '알림 없음',
     noBlocked: '직접 차단한 번호 없음',
-    dndLogFoot: '최근 365개의 기록만 보관합니다.',
-    recFoot: '녹음 파일은 이 휴대전화에만 저장됩니다.',
+    dndLogFoot: '',   // footnotes dropped (no-meta rule)
+    recFoot: '',
     recAuto: '통화가 끝나면 자동으로 녹음됩니다.',
     spamShort: '스팸으로 신고된 번호의 전화와 문자를 자동으로 막습니다.',
     spamLong: '스팸으로 신고된 번호의 전화와 문자를 자동으로 막습니다. 막은 전화는 울리지 않고 최근 기록에 남지 않습니다.',
@@ -651,7 +651,7 @@
     try { walk(G.STORY || {}, 0); } catch (e) {}
     return n;
   }
-  if (!G.APP || G.DEBUG) E3.budget = function () {   // QA only: left out of the app build (G.APP && !G.DEBUG)
+  if (G.DEBUG) E3.budget = function () {   // QA only: only with ?debug=1
     const dir = V().dir || {}, fired = dir.fired || {};
     const recs = safe(() => ((G.BEATDATA3 || G.BEATDATA2 || {}).beats || []), []) || [];
     const jumps = recs.filter((b) => b && b.cls === 'jump' && fired[b.id] != null).length;

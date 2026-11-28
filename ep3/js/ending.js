@@ -129,7 +129,7 @@
     await p5;
     if (!ok()) return;
     // ⑥ the night's first bell
-    cue('kongi.bell', { src: 'kongiSr' });
+    cue('kongi.bell', { src: 'kongiBell' });
     setFlag('collarOn');
     sub('S20', { az: 48 });
     await wait(1400);
@@ -296,7 +296,7 @@
       if (cur[0].top > prev[prev.length - 1].top + 2) { seps[i - 1].hidden = true; parts[i].classList.add('own'); }
     }
   }
-  const HOUSE = ['amb.fridge', 'amb.clock', 'amb.apt', 'stove.flame', 'soup.simmer', 'breath.kongi', 'breath.jimin', 'amb.wind90'];
+  const HOUSE = ['amb.fridge', 'amb.clock', 'amb.apt', 'stove.flame', 'soup.simmer', 'breath.kongi', 'amb.wind90'];
   async function credits() {
     const lines = D().credits || [];
     mark('B20');

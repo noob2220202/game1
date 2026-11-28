@@ -110,7 +110,12 @@
   /* ---------- the set piece ---------- */
   let gen = 0, runningNow = false;
   /** reveal time of a card at 70 ms/char + 1.2 s per '…' (core G.cards rule) — to put situation cards on the call timeline */
-  function revealMs(text) { const s = String(G.T ? G.T(text) : text); return s.length * 70 + (s.split('…').length - 1) * 1200; }
+  function revealMs(text) {   // exactly cards.js: 70 ms per char, an '…' that is neither doubled nor last holds 1.2 s instead of 70 ms
+    const c = Array.from(String(G.T ? G.T(text) : text));
+    let ms = 0;
+    for (let k = 0; k < c.length; k++) ms += c[k] === '…' && c[k + 1] !== '…' && k < c.length - 1 ? 1200 : 70;
+    return ms;
+  }
   /** a timed card group: steps [{text, who, at}] (at = seconds on the call clock) — tap:false, gaps fill to the next line */
   function timed(steps, tailMs) {
     const out = steps.map((s, i) => {

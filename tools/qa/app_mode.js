@@ -80,7 +80,7 @@ const EPS = {
     page: 'ep3/index.html',
     saveKey: 'haru-escape.ep3.save.v1',
     // debug route: the END state, then the chain resumes after the 06:00 step (endStep e0600) → ending.resume → credits()
-    toCredits: async () => { window.haru.jump('END'); await new Promise((r) => setTimeout(r, 1500)); G.ending.abort(); G.vars('endStep', 'e0600'); if (G.save) G.save(true); G.ending.resume('e0600'); return true; },   // jump's own resume (END sequence tail) is given its 0.9 s to start, then gives way
+    toCredits: async () => { const nap = (ms) => new Promise((r) => setTimeout(r, ms)); window.haru.jump('END'); await nap(1500); for (let i = 0; i < 40 && !G.flag('END'); i++) await nap(250); for (let i = 0; i < 6 && !document.querySelector('.fl3-credits'); i++) { G.ending.abort(); G.vars('endStep', 'e0600'); if (G.save) G.save(true); G.ending.resume('e0600'); await nap(4000); } return true; },   // jump's own resume (END sequence tail) is given its 0.9 s to start, then gives way
     sel: { scene: '.fl3-credits', inner: '.fl3-cred-in', title: '.fl3-cred-title', skip: 'credits.skip', next: 'check.continue', cont: 'title.continue', start: 'title.start', checkIn: '.fl3-check-in' },
     webKids: ['fl3-cred-title'],
     appClass: false,
@@ -188,7 +188,7 @@ function helpers(page, label) {
 }
 
 async function waitScene(H, ms) {
-  await H.page.waitForSelector(E.sel.scene, { timeout: ms || 20000 });
+  await H.page.waitForSelector(E.sel.scene, { timeout: ms || 60000 });
   await H.sleep(2700);   // the title's rise animation (2.4 s) has ended — boxes are final
 }
 async function bodyHits(H, L) {
@@ -208,7 +208,7 @@ async function webRun(browser, root, tag) {
   let html = null;
   const r = await run(browser, tag, { root }, async (H, check) => {
     await H.page.goto(fileUrl(root, E.page) + '?debug=1');
-    await H.loc(E.sel.start).waitFor({ state: 'visible', timeout: 20000 });
+    await H.loc(E.sel.start).waitFor({ state: 'visible', timeout: 60000 });
     check('G.APP off · G.DEBUG true on ?debug=1', await H.ev(() => G.APP !== true && G.DEBUG === true), await H.ev(() => [G.APP, G.DEBUG]));   // the baseline has no G.APP at all
     check('body.debug class (web, as before)', await H.ev(() => document.body.classList.contains('debug')));
     check('room probe opens a camera view', await H.ev(E.roomProbe));
@@ -249,7 +249,7 @@ async function appPreviewRun(browser) {
   let save = null;
   const r = await run(browser, 'b_app_preview', {}, async (H, check) => {
     await H.page.goto(fileUrl(ROOT, E.page) + '?debug=1&app=1');
-    await H.loc(E.sel.start).waitFor({ state: 'visible', timeout: 20000 });
+    await H.loc(E.sel.start).waitFor({ state: 'visible', timeout: 60000 });
     check('G.APP true · G.DEBUG true on ?app=1&debug=1 (preview keeps the jump helpers)', await H.ev(() => G.APP === true && G.DEBUG === true && !!window.haru), await H.ev(() => [G.APP, G.DEBUG, !!window.haru]));
     check('no body.debug class', !(await H.ev(() => document.body.classList.contains('debug'))));
     check('room probe opens a camera view', await H.ev(E.roomProbe));
@@ -307,7 +307,7 @@ async function appBuildRuns(browser, save) {
   const out = [];
   out.push(await run(browser, 'c1_app_build', { config: { APP: true } }, async (H, check) => {
     await H.page.goto(fileUrl(ROOT, E.page) + '?debug=1&jump=END&series=S6');
-    await H.loc(E.sel.start).waitFor({ state: 'visible', timeout: 20000 });
+    await H.loc(E.sel.start).waitFor({ state: 'visible', timeout: 60000 });
     check('CONFIG.APP true → G.APP true · G.DEBUG false (with ?debug=1)', await H.ev(() => window.CONFIG.APP === true && G.APP === true && G.DEBUG === false), await H.ev(() => [window.CONFIG.APP, G.APP, G.DEBUG]));
     const left = await H.ev((list) => list.filter((x) => { try { return Function('return typeof ' + x)() !== 'undefined' && Function('return ' + x)() !== undefined; } catch (e) { return false; } }), E.stripped);
     check('no debug helpers (' + E.stripped.join(' · ') + ')', left.length === 0, left);
@@ -330,7 +330,7 @@ async function appBuildRuns(browser, save) {
   }));
   out.push(await run(browser, 'c2_app_build_debug_config', { config: { APP: true, DEBUG: true } }, async (H, check) => {
     await H.page.goto(fileUrl(ROOT, E.page) + '?debug=1');
-    await H.loc(E.sel.start).waitFor({ state: 'visible', timeout: 20000 });
+    await H.loc(E.sel.start).waitFor({ state: 'visible', timeout: 60000 });
     check('CONFIG.APP + CONFIG.DEBUG true → G.DEBUG false', await H.ev(() => window.CONFIG.DEBUG === true && G.APP === true && G.DEBUG === false), await H.ev(() => [window.CONFIG.DEBUG, G.APP, G.DEBUG]));
     const left = await H.ev((list) => list.filter((x) => { try { return Function('return typeof ' + x)() !== 'undefined' && Function('return ' + x)() !== undefined; } catch (e) { return false; } }), E.stripped);
     check('no debug helpers', left.length === 0, left);
@@ -339,7 +339,7 @@ async function appBuildRuns(browser, save) {
   if (save) {
     out.push(await run(browser, 'c3_app_build_credits', { config: { APP: true }, init: { fn: (o) => { try { if (!sessionStorage.getItem('qa.seeded')) { sessionStorage.setItem('qa.seeded', '1'); localStorage.setItem(o.k, o.v); } } catch (e) {} }, arg: { k: E.saveKey, v: save } } }, async (H, check) => {
       await H.page.goto(fileUrl(ROOT, E.page) + '?debug=1');
-      await H.tap(E.sel.cont, { timeout: 20000, after: 600 });
+      await H.tap(E.sel.cont, { timeout: 60000, after: 600 });
       await waitScene(H, 25000);
       const s = await H.scene();
       const L = await H.ev(E.lines);

@@ -960,7 +960,7 @@
         // each half of 'start – end' stays on one line (inline-block halves: a narrow screen breaks after the dash, not inside 오전 7:00)
         const halves = (s) => { const i = s.indexOf(' – '); return i < 0 ? [s] : [el('span.sh3-nw', null, s.slice(0, i + 2)), ' ', el('span.sh3-nw', null, s.slice(i + 3))]; };
         dndLogRows().forEach((s) => list.appendChild(el('div.sh2-row.sh3-logrow', null, el('span.sh2-main', null, el('span.sh2-t', null, ...halves(s))), el('span.sh2-meta', null, T(L.kind || '일정')))));
-        return el('div', null, el('div.sh2-gw', null, list), foot(L.foot || '{$dndLogFoot}'));
+        return el('div', null, el('div.sh2-gw', null, list), (T(L.foot || '{$dndLogFoot}') ? foot(L.foot || '{$dndLogFoot}') : null));
       },
     });
     /* 배경화면 · 잠금 화면 · 배터리 · 접근성 · 일반 · 키보드 · 휴대전화 정보 (§4.7.4 — view-only, progress 0) */

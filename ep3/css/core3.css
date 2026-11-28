@@ -33,8 +33,8 @@
   color: #ececef; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
   opacity: 0; transform: translateY(8px); transition: opacity .45s ease, transform .45s ease; outline: none; touch-action: manipulation; }
 .c3-cbox.in { opacity: 1; transform: none; }
-.c3-cbox.old { opacity: .5; pointer-events: none; }
-.c3-cbox.old.in { opacity: .5; }
+.c3-cbox.old { opacity: .64; pointer-events: none; background: rgba(8, 8, 11, .96); }
+.c3-cbox.old.in { opacity: .64; }
 .c3-cbox:focus-visible { box-shadow: 0 0 0 2px rgba(231, 201, 154, .7), 0 10px 30px rgba(0, 0, 0, .45); }
 .c3-cwho { font-size: calc(12.5px * var(--ts, 1)); font-weight: 700; letter-spacing: .6px; color: #e7c99a; margin-bottom: 4px; }
 .c3-ctext { font-size: calc(16px * var(--ts, 1)); line-height: 1.62; word-break: keep-all; overflow-wrap: anywhere; white-space: pre-line; min-height: 1.62em; }
@@ -85,6 +85,10 @@
 /* ---------------- subtitles & monologue above the cards (#fx-layer z 300) ---------------- */
 #phone.c3-cards-up:not(.kb-open) .c2-subs { bottom: calc(var(--c3-ch, 0px) + 12px); }
 #phone.c3-cards-up:not(.kb-open) .c2-mono { bottom: calc(var(--c3-ch, 0px) + 64px); transition: bottom .25s ease; }
+/* the band sits above the bottom controls (dock, green call button, 음소거) on the phone apps; white text on a darker backing over the call screen */
+.c2-subs { bottom: calc(var(--safe-bot, 0px) + 128px); }
+.c2-mono { bottom: calc(var(--safe-bot, 0px) + 188px); }
+#phone:has(.sh3-call:not([hidden])) .c2-mono-line, #phone:has(.sh3-call:not([hidden])) .c2-sub { color: #fff; background: rgba(0, 0, 0, .84); }
 /* the recap (지난 이야기 — §3.0 · §4.0 R1): notebook handwriting on the monologue channel, over the flow's black scene.
    Gaegu — never the hand the series gives to him (§0.3 D30). */
 .c2-mono-line.c3-recap { font-family: 'Gaegu', 'Gamja Flower', cursive; font-size: calc(22px * var(--ts, 1)); line-height: 1.55; letter-spacing: 0;
@@ -93,6 +97,15 @@
 
 /* ---------------- DEBUG meter (z 900 — G.DEBUG only) ---------------- */
 .c3-debug-meter { bottom: calc(var(--safe-bot, 0px) + 1px); }
+
+/* ---------------- tap targets ≥ 44 px (invisible extensions — the drawn size does not change; §5.0 item 5) ---------------- */
+.toggle::before { content: ''; position: absolute; inset: -7px -4px; }   /* .toggle.locked::before (apps.css) keeps its own dashed ring */
+.slider { box-sizing: content-box; padding: 7px 0; margin: -7px 0; }
+.hw-date { position: relative; }
+.hw-date::before { content: ''; position: absolute; inset: -6px -6px; }
+.cm3-avbtn { position: relative; }
+.cm3-avbtn::before { content: ''; position: absolute; inset: -5px; }
+.cm3-callb { min-height: 44px; }
 
 @media (prefers-reduced-motion: reduce) {
   .c3-cbox, .c3-chips, .c3-stack { transition: opacity .4s ease; transform: none !important; }

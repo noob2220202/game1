@@ -551,7 +551,7 @@
       mark('B02');
       cue('chair.creak', { src: 'momSeat' });   // 엄마 turns toward {N} (270° 2.6 m)
       const then = m.momThen || [];
-      await FL.play([{ id: 'momFirst', who: '엄마', text: m.momFirst, gapMs: 4000 }, { id: 'momThen1', who: '엄마', text: then[0] }],
+      await FL.play([{ id: 'momFirst', who: '엄마', text: m.momFirst, gapMs: 1000 }, { id: 'momThen1', who: '엄마', text: then[0] }],
         { id: 'flow:m0', onStep: (s) => { if (s && s.id === 'momFirst') setFlag('momLine1'); } });
       setFlag('momLine1');
       if (my !== momGen) return;
